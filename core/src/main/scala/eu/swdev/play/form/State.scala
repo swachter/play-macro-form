@@ -2,7 +2,7 @@ package eu.swdev.play.form
 
 /**
   */
-trait State[M] {
+trait State[+M] {
 
   def model: M
 
@@ -13,15 +13,15 @@ trait State[M] {
   def hasErrors: Boolean
 }
 
-trait FieldState2[M, C <: Constraints[_, _, _, _]] extends State[M] {
+trait FieldState[+M, +C <: Constraints[_, _]] extends State[M] {
   def name: Name
   def hasErrors: Boolean = !errors.isEmpty
   def view: Seq[String]
   def constraints: C
 }
 
-case class FieldStateWithModel[V, B[_], C <: Constraints[V, _, _, _]](name: Name, view: Seq[String], constraints: C, model: B[V]) extends FieldState2[B[V], C]
+case class FieldStateWithModel[V, B[_], C <: Constraints[V, _]](name: Name, view: Seq[String], constraints: C, model: B[V]) extends FieldState[B[V], C]
 
-case class FieldStateWithoutModel[V, B[_], C <: Constraints[V, _, _, _]](name: Name, view: Seq[String], constraints: C) extends FieldState2[B[V], C] {
+case class FieldStateWithoutModel[V, B[_], C <: Constraints[V, _]](name: Name, view: Seq[String], constraints: C) extends FieldState[B[V], C] {
   def model: B[V] = throw new NoSuchElementException(s"field does not have a model value - it contains errors: $errors")
 }

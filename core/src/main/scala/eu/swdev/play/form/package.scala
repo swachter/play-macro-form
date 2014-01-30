@@ -6,16 +6,11 @@ import scala.util.{Failure, Success, Try}
   */
 package object form {
 
-  def field[M](implicit converter: SimpleConverter[M]) = new Field(simpleFieldHandler(converter), Constraints[M, None.type, None.type, None.type](None, None, None))
-  def field[M, C[_]](implicit handler: FieldHandler[M, C]) = new Field(handler, Constraints[M, None.type, None.type, None.type](None, None, None))
+  def field[V](implicit converter: SimpleConverter[V]) =
+    new Field[V, Id, CState](simpleFieldConverter(converter), Constraints())
 
-  def form[F <: BaseForm: FormFactory]: F = implicitly[FormFactory[F]].apply()
-
-  def field2[V](implicit converter: SimpleConverter[V]) =
-    new Field2[V, Id, None.type, None.type, None.type](simpleFieldConverter(converter), Constraints(None, None, None))
-
-  def field2[V, B[_]](implicit converter: FieldConverter[B[V]]) =
-    new Field2(converter, Constraints[V, None.type, None.type, None.type](None, None, None))
+  def field[V, B[_]](implicit converter: FieldConverter[B[V]]) =
+    new Field[V, B, CState](converter, Constraints())
 
 
 
@@ -28,95 +23,6 @@ package object form {
   }
 
   type Id[X] = X
-
-  //
-  //
-  //
-
-  implicit def simpleFieldHandler[M](implicit converter: SimpleConverter[M]) = new FieldHandler[M, Id] {
-
-
-    def fillFromView(view: Seq[String], fieldState: FieldState[Id[M]]): Unit = {
-      fieldState.view = view
-      if (view.isEmpty) {
-        fieldState.errors = Seq("missing input")
-        fieldState.model = None
-      } else if (!view.tail.isEmpty) {
-        fieldState.errors = Seq("ambiguous input")
-        fieldState.model = None
-      } else {
-        converter.parse(view.head) match {
-          case Right(r) => {
-            fieldState.errors = Seq()
-            fieldState.model = Some(r)
-          }
-          case Left(e) => {
-            fieldState.errors = Seq(e)
-            fieldState.model = None
-          }
-        }
-      }
-    }
-
-    def fillFromModel(model: Id[M], fieldState: FieldState[Id[M]]): Unit = {
-      fieldState.view = Seq(converter.format(model))
-      fieldState.errors = Seq()
-      fieldState.model = Some(model)
-    }
-
-  }
-
-  implicit def optionFieldHandler[M](implicit converter: SimpleConverter[M]) = new FieldHandler[M, Option] {
-
-    def fillFromView(view: Seq[String], fieldState: FieldState[Option[M]]): Unit = {
-      fieldState.view = view
-      if (view.isEmpty) {
-        fieldState.errors = Seq()
-        fieldState.model = None
-      } else if (!view.tail.isEmpty) {
-        fieldState.errors = Seq("ambiguous input")
-        fieldState.model = None
-      } else {
-        converter.parse(view.head) match {
-          case Right(r) => {
-            fieldState.errors = Seq()
-            fieldState.model = Some(Some(r))
-          }
-          case Left(e) => {
-            fieldState.errors = Seq(e)
-            fieldState.model = None
-          }
-        }
-      }
-    }
-
-    def fillFromModel(model: Option[M], fieldState: FieldState[Option[M]]): Unit = {
-      fieldState.view = model match {
-        case Some(m) => Seq(converter.format(m))
-        case None => Seq()
-      }
-      fieldState.errors = Seq()
-      fieldState.model = Some(model)
-    }
-
-  }
-
-  implicit def seqFieldHandler[M](implicit converter: SimpleConverter[M]) = new FieldHandler[M, Seq] {
-
-    def fillFromView(view: Seq[String], fieldState: FieldState[Seq[M]]): Unit = {
-      fieldState.view = view
-      val parsed = view.map(converter.parse(_))
-      fieldState.errors = parsed.collect { case Left(s) => s }
-      fieldState.model = Some(parsed.collect { case Right(m) => m })
-    }
-
-    def fillFromModel(model: Seq[M], fieldState: FieldState[Seq[M]]): Unit = {
-      fieldState.view = model.map(converter.format(_))
-      fieldState.errors = Seq()
-      fieldState.model = Some(model)
-    }
-
-  }
 
   //
   //

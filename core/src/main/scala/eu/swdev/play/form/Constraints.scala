@@ -2,12 +2,16 @@ package eu.swdev.play.form
 
 /**
   */
-case class Constraints[M, +LB <: Option[LowerBound[M]], +UB <: Option[UpperBound[M]], +EN <: Option[Enum[M]]](lb: LB, ub: UB, en: EN) {
-  def le(m: M) = copy[M, Some[LowerBound[M]], UB, EN](lb = Some(Le(m)))
-  def lt(m: M) = copy[M, Some[LowerBound[M]], UB, EN](lb = Some(Lt(m)))
-  def ge(m: M) = copy[M, LB, Some[UpperBound[M]], EN](ub = Some(Ge(m)))
-  def gt(m: M) = copy[M, LB, Some[UpperBound[M]], EN](ub = Some(Gt(m)))
-  def enum(seq: Seq[M]) = copy[M, LB, UB, Some[Enum[M]]](en = Some(Enum(seq)))
+case class Constraints[V, CState](lb: Option[LowerBound[V]], ub: Option[UpperBound[V]], en: Option[Seq[V]]) {
+  def le(v: V) = copy[V, CState { type LB = Set }](lb = Some(Le(v)))
+  def lt(v: V) = copy[V, CState { type LB = Set }](lb = Some(Lt(v)))
+  def ge(v: V) = copy[V, CState { type UB = Set }](ub = Some(Ge(v)))
+  def gt(v: V) = copy[V, CState { type UB = Set }](ub = Some(Gt(v)))
+  def enum(seq: Seq[V]) = copy[V, CState { type EN = Set }](en = Some(seq))
+}
+
+object Constraints {
+  def apply[V](): Constraints[V, CState] = Constraints[V, CState](None, None, None)
 }
 
 sealed trait LowerBound[M]
@@ -18,4 +22,12 @@ sealed trait UpperBound[M]
 case class Ge[M](value: M) extends UpperBound[M]
 case class Gt[M](value: M) extends UpperBound[M]
 
-case class Enum[M](value: Seq[M])
+trait Unset
+trait Set extends Unset
+
+trait CState {
+  type LB <: Unset
+  type UB <: Unset
+  type EN <: Unset
+}
+

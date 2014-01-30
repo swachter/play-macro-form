@@ -8,9 +8,9 @@ class Test extends FunSuite {
 
   object F {
     
-    val f1 = field2[Int]
-    val f2 = field2[Int, Option]
-    val f3 = field2[Int, Seq]
+    val f1 = field[Int]
+    val f2 = field[Int, Option].lt(7)
+    val f3 = field[Int].enum(Seq(3, 4, 5))
 
     //
     //
@@ -31,13 +31,13 @@ class Test extends FunSuite {
     case class FV(
                   f1: Int,
                   f2: Option[Int],
-                  f3: Seq[Int]
+                  f3: Int
                   )
 
-    case class FS[C1 <: Constraints[Int, _, _, _], C2 <: Constraints[Int, _, _, _], C3 <: Constraints[Int, _, _, _]](
-                                  f1: FieldState2[Int,C1],
-                                  f2: FieldState2[Option[Int],C2],
-                                  f3: FieldState2[Seq[Int],C3]
+    case class FS[C1 <: Constraints[Int, _], C2 <: Constraints[Int, _], C3 <: Constraints[Int, _]](
+                                  f1: FieldState[Int,C1],
+                                  f2: FieldState[Option[Int],C2],
+                                  f3: FieldState[Int,C3]
                                   ) extends State[FV] {
       override def hasErrors: Boolean = !errors.isEmpty || f1.hasErrors || f2.hasErrors || f3.hasErrors
       override def model: FV = FV(f1.model, f2.model, f3.model)
@@ -49,7 +49,7 @@ class Test extends FunSuite {
 
     val g1 = F
     val g2 = F
-    val g3 = field2[Int]
+    val g3 = field[Int]
 
     //
     //
@@ -73,10 +73,10 @@ class Test extends FunSuite {
                    g3: Int
                    )
 
-    case class FS[C1 <: Constraints[Int, _, _, _]](
+    case class FS[C1 <: Constraints[Int, _]](
             g1: State[F.FV],
             g2: State[F.FV],
-            g3: FieldState2[Int,C1]
+            g3: FieldState[Int,C1]
             ) extends State[FV] {
       override def hasErrors: Boolean = !errors.isEmpty || g1.hasErrors || g2.hasErrors || g3.hasErrors
       override def model: FV = FV(g1.model, g2.model, g3.model)
@@ -86,13 +86,26 @@ class Test extends FunSuite {
 
   test("form") {
 
-    val fs = F.fill(new Name(""), F.FV(1, Some(2), Seq(3)))
+    val fs = F.fill(new Name(""), F.FV(1, Some(2), 3))
 
     println(fs.f1.model)
     println(fs.f2.model)
     println(fs.f3.model)
 
     println(fs)
+
+    val simpleRenderer: FieldState[_, _] => String =
+        state => s"simple renderer - state: $state"
+
+    val enumRenderer: FieldState[_, Constraints[_, CState { type EN = Set }]] => String =
+        state => s"enum renderer - state: $state; enum: ${state.constraints.en.get}"
+
+    println(simpleRenderer(fs.f1))
+    println(enumRenderer(fs.f3))
+
+    val gs = G.fill(new Name(""), G.FV(fs.model, fs.model, 9))
+
+    println(gs)
   }
 
 }
