@@ -12,8 +12,6 @@ package object form {
   def field[V, B[_]](implicit converter: FieldConverter[B[V]]) =
     new Field[V, B, CState](converter, Constraints())
 
-
-
   implicit val IntConverter = new SimpleConverter[Int] {
     def format(t: Int): String = t.toString
     def parse(s: String): Either[String, Int] = Try(Integer.parseInt(s)) match {
