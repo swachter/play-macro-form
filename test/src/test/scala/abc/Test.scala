@@ -9,7 +9,7 @@ class Test extends FunSuite {
 
   @Form
   object F {
-    val f1 = field[Int]
+    val f1 = field[Int].lt(5).gt(1)
     val f2 = field[Int, Option]
   }
 
