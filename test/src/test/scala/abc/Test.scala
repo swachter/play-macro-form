@@ -8,20 +8,25 @@ import org.scalatest.FunSuite
 class Test extends FunSuite {
 
   @Form
-  object X {
-    val x1 = field[Int]
-    val x2 = field[Int, Option]
+  object F {
+    val f1 = field[Int]
+    val f2 = field[Int, Option]
   }
 
   @Form
-  object Y {
-    val y1 = X
-    val y2 = field[Int]
-    val y3 = X
+  object G {
+    val g1 = F
+    val g2 = field[Int]
+    val g3 = F
   }
 
   test("test") {
-    val x = X.FV(5, Some(4))
-    val y = Y.FV(x, 3, x)
+    val f = F.FV(5, Some(4))
+    val g = G.FV(f, 3, f)
+
+    val fs = F.fill(new Name(""), f)
+    println(s"fs: $fs")
+    val gs = G.fill(new Name(""), g)
+    println(s"gs: $gs")
   }
 }

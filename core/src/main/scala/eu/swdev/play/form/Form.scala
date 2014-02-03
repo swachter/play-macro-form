@@ -64,37 +64,49 @@ object FormMacro {
         case q"object $name { ..$body }" =>
           val tbody = body.asInstanceOf[List[Tree]]
           var count = 0;
-          val fInfo: List[(ValDef, ValDef, TypeDef)] = body.collect {
+          val fInfo: List[(ValDef, ValDef, TypeDef, Tree)] = body.collect {
             case q"val $fieldName = field[$valueType]" => {
               count = count + 1
+              val strFieldName = fieldName.toString
+              println(s"strFieldName: $strFieldName")
               val cInfo = constraintInfo(count, valueType)
-              (q"val $fieldName: $valueType", q"val $fieldName: FieldState[$valueType, ${cInfo._1}]", cInfo._2)
+              (q"val $fieldName: $valueType", q"val $fieldName: FieldState[$valueType, ${cInfo._1}]", cInfo._2, q"$fieldName.fill(name + $strFieldName, model.$fieldName)")
             }
             case q"val $fieldName = field[$valueType,$boxType]" => {
               count = count + 1
+              val strFieldName = fieldName.toString
+              println(s"strFieldName: $strFieldName")
               val cInfo = constraintInfo(count, valueType)
-              (q"val $fieldName: $boxType[$valueType]", q"val $fieldName: FieldState[$boxType[$valueType], ${cInfo._1}]", cInfo._2)
+              (q"val $fieldName: $boxType[$valueType]", q"val $fieldName: FieldState[$boxType[$valueType], ${cInfo._1}]", cInfo._2, q"$fieldName.fill(name + $strFieldName, model.$fieldName)")
             }
             case q"val $fieldName = $value" => {
               count = count + 1
+              val strFieldName = fieldName.toString
+              println(s"strFieldName: $strFieldName")
               val constraintTypeName = newTypeName(s"C$count")
               val constraintType = q"class X[$constraintTypeName <: Constraints[_, _]]" match {
                 case q"class X[$t]" => t
               }
-              (q"val $fieldName: $value.FV", q"val $fieldName: State[$value.FV]", constraintType)
+              (q"val $fieldName: $value.FV", q"val $fieldName: State[$value.FV]", constraintType, q"$fieldName.fill(name + $strFieldName, model.$fieldName).asInstanceOf[State[$fieldName.FV]]")
             }
-          }.asInstanceOf[List[(ValDef, ValDef, TypeDef)]]
+          }.asInstanceOf[List[(ValDef, ValDef, TypeDef, Tree)]]
 
           println(s"######### matched fields: ${fInfo.size}")
 
           val fvParams = fInfo.map(_._1)
           val fsParams = fInfo.map(_._2)
           val fsConstraints = fInfo.map(_._3)
+          val fillArgs = fInfo.map(_._4)
 
           val fvClass = q"case class FV(..$fvParams)"
-          val fsClass = q"case class FS[..$fsConstraints](..$fsParams)"
+          val fsClass = q"""case class FS[..$fsConstraints](..$fsParams) extends eu.swdev.play.form.State[FV] {
+            def hasErrors = false
+            def model: FV = ???
+          }"""
 
-          q"object $name { ..${ (fvClass :: fsClass :: tbody).toList} }"
+          val fillMethod = q"def fill(name: Name, model: FV) = FS(..$fillArgs)"
+
+          q"object $name { ..${ (fvClass :: fsClass :: fillMethod :: tbody).toList} }"
         case x =>
           x
       }
