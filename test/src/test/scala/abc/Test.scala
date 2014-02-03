@@ -9,7 +9,7 @@ class Test extends FunSuite {
 
   @Form
   object F {
-    val f1 = field[Int].lt(5).gt(1)
+    val f1 = field[Int].lt(5).enum(Seq(2,3,4))
     val f2 = field[Int, Option]
   }
 
@@ -37,5 +37,18 @@ class Test extends FunSuite {
     val fv = Map(fs.f1.name.toString -> fs.f1.view, fs.f2.name.toString -> fs.f2.view)
     val fp = F.parse(fv)
     assert(f === fp.model)
+
+    val simpleRenderer: FieldState[_, _] => String =
+        state => s"simple renderer - state: $state"
+
+    val enumRenderer: FieldState[_, Constraints[_, CState { type EN = Set }]] => String =
+        state => s"enum renderer - state: $state; enum: ${state.constraints.en.get}"
+
+    val f1sr = simpleRenderer(fs.f1)
+    val f1er = enumRenderer(fs.f1)
+
+    val g2sr = simpleRenderer(gs.g2)
+
+    assertTypeError("val g2er = enumRenderer(gs.g2)")
   }
 }

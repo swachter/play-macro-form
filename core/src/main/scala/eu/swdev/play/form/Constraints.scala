@@ -2,7 +2,7 @@ package eu.swdev.play.form
 
 /**
   */
-case class Constraints[V, CState](lb: Option[LowerBound[V]], ub: Option[UpperBound[V]], en: Option[Seq[V]]) {
+case class Constraints[V, +CState](lb: Option[LowerBound[V]], ub: Option[UpperBound[V]], en: Option[Seq[V]]) {
   def le(v: V) = copy[V, CState { type LB = Set }](lb = Some(Le(v)))
   def lt(v: V) = copy[V, CState { type LB = Set }](lb = Some(Lt(v)))
   def ge(v: V) = copy[V, CState { type UB = Set }](ub = Some(Ge(v)))
