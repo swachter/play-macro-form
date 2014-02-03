@@ -29,15 +29,15 @@ class Test extends FunSuite {
     )
 
     case class FV(
-                  f1: Int,
+                  f1: Id[Int],
                   f2: Option[Int],
-                  f3: Int
+                  f3: Id[Int]
                   )
 
     case class FS[C1 <: Constraints[Int, _], C2 <: Constraints[Int, _], C3 <: Constraints[Int, _]](
-                                  f1: FieldState[Int,C1],
+                                  f1: FieldState[Id[Int],C1],
                                   f2: FieldState[Option[Int],C2],
-                                  f3: FieldState[Int,C3]
+                                  f3: FieldState[Id[Int],C3]
                                   ) extends State[FV] {
       override def hasErrors: Boolean = !errors.isEmpty || f1.hasErrors || f2.hasErrors || f3.hasErrors
       override def model: FV = FV(f1.model, f2.model, f3.model)
@@ -70,13 +70,13 @@ class Test extends FunSuite {
     case class FV(
                    g1: F.FV,
                    g2: F.FV,
-                   g3: Int
+                   g3: Id[Int]
                    )
 
     case class FS[C1 <: Constraints[Int, _]](
             g1: State[F.FV],
             g2: State[F.FV],
-            g3: FieldState[Int,C1]
+            g3: FieldState[Id[Int],C1]
             ) extends State[FV] {
       override def hasErrors: Boolean = !errors.isEmpty || g1.hasErrors || g2.hasErrors || g3.hasErrors
       override def model: FV = FV(g1.model, g2.model, g3.model)
