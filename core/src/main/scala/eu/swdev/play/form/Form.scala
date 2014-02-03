@@ -26,29 +26,9 @@ object FormMacro {
     c.Expr[Any](Block(outputs, Literal(Constant(()))))
   }
 
-  def imply(c: Context)(annottees: c.Expr[Any]*): c.Expr[Any] = {
-    import c.universe._
-
-    val annotteesTrees: List[Tree] = annottees.map(_.tree).toList
-
-    val fvClass: Tree = q"case class FV(f1: Int, f2: Option[Int])"
-
-    val modDefs = annotteesTrees.map {
-      tree => tree match {
-        case q"object $name { ..$body }" =>
-          val tbody = body.asInstanceOf[List[Tree]]
-          q"object $name { ..${ (fvClass :: tbody).toList} }"
-        case x =>
-          x
-      }
-    }
-    c.Expr(Block(modDefs, Literal(Constant())))
-  }
-
   def impl(c: Context)(annottees: c.Expr[Any]*): c.Expr[Any] = {
     import c.universe._
 
-    println("running macro")
     val annotteesTrees: List[Tree] = annottees.map(_.tree).toList
 
     def constraintInfo(count: Int, valueType: Tree): (TypeName, TypeDef) = {
@@ -64,49 +44,77 @@ object FormMacro {
         case q"object $name { ..$body }" =>
           val tbody = body.asInstanceOf[List[Tree]]
           var count = 0;
-          val fInfo: List[(ValDef, ValDef, TypeDef, Tree)] = body.collect {
+          val fInfo: List[(Tree, ValDef, ValDef, TypeDef, Tree, Tree, Tree)] = body.collect {
             case q"val $fieldName = field[$valueType]" => {
               count = count + 1
               val strFieldName = fieldName.toString
-              println(s"strFieldName: $strFieldName")
               val cInfo = constraintInfo(count, valueType)
-              (q"val $fieldName: $valueType", q"val $fieldName: FieldState[$valueType, ${cInfo._1}]", cInfo._2, q"$fieldName.fill(name + $strFieldName, model.$fieldName)")
+              (
+                q"$fieldName",
+                q"val $fieldName: $valueType",
+                q"val $fieldName: FieldState[$valueType, ${cInfo._1}]",
+                cInfo._2,
+                q"$fieldName.doFill(name + $strFieldName, model.$fieldName)",
+                q"$fieldName.doParse(name + $strFieldName, view)",
+                q"$fieldName.model"
+              )
             }
             case q"val $fieldName = field[$valueType,$boxType]" => {
               count = count + 1
               val strFieldName = fieldName.toString
-              println(s"strFieldName: $strFieldName")
               val cInfo = constraintInfo(count, valueType)
-              (q"val $fieldName: $boxType[$valueType]", q"val $fieldName: FieldState[$boxType[$valueType], ${cInfo._1}]", cInfo._2, q"$fieldName.fill(name + $strFieldName, model.$fieldName)")
+              (
+                q"$fieldName",
+                q"val $fieldName: $boxType[$valueType]",
+                q"val $fieldName: FieldState[$boxType[$valueType], ${cInfo._1}]",
+                cInfo._2,
+                q"$fieldName.doFill(name + $strFieldName, model.$fieldName)",
+                q"$fieldName.doParse(name + $strFieldName, view)",
+                q"$fieldName.model"
+              )
             }
             case q"val $fieldName = $value" => {
               count = count + 1
               val strFieldName = fieldName.toString
-              println(s"strFieldName: $strFieldName")
               val constraintTypeName = newTypeName(s"C$count")
               val constraintType = q"class X[$constraintTypeName <: Constraints[_, _]]" match {
                 case q"class X[$t]" => t
               }
-              (q"val $fieldName: $value.FV", q"val $fieldName: State[$value.FV]", constraintType, q"$fieldName.fill(name + $strFieldName, model.$fieldName).asInstanceOf[State[$fieldName.FV]]")
+              (
+                q"$fieldName",
+                q"val $fieldName: $value.FV",
+                q"val $fieldName: State[$value.FV]",
+                constraintType,
+                q"$fieldName.doFill(name + $strFieldName, model.$fieldName).asInstanceOf[State[$fieldName.FV]]",
+                q"$fieldName.doParse(name + $strFieldName, view)",
+                q"$fieldName.model"
+              )
             }
-          }.asInstanceOf[List[(ValDef, ValDef, TypeDef, Tree)]]
+          }.asInstanceOf[List[(Tree, ValDef, ValDef, TypeDef, Tree, Tree, Tree)]]
 
-          println(s"######### matched fields: ${fInfo.size}")
+          val fieldNames = fInfo.map(_._1)
+          val fvParams = fInfo.map(_._2)
+          val fsParams = fInfo.map(_._3)
+          val fsConstraints = fInfo.map(_._4)
+          val fillArgs = fInfo.map(_._5)
+          val parseArgs = fInfo.map(_._6)
+          val modelArgs = fInfo.map(_._7)
 
-          val fvParams = fInfo.map(_._1)
-          val fsParams = fInfo.map(_._2)
-          val fsConstraints = fInfo.map(_._3)
-          val fillArgs = fInfo.map(_._4)
-
+          // define a value class that can hold the typed values of the form
           val fvClass = q"case class FV(..$fvParams)"
+
+          // define a state class for the form
           val fsClass = q"""case class FS[..$fsConstraints](..$fsParams) extends eu.swdev.play.form.State[FV] {
-            def hasErrors = false
-            def model: FV = ???
+            def hasErrors = !errors.isEmpty || Seq(..$fieldNames).exists(_.hasErrors)
+            def model = FV(..$modelArgs)
           }"""
 
-          val fillMethod = q"def fill(name: Name, model: FV) = FS(..$fillArgs)"
+          val fillMethod1 = q"def doFill(name: Name, model: FV) = FS(..$fillArgs)"
+          val parseMethod1 = q"def doParse(name: Name, view: Map[String, Seq[String]]) = FS(..$parseArgs)"
+          val fillMethod2 = q"def fill(model: FV) = doFill(emptyName, model)"
+          val parseMethod2 = q"def parse(view: Map[String, Seq[String]]) = doParse(emptyName, view)"
 
-          q"object $name { ..${ (fvClass :: fsClass :: fillMethod :: tbody).toList} }"
+          q"object $name { ..${ (fvClass :: fsClass :: fillMethod1 :: parseMethod1 :: fillMethod2 :: parseMethod2 :: tbody).toList} }"
         case x =>
           x
       }
