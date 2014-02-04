@@ -11,6 +11,7 @@ class Test extends FunSuite {
   object F {
     val f1 = field[Int].lt(5).enum(Seq(2,3,4))
     val f2 = field[Int, Option]
+    val f3 = field2[Seq[Int]]
   }
 
   @Form
@@ -21,7 +22,7 @@ class Test extends FunSuite {
   }
 
   test("test") {
-    val f = F.FV(5, Some(4))
+    val f = F.FV(5, Some(4), Seq(1, 2))
     val g = G.FV(f, 3, f)
 
     val fs = F.fill(f)
@@ -34,7 +35,7 @@ class Test extends FunSuite {
     val gsm = gs.model
     assert(g === gsm)
 
-    val fv = Map(fs.f1.name.toString -> fs.f1.view, fs.f2.name.toString -> fs.f2.view)
+    val fv = Map(fs.f1.name.toString -> fs.f1.view, fs.f2.name.toString -> fs.f2.view, fs.f3.name.toString -> fs.f3.view)
     val fp = F.parse(fv)
     assert(f === fp.model)
 

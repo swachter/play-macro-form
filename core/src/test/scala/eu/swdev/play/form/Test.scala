@@ -11,6 +11,7 @@ class Test extends FunSuite {
     val f1 = field[Int]
     val f2 = field[Int, Option].lt(7)
     val f3 = field[Int].enum(Seq(3, 4, 5))
+    val f4 = field2[Seq[Int]]
 
     //
     //
@@ -19,28 +20,32 @@ class Test extends FunSuite {
     def fill(name: Name, model: FV) = FS(
       f1.doFill(name + "f1", model.f1),
       f2.doFill(name + "f2", model.f2),
-      f3.doFill(name + "f3", model.f3)
+      f3.doFill(name + "f3", model.f3),
+      f4.doFill(name + "f3", model.f4)
     )
 
     def parse(name: Name, view: Map[String, Seq[String]]) = FS(
       f1.doParse(name + "f1", view),
       f2.doParse(name + "f2", view),
-      f3.doParse(name + "f3", view)
+      f3.doParse(name + "f3", view),
+      f4.doParse(name + "f4", view)
     )
 
     case class FV(
                   f1: Int,
                   f2: Option[Int],
-                  f3: Int
+                  f3: Int,
+                  f4: Seq[Int]
                   )
 
-    case class FS[C1 <: Constraints[Int, _], C2 <: Constraints[Int, _], C3 <: Constraints[Int, _]](
+    case class FS[C1 <: Constraints[Int, _], C2 <: Constraints[Int, _], C3 <: Constraints[Int, _], C4 <: Constraints[Int, _]](
                                   f1: FieldState[Int,C1],
                                   f2: FieldState[Option[Int],C2],
-                                  f3: FieldState[Int,C3]
+                                  f3: FieldState[Int,C3],
+                                  f4: FieldState[Seq[Int],C4]
                                   ) extends State[FV] {
       override def hasErrors: Boolean = !errors.isEmpty || Seq(f1, f2, f3).exists(_.hasErrors)
-      override def model: FV = FV(f1.model, f2.model, f3.model)
+      override def model: FV = FV(f1.model, f2.model, f3.model, f4.model)
     }
 
   }
@@ -86,11 +91,12 @@ class Test extends FunSuite {
 
   test("form") {
 
-    val fs = F.fill(new Name(""), F.FV(1, Some(2), 3))
+    val fs = F.fill(new Name(""), F.FV(1, Some(2), 3, Seq(4, 5)))
 
     println(fs.f1.model)
     println(fs.f2.model)
     println(fs.f3.model)
+    println(fs.f4.model)
 
     println(fs)
 

@@ -6,11 +6,26 @@ import scala.util.{Failure, Success, Try}
   */
 package object form {
 
+  /**
+   * Constructs fields for simple types and for specific type constructors
+   *
+   * TODO: Rename the "field2" method into "field" and remove the current field methods
+   *
+   * @param fieldCreator
+   * @tparam M
+   * @return
+   */
+  def field2[M](implicit fieldCreator: FieldCreator[M]) = fieldCreator.createField
+
   def field[V](implicit converter: SimpleConverter[V]) =
     new Field[V, Id, CState](simpleFieldConverter(converter), Constraints())
 
   def field[V, B[_]](implicit converter: FieldConverter[B[V]]) =
     new Field[V, B, CState](converter, Constraints())
+
+  //
+  //
+  //
 
   implicit val IntConverter = new SimpleConverter[Int] {
     def format(t: Int): String = t.toString
@@ -20,6 +35,16 @@ package object form {
     }
   }
 
+  //
+  //
+  //
+
+  trait FieldCreator[M] {
+    type V
+    type B[X]
+    def createField: Field[V, B, CState]
+  }
+
   type Id[X] = X
 
   //
@@ -27,7 +52,6 @@ package object form {
   //
 
   implicit def simpleFieldConverter[V](implicit converter: SimpleConverter[V]) = new FieldConverter[V] {
-
 
     def parse(view: Seq[String]): Either[Seq[String], V] = {
       if (view.isEmpty) {
@@ -80,6 +104,38 @@ package object form {
     def format(model: Seq[V]): Seq[String] = model.map(converter.format(_))
 
   }
+
+  //
+  //
+  //
+
+  implicit def simpleFieldCreator[VP](implicit simpleConverter: SimpleConverter[VP]) = new FieldCreator[VP] {
+    type V = VP
+    type B[X] = Id[X]
+    def createField: Field[V, B, CState] = {
+      Field[V, B, CState](simpleFieldConverter[V](simpleConverter), Constraints())
+    }
+  }
+
+  implicit def optionFieldCreator[VP](implicit simpleConverter: SimpleConverter[VP]) = new FieldCreator[Option[VP]] {
+    type V = VP
+    type B[X] = Option[X]
+    def createField: Field[V, B, CState] = {
+      Field[V, B, CState](optionFieldConverter[V](simpleConverter), Constraints())
+    }
+  }
+
+  implicit def seqFieldCreator[VP](implicit simpleConverter: SimpleConverter[VP]) = new FieldCreator[Seq[VP]] {
+    type V = VP
+    type B[X] = Seq[X]
+    def createField: Field[V, B, CState] = {
+      Field[V, B, CState](seqFieldConverter[V](simpleConverter), Constraints())
+    }
+  }
+
+  //
+  //
+  //
 
   val emptyName = new Name("")
 

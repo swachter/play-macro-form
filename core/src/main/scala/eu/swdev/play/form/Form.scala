@@ -65,6 +65,20 @@ object FormMacro {
           q"$fieldName.model"
         )
       }
+      case q"val $fieldName = field2[$boxType[$valueType]]" => {
+        count = count + 1
+        val strFieldName = fieldName.toString
+        val cInfo = constraintInfo(count, valueType)
+        FieldInfo(
+          q"$fieldName",
+          q"val $fieldName: $boxType[$valueType]",
+          q"val $fieldName: FieldState[$boxType[$valueType], ${cInfo._1}]",
+          cInfo._2,
+          q"$fieldName.doFill(name + $strFieldName, model.$fieldName)",
+          q"$fieldName.doParse(name + $strFieldName, view)",
+          q"$fieldName.model"
+        )
+      }
     }
 
     def processForm: PartialFunction[Tree, FieldInfo] = {
