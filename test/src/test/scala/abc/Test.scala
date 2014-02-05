@@ -13,9 +13,10 @@ class Test extends FunSuite {
     val f2 = field[Int, Option]
     val f3 = field2[Seq[Int]]
 
+    // method is called when a FormState is constructed
     def test(fs: WFS): Unit = {
       if (fs.f1.model % 2 == 0) {
-        fs.f1.addError("number must be odd")
+        fs.f1.addError("valErr.odd")
       }
     }
   }
@@ -28,23 +29,21 @@ class Test extends FunSuite {
 
     def validate(fs: WFS): Unit = {
       if (fs.g2.model % 2 == 1) {
-        fs.g2.addError("number must be even")
+        fs.g2.addError("valErr.even")
       }
     }
   }
 
-  test("test") {
+  test("filling of forms") {
     val f = F.FV(2, Some(4), Seq(1, 2))
     val g = G.FV(f, 4, f)
 
     val fs = F.fill(f)
-    println(s"fs: $fs")
     assert(fs.f1.hasFieldErrors === true)
     val fsm = fs.model
     assert(f === fsm)
 
     val gs = G.fill(g)
-    println(s"gs: $gs")
     assert(gs.g2.hasFieldErrors === false)
 
     val gsm = gs.model
@@ -54,17 +53,33 @@ class Test extends FunSuite {
     val fp = F.parse(fv)
     assert(f === fp.model)
 
+  }
+
+  test("field constraints") {
+    val fs = F.fill(F.FV(5, None, Seq()))
+    assert(fs.f1.errors.size == 2)
+  }
+
+  test("form constraints") {
+    val fs = F.fill(F.FV(4, None, Seq()))
+    assert(fs.f1.errors.size == 1)
+    assert(fs.f1.errors.head == "valErr.odd")
+  }
+
+  test("typesafe rendering") {
+    val fs = F.fill(F.FV(4, None, Seq(2)))
+
     val simpleRenderer: FieldState[_, _] => String =
-        state => s"simple renderer - state: $state"
+      state => s"simple renderer - state: $state"
 
     val enumRenderer: FieldState[_, Constraints[_, CState { type EN = Set }]] => String =
-        state => s"enum renderer - state: $state; enum: ${state.constraints.en.get}"
+      state => s"enum renderer - state: $state; enum: ${state.constraints.en.get}"
 
-    val f1sr = simpleRenderer(fs.f1)
-    val f1er = enumRenderer(fs.f1)
+    simpleRenderer(fs.f1)
+    enumRenderer(fs.f1)
 
-    val g2sr = simpleRenderer(gs.g2)
+    simpleRenderer(fs.f2)
+    assertTypeError("enumRenderer(fs.f2)")
 
-    assertTypeError("val g2er = enumRenderer(gs.g2)")
   }
 }

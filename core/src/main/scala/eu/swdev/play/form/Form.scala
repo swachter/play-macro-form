@@ -98,8 +98,8 @@ object FormMacro {
           case q"object $name { ..$body }" => {
 
             val validations: List[Tree] = body.collect {
-              case q"def $f(${_}: FS[..${_}]): Unit = ${_}" => q"$f(fs)"
-              case q"def $f(${_}: WFS): Unit = ${_}" => q"$f(fs)"
+              case q"def $f(${_}: FS[..${_}]): Unit = ${_}" => q"$f(this)"
+              case q"def $f(${_}: WFS): Unit = ${_}" => q"$f(this)"
             }
 
             val fInfo: List[MemberInfo] = body.zipWithIndex.collect(processField.orElse(processForm)).asInstanceOf[List[MemberInfo]]
@@ -112,30 +112,24 @@ object FormMacro {
             val parseArgs = fInfo.map(_.parseArg)
             val modelArgs = fInfo.map(_.modelArg)
 
-            // define a value class that can hold the typed values of the form
+            // Define the value class that holds the typed value of the form.
             val fvClass = q"case class FV(..$fvParams)"
 
-            // define a state class for the form
+            // Define the state class of the form.
+            // The state class aggregates the states of its nested fields and forms.
+            // If there are any validations defined then they are called right in the constructor thereby ensuring
+            // that a form state is always validated.
             val fsClass = q"""
             case class FS[..$fsConstraints](..$fsParams) extends eu.swdev.play.form.State[FV] {
               def hasFormErrors = !errors.isEmpty || Seq(..$fieldNames).exists(_.hasFormErrors)
               def hasFieldErrors = Seq(..$fieldNames).exists(_.hasFieldErrors)
               def model = FV(..$modelArgs)
+              ..${validations}
             }"""
 
             val wfsType = wfsTypes(fInfo.size) //q"type WFS = FS[..$constraintTypes]"
 
-            val fillMethod1 = if (validations.isEmpty) {
-              q"def doFill(name: Name, model: FV) = FS(..$fillArgs)"
-            } else {
-              q"""
-              def doFill(name: Name, model: FV) = {
-                val fs = FS(..$fillArgs)
-                ..$validations
-                fs
-              }
-              """
-            }
+            val fillMethod1 = q"def doFill(name: Name, model: FV) = FS(..$fillArgs)"
             val parseMethod1 = q"def doParse(name: Name, view: Map[String, Seq[String]]) = FS(..$parseArgs)"
 
             val fillMethod2 = q"def fill(model: FV) = doFill(emptyName, model)"

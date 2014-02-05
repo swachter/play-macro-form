@@ -20,7 +20,7 @@ package object form {
   def field[V](implicit converter: SimpleConverter[V]) =
     new Field[V, Id, CState](simpleFieldConverter(converter), Constraints())
 
-  def field[V, B[_]](implicit converter: FieldConverter[B[V]]) =
+  def field[V, B[_]](implicit converter: FieldConverter[V, B]) =
     new Field[V, B, CState](converter, Constraints())
 
   //
@@ -51,7 +51,7 @@ package object form {
   //
   //
 
-  implicit def simpleFieldConverter[V](implicit converter: SimpleConverter[V]) = new FieldConverter[V] {
+  implicit def simpleFieldConverter[V](implicit converter: SimpleConverter[V]) = new FieldConverter[V, Id] {
 
     def parse(view: Seq[String]): Either[Seq[String], V] = {
       if (view.isEmpty) {
@@ -68,9 +68,10 @@ package object form {
 
     def format(model: V): Seq[String] = Seq(converter.format(model))
 
+    def validate(model: V, constraints: Constraints[V, _]): Seq[String] = constraints.check(model)
   }
 
-  implicit def optionFieldConverter[V](implicit converter: SimpleConverter[V]) = new FieldConverter[Option[V]] {
+  implicit def optionFieldConverter[V](implicit converter: SimpleConverter[V]) = new FieldConverter[V, Option] {
 
     def parse(view: Seq[String]): Either[Seq[String], Option[V]] = {
       if (view.isEmpty) {
@@ -87,9 +88,12 @@ package object form {
 
     def format(model: Option[V]): Seq[String] = model.map(converter.format(_)).toSeq
 
+    def validate(model: Option[V], constraints: Constraints[V, _]): Seq[String] = {
+      model.map(constraints.check(_)).getOrElse(Seq())
+    }
   }
 
-  implicit def seqFieldConverter[V](implicit converter: SimpleConverter[V]) = new FieldConverter[Seq[V]] {
+  implicit def seqFieldConverter[V](implicit converter: SimpleConverter[V]) = new FieldConverter[V, Seq] {
 
     def parse(view: Seq[String]): Either[Seq[String], Seq[V]] = {
       val parsed = view.map(converter.parse(_))
@@ -103,6 +107,9 @@ package object form {
 
     def format(model: Seq[V]): Seq[String] = model.map(converter.format(_))
 
+    def validate(model: Seq[V], constraints: Constraints[V, _]): Seq[String] = {
+      model.flatMap(constraints.check(_))
+    }
   }
 
   //
