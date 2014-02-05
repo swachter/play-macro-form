@@ -8,14 +8,21 @@ trait State[+M] {
 
   var errors: Seq[String] = Seq()
 
-  def addError(error: String): Unit = error :+ errors
+  def addError(error: String): Unit = {
+    errors = error +: errors
+  }
 
-  def hasErrors: Boolean
+  def hasErrors = hasFormErrors || hasFieldErrors
+
+  def hasFormErrors: Boolean
+
+  def hasFieldErrors: Boolean
 }
 
 trait FieldState[+M, +C <: Constraints[_, _]] extends State[M] {
   def name: Name
-  def hasErrors: Boolean = !errors.isEmpty
+  def hasFormErrors = false
+  def hasFieldErrors: Boolean = !errors.isEmpty
   def view: Seq[String]
   def constraints: C
 }
