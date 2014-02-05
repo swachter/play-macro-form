@@ -33,60 +33,61 @@ object FormMacro {
       q"type WFS = FS[_, _, _, _, _, _, _, _, _, _, _]"
     )
 
-    abstract class MemberInfo(index: Int, fieldName: TermName) {
-      val qFieldName: Tree =  q"$fieldName"
-      val strFieldName = fieldName.toString()
+    /**
+     * Contains parts that are spliced into the form object.
+     * 
+     * Depending on the member kind (i.e. if it is a field or references another form) some of the spliced parts have
+     * different values.
+     * 
+     * @param index The index of the member in its containing object. The index is used to construct unique constraint type
+     *              names, i.e. C0, C1, ...
+     * @param memberName
+     */
+    abstract class SpliceInfo(index: Int, memberName: TermName) {
+      val qMemberName: Tree =  q"$memberName"
+      val strFieldName = memberName.toString()
       def fvParam: ValDef
       def fsParam: ValDef
       def fsConstraint: TypeDef
       def fillArg: Tree
-      val parseArg = q"$fieldName.doParse(name + $strFieldName, view)"
-      val modelArg = q"$fieldName.model"
-
+      val parseArg = q"$memberName.doParse(name + $strFieldName, view)"
+      val modelArg = q"$memberName.model"
       val constraintTypeName: TypeName = newTypeName(s"C$index")
-
-      def boundedConstraintType(valueType: Tree): TypeDef = {
-        q"class X[$constraintTypeName <: Constraints[$valueType, _]]" match {
-          case q"class X[$t]" => t
-        }
-      }
-
     }
 
-    abstract class FieldInfo(index: Int, fieldName: TermName, valueType: Tree) extends MemberInfo(index, fieldName) {
-      val fillArg = q"$fieldName.doFill(name + $strFieldName, model.$fieldName)"
-      val fsConstraint = boundedConstraintType(valueType)
+    abstract class FieldInfo(index: Int, memberName: TermName, valueType: Tree) extends SpliceInfo(index, memberName) {
+      val fillArg = q"$memberName.doFill(name + $strFieldName, model.$memberName)"
+      val fsConstraint = q"class X[$constraintTypeName <: Constraints[$valueType, _]]" match { case q"class X[$t]" => t }
     }
 
-    class SimpleFieldInfo(index: Int, fieldName: TermName, valueType: Tree) extends FieldInfo(index, fieldName, valueType) {
-      val fvParam = q"val $fieldName: $valueType"
-      val fsParam = q"val $fieldName: FieldState[$valueType, $constraintTypeName]"
+    class SimpleFieldInfo(index: Int, memberName: TermName, valueType: Tree) extends FieldInfo(index, memberName, valueType) {
+      val fvParam = q"val $memberName: $valueType"
+      val fsParam = q"val $memberName: FieldState[$valueType, $constraintTypeName]"
     }
 
-    class BoxFieldInfo(index: Int, fieldName: TermName, valueType: Tree, boxType: Tree) extends FieldInfo(index, fieldName, valueType) {
-      val fvParam = q"val $fieldName: $boxType[$valueType]"
-      val fsParam = q"val $fieldName: FieldState[$boxType[$valueType], $constraintTypeName]"
+    class BoxFieldInfo(index: Int, memberName: TermName, valueType: Tree, boxType: Tree) extends FieldInfo(index, memberName, valueType) {
+      val fvParam = q"val $memberName: $boxType[$valueType]"
+      val fsParam = q"val $memberName: FieldState[$boxType[$valueType], $constraintTypeName]"
     }
 
-    class FormInfo(index: Int, fieldName: TermName, value: Tree) extends MemberInfo(index, fieldName) {
-      val fvParam = q"val $fieldName: $value.FV"
-      val fsParam = q"val $fieldName: State[$value.FV]"
+    class FormInfo(index: Int, memberName: TermName, value: Tree) extends SpliceInfo(index, memberName) {
+      val fvParam = q"val $memberName: $value.FV"
+      val fsParam = q"val $memberName: State[$value.FV]"
       val fsConstraint = q"class X[$constraintTypeName <: Constraints[_, _]]" match { case q"class X[$t]" => t }
-      val fillArg = q"$fieldName.doFill(name + $strFieldName, model.$fieldName).asInstanceOf[State[$fieldName.FV]]"
+      val fillArg = q"$memberName.doFill(name + $strFieldName, model.$memberName).asInstanceOf[State[$memberName.FV]]"
     }
 
-    def processField: PartialFunction[(Tree, Int), MemberInfo] = {
+    def processField: PartialFunction[(Tree, Int), SpliceInfo] = {
       // if a field with constraints was defined, e.g. field[Int].lt(5);
       // -> remove the last method application and recurse
-      case (q"val $fieldName = $a.$f($x)", index) => {
-        processField(q"val $fieldName = $a", index)
-      }
-      case (q"val $fieldName = field[$valueType]", index) => new SimpleFieldInfo(index, fieldName, valueType)
+      case (q"val $fieldName = $a.$f($x)", index) => processField(q"val $fieldName = $a", index)
+      case (q"val $fieldName = field[$boxType[$valueType]]", index) => new BoxFieldInfo(index, fieldName, valueType, boxType)
       case (q"val $fieldName = field[$valueType,$boxType]", index) => new BoxFieldInfo(index, fieldName, valueType, boxType)
+      case (q"val $fieldName = field[$valueType]", index) => new SimpleFieldInfo(index, fieldName, valueType)
       case (q"val $fieldName = field2[$boxType[$valueType]]", index) => new BoxFieldInfo(index, fieldName, valueType, boxType)
     }
 
-    val processForm: PartialFunction[(Tree, Int), MemberInfo] = {
+    val processForm: PartialFunction[(Tree, Int), SpliceInfo] = {
       case (q"val $fieldName = $value", index) => new FormInfo(index, fieldName, value)
     }
 
@@ -97,20 +98,21 @@ object FormMacro {
         tree match {
           case q"object $name { ..$body }" => {
 
+            // collect calls to validation methods, i.e. methods with the signature FS[..] => Unit or WFS => Unit
             val validations: List[Tree] = body.collect {
               case q"def $f(${_}: FS[..${_}]): Unit = ${_}" => q"$f(this)"
               case q"def $f(${_}: WFS): Unit = ${_}" => q"$f(this)"
             }
 
-            val fInfo: List[MemberInfo] = body.zipWithIndex.collect(processField.orElse(processForm)).asInstanceOf[List[MemberInfo]]
+            val spliceInfos: List[SpliceInfo] = body.zipWithIndex.collect(processField.orElse(processForm)).asInstanceOf[List[SpliceInfo]]
 
-            val fieldNames = fInfo.map(_.qFieldName)
-            val fvParams = fInfo.map(_.fvParam)
-            val fsParams = fInfo.map(_.fsParam)
-            val fsConstraints = fInfo.map(_.fsConstraint)
-            val fillArgs = fInfo.map(_.fillArg)
-            val parseArgs = fInfo.map(_.parseArg)
-            val modelArgs = fInfo.map(_.modelArg)
+            val memberNames = spliceInfos.map(_.qMemberName)
+            val fvParams = spliceInfos.map(_.fvParam)
+            val fsParams = spliceInfos.map(_.fsParam)
+            val fsConstraints = spliceInfos.map(_.fsConstraint)
+            val fillArgs = spliceInfos.map(_.fillArg)
+            val parseArgs = spliceInfos.map(_.parseArg)
+            val modelArgs = spliceInfos.map(_.modelArg)
 
             // Define the value class that holds the typed value of the form.
             val fvClass = q"case class FV(..$fvParams)"
@@ -121,13 +123,13 @@ object FormMacro {
             // that a form state is always validated.
             val fsClass = q"""
             case class FS[..$fsConstraints](..$fsParams) extends eu.swdev.play.form.State[FV] {
-              def hasFormErrors = !errors.isEmpty || Seq(..$fieldNames).exists(_.hasFormErrors)
-              def hasFieldErrors = Seq(..$fieldNames).exists(_.hasFieldErrors)
+              def hasFormErrors = !errors.isEmpty || Seq(..$memberNames).exists(_.hasFormErrors)
+              def hasFieldErrors = Seq(..$memberNames).exists(_.hasFieldErrors)
               def model = FV(..$modelArgs)
               ..${validations}
             }"""
 
-            val wfsType = wfsTypes(fInfo.size) //q"type WFS = FS[..$constraintTypes]"
+            val wfsType = wfsTypes(spliceInfos.size) //q"type WFS = FS[..$constraintTypes]"
 
             val fillMethod1 = q"def doFill(name: Name, model: FV) = FS(..$fillArgs)"
             val parseMethod1 = q"def doParse(name: Name, view: Map[String, Seq[String]]) = FS(..$parseArgs)"
@@ -137,6 +139,7 @@ object FormMacro {
 
             val tbody = body.asInstanceOf[List[Tree]]
 
+            // output the modified object definition by inserting various parts
             q"object $name { ..${(fvClass :: fsClass :: wfsType :: fillMethod1 :: parseMethod1 :: fillMethod2 :: parseMethod2 :: tbody).toList} }"
           }
           case x => x
