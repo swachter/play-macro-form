@@ -9,7 +9,7 @@ case class Field[V, B[_], CS <: CState](converter: FieldConverter[V, B], constra
   def enum(seq: Seq[V]) = Field(converter, constraints.enum(seq))
 
   def doParse(name: Name, map: Map[String, Seq[String]]): FieldState[B[V], Constraints[V, CS]] = {
-    val view = map.getOrElse(name.name, Seq())
+    val view = map.getOrElse(name.value, Seq())
     converter.parse(view) match {
       case Left(e) => FieldStateWithoutModel[V, B, Constraints[V, CS]](name, view, constraints)
       case Right(m) => FieldStateWithModel(name, view, constraints, m)(converter)

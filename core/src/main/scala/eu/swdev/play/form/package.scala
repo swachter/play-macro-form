@@ -140,10 +140,4 @@ package object form {
     }
   }
 
-  //
-  //
-  //
-
-  val emptyName = new Name("")
-
 }

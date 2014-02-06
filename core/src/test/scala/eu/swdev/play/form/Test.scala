@@ -38,7 +38,7 @@ class Test extends FunSuite {
       fs
     }
 
-    def fill(model: FV) = doFill(emptyName, model)
+    def fill(model: FV) = doFill(Name.empty, model)
 
     def doParse(name: Name, view: Map[String, Seq[String]]) = FS(
       f1.doParse(name + "f1", view),
@@ -47,7 +47,7 @@ class Test extends FunSuite {
       f4.doParse(name + "f4", view)
     )
 
-    def parse(view: Map[String, Seq[String]]) = doParse(emptyName, view)
+    def parse(view: Map[String, Seq[String]]) = doParse(Name.empty, view)
 
     case class FV(
                   f1: Int,
@@ -85,7 +85,7 @@ class Test extends FunSuite {
       g3.doFill(name + "g3", model.g3)
     )
 
-    def fill(model: FV) = doFill(emptyName, model)
+    def fill(model: FV) = doFill(Name.empty, model)
 
     def doParse(name: Name, view: Map[String, Seq[String]]) = FS(
       g1.doParse(name + "g1", view),
@@ -93,7 +93,7 @@ class Test extends FunSuite {
       g3.doParse(name + "g3", view)
     )
 
-    def parse(view: Map[String, Seq[String]]) = doParse(emptyName, view)
+    def parse(view: Map[String, Seq[String]]) = doParse(Name.empty, view)
 
     case class FV(
                    g1: F.FV,

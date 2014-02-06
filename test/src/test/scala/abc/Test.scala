@@ -3,6 +3,8 @@ package abc
 import eu.swdev.play.form._
 import org.scalatest.FunSuite
 
+import eu.swdev.play.form.Name.usedAsStringKey
+
 /**
   */
 class Test extends FunSuite {
@@ -34,6 +36,11 @@ class Test extends FunSuite {
     }
   }
 
+  @Form
+  object H {
+    val f1 = field[Int]
+  }
+
   test("filling of forms") {
     val f = F.FV(2, Some(4), Seq(1, 2))
     val g = G.FV(f, 4, f)
@@ -49,9 +56,11 @@ class Test extends FunSuite {
     val gsm = gs.model
     assert(g === gsm)
 
-    val fv = Map(fs.f1.name.toString -> fs.f1.view, fs.f2.name.toString -> fs.f2.view, fs.f3.name.toString -> fs.f3.view)
+    val fv = Map[String, Seq[String]](fs.f1.name -> fs.f1.view, fs.f2.name -> fs.f2.view, fs.f3.name -> fs.f3.view)
     val fp = F.parse(fv)
     assert(f === fp.model)
+
+    val hs = H.fill(H.FV(5))
 
   }
 

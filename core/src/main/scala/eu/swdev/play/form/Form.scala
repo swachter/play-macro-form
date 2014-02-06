@@ -134,13 +134,13 @@ object FormMacro {
             val fillMethod1 = q"def doFill(name: Name, model: FV) = FS(..$fillArgs)"
             val parseMethod1 = q"def doParse(name: Name, view: Map[String, Seq[String]]) = FS(..$parseArgs)"
 
-            val fillMethod2 = q"def fill(model: FV) = doFill(emptyName, model)"
-            val parseMethod2 = q"def parse(view: Map[String, Seq[String]]) = doParse(emptyName, view)"
+            val fillMethod2 = q"def fill(model: FV) = doFill(Name.empty, model)"
+            val parseMethod2 = q"def parse(view: Map[String, Seq[String]]) = doParse(Name.empty, view)"
 
             val tbody = body.asInstanceOf[List[Tree]]
 
             // output the modified object definition by inserting various parts
-            q"object $name { ..${(fvClass :: fsClass :: wfsType :: fillMethod1 :: parseMethod1 :: fillMethod2 :: parseMethod2 :: tbody).toList} }"
+            q"object $name { ..${fvClass :: fsClass :: wfsType :: fillMethod1 :: parseMethod1 :: fillMethod2 :: parseMethod2 :: tbody} }"
           }
           case x => x
         }
