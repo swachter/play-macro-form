@@ -25,6 +25,7 @@ trait State[+M] {
 }
 
 trait FieldState[V, B[_], +CS <: CState] extends State[B[V]] {
+
   def name: Name
   def hasFormErrors = false
   def hasFieldErrors: Boolean = !errors.isEmpty

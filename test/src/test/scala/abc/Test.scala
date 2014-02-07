@@ -16,7 +16,7 @@ class Test extends FunSuite {
     val f3 = field2[Seq[Int]]
 
     // method is called when a FormState is constructed
-    def test(fs: WFS): Unit = {
+    def test(fs: FS): Unit = {
       if (fs.f1.model % 2 == 0) {
         fs.f1.addError("valErr.odd")
       }
@@ -29,7 +29,7 @@ class Test extends FunSuite {
     val g2 = field[Int]
     val g3 = F
 
-    def validate(fs: WFS): Unit = {
+    def validate(fs: FS): Unit = {
       if (fs.g2.model % 2 == 1) {
         fs.g2.addError("valErr.even")
       }
@@ -78,10 +78,10 @@ class Test extends FunSuite {
   test("typesafe rendering") {
     val fs = F.fill(F.FV(4, None, Seq(2)))
 
-    val simpleRenderer: FieldState[_, _] => String =
+    def simpleRenderer[B[_]]: FieldState[_, B, _] => String =
       state => s"simple renderer - state: $state"
 
-    val enumRenderer: FieldState[_, Constraints[_, CState { type EN = Set }]] => String =
+    def enumRenderer[B[_]]: FieldState[_, B, CState { type EN = Set }] => String =
       state => s"enum renderer - state: $state; enum: ${state.constraints.en.get}"
 
     simpleRenderer(fs.f1)

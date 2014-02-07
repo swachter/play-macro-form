@@ -1,24 +1,28 @@
 package eu.swdev.play.form
 
-case class Field[V, B[_], CS <: CState](converter: FieldConverter[V, B], constraints: Constraints[V, CS]) {
+case class Field[VP, BP[_], CSP <: CState](converter: FieldConverter[VP, BP], constraints: Constraints[VP, CSP]) {
 
-  def le(v: V)(implicit ev: Ordering[V]) = Field(converter, constraints.le(v))
-  def lt(v: V)(implicit ev: Ordering[V]) = Field(converter, constraints.lt(v))
-  def ge(v: V)(implicit ev: Ordering[V]) = Field(converter, constraints.ge(v))
-  def gt(v: V)(implicit ev: Ordering[V]) = Field(converter, constraints.gt(v))
-  def enum(seq: Seq[V]) = Field(converter, constraints.enum(seq))
+  type V = VP
+  type B[X] = BP[X]
+  type CS = CSP
 
-  def doParse(name: Name, map: Map[String, Seq[String]]): FieldState[V, B, CS] = {
+  def le(v: VP)(implicit ev: Ordering[VP]) = Field(converter, constraints.le(v))
+  def lt(v: VP)(implicit ev: Ordering[VP]) = Field(converter, constraints.lt(v))
+  def ge(v: VP)(implicit ev: Ordering[VP]) = Field(converter, constraints.ge(v))
+  def gt(v: VP)(implicit ev: Ordering[VP]) = Field(converter, constraints.gt(v))
+  def enum(seq: Seq[VP]) = Field(converter, constraints.enum(seq))
+
+  def doParse(name: Name, map: Map[String, Seq[String]]): FieldState[VP, BP, CSP] = {
     val view = map.getOrElse(name.value, Seq())
     converter.parse(view) match {
-      case Left(e) => FieldStateWithoutModel[V, B, CS](name, view, constraints)
-      case Right(m) => FieldStateWithModel[V, B, CS](name, view, constraints, m)(converter)
+      case Left(e) => FieldStateWithoutModel[VP, BP, CSP](name, view, constraints)
+      case Right(m) => FieldStateWithModel[VP, BP, CSP](name, view, constraints, m)(converter)
     }
   }
 
-  def doFill(name: Name, model: B[V]): FieldState[V, B, CS] = {
+  def doFill(name: Name, model: BP[VP]): FieldState[VP, BP, CSP] = {
     val view = converter.format(model)
-    FieldStateWithModel[V, B, CS](name, view, constraints, model)(converter)
+    FieldStateWithModel[VP, BP, CSP](name, view, constraints, model)(converter)
   }
 
 }

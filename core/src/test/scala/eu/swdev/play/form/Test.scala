@@ -13,7 +13,7 @@ class Test extends FunSuite {
     val f3 = field[Int].enum(Seq(3, 4, 5))
     val f4 = field2[Seq[Int]]
 
-    def validate(fs: WFS): Unit = {
+    def validate(fs: FS): Unit = {
       if (fs.f1.model % 2 == 0) {
         fs.f1.addError("number must not be even")
       }
@@ -22,8 +22,6 @@ class Test extends FunSuite {
     //
     //
     //
-
-    type WFS = FS[_, _, _, _]
 
     def doFill(name: Name, model: FV) = {
       val fs = FS(
@@ -56,12 +54,12 @@ class Test extends FunSuite {
                   f4: Seq[Int]
                   )
 
-    case class FS[CS1 <: CState, CS2 <: CState, CS3 <: CState, CS4 <: CState](
-                                  f1: FieldState[Int,Id,CS1],
-                                  f2: FieldState[Int,Option,CS2],
-                                  f3: FieldState[Int,Id,CS3],
-                                  f4: FieldState[Int,Seq,CS4]
-                                  ) extends State[FV] {
+    case class FS(
+                  f1: FieldState[F.f1.V, F.f1.B, F.f1.CS],
+                  f2: FieldState[F.f2.V, F.f2.B, F.f2.CS],
+                  f3: FieldState[F.f3.V, F.f3.B, F.f3.CS],
+                  f4: FieldState[F.f4.V, F.f4.B, F.f4.CS]
+                  ) extends State[FV] {
       def hasFormErrors: Boolean = !errors.isEmpty || Seq[State[_]](f1, f2, f3).exists(_.hasFormErrors)
       def hasFieldErrors: Boolean = Seq[State[_]](f1, f2, f3).exists(_.hasFieldErrors)
       override def model: FV = FV(f1.model, f2.model, f3.model, f4.model)
@@ -101,10 +99,10 @@ class Test extends FunSuite {
                    g3: Int
                    )
 
-    case class FS[CS1 <: CState](
+    case class FS(
             g1: State[F.FV],
             g2: State[F.FV],
-            g3: FieldState[Int,Id,CS1]
+            g3: FieldState[G.g3.V,G.g3.B,G.g3.CS]
             ) extends State[FV] {
       def hasFormErrors: Boolean = !errors.isEmpty || Seq(g1, g2, g3).exists(_.hasFormErrors)
       def hasFieldErrors: Boolean = Seq(g1, g2, g3).exists(_.hasFieldErrors)
