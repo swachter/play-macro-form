@@ -57,17 +57,17 @@ object FormMacro {
 
     abstract class FieldInfo(index: Int, memberName: TermName, valueType: Tree) extends SpliceInfo(index, memberName) {
       val fillArg = q"$memberName.doFill(name + $strFieldName, model.$memberName)"
-      val fsConstraint = q"class X[$constraintTypeName <: Constraints[$valueType, _]]" match { case q"class X[$t]" => t }
+      val fsConstraint = q"class X[$constraintTypeName <: CState]" match { case q"class X[$t]" => t }
     }
 
     class SimpleFieldInfo(index: Int, memberName: TermName, valueType: Tree) extends FieldInfo(index, memberName, valueType) {
       val fvParam = q"val $memberName: $valueType"
-      val fsParam = q"val $memberName: FieldState[$valueType, $constraintTypeName]"
+      val fsParam = q"val $memberName: FieldState[$valueType, Id, $constraintTypeName]"
     }
 
     class BoxFieldInfo(index: Int, memberName: TermName, valueType: Tree, boxType: Tree) extends FieldInfo(index, memberName, valueType) {
       val fvParam = q"val $memberName: $boxType[$valueType]"
-      val fsParam = q"val $memberName: FieldState[$boxType[$valueType], $constraintTypeName]"
+      val fsParam = q"val $memberName: FieldState[$valueType, $boxType, $constraintTypeName]"
     }
 
     class FormInfo(index: Int, memberName: TermName, value: Tree) extends SpliceInfo(index, memberName) {
@@ -119,12 +119,15 @@ object FormMacro {
 
             // Define the state class of the form.
             // The state class aggregates the states of its nested fields and forms.
+            //
+            // The fsConstraints are of the form: C0 <: Constraints[<V>, CState]
+            //
             // If there are any validations defined then they are called right in the constructor thereby ensuring
             // that a form state is always validated.
             val fsClass = q"""
             case class FS[..$fsConstraints](..$fsParams) extends eu.swdev.play.form.State[FV] {
-              def hasFormErrors = !errors.isEmpty || Seq(..$memberNames).exists(_.hasFormErrors)
-              def hasFieldErrors = Seq(..$memberNames).exists(_.hasFieldErrors)
+              def hasFormErrors = !errors.isEmpty || Seq[State[_]](..$memberNames).exists(_.hasFormErrors)
+              def hasFieldErrors = Seq[State[_]](..$memberNames).exists(_.hasFieldErrors)
               def model = FV(..$modelArgs)
               ..${validations}
             }"""

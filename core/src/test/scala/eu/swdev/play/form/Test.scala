@@ -56,14 +56,14 @@ class Test extends FunSuite {
                   f4: Seq[Int]
                   )
 
-    case class FS[C1 <: Constraints[Int, _], C2 <: Constraints[Int, _], C3 <: Constraints[Int, _], C4 <: Constraints[Int, _]](
-                                  f1: FieldState[Int,C1],
-                                  f2: FieldState[Option[Int],C2],
-                                  f3: FieldState[Int,C3],
-                                  f4: FieldState[Seq[Int],C4]
+    case class FS[CS1 <: CState, CS2 <: CState, CS3 <: CState, CS4 <: CState](
+                                  f1: FieldState[Int,Id,CS1],
+                                  f2: FieldState[Int,Option,CS2],
+                                  f3: FieldState[Int,Id,CS3],
+                                  f4: FieldState[Int,Seq,CS4]
                                   ) extends State[FV] {
-      def hasFormErrors: Boolean = !errors.isEmpty || Seq(f1, f2, f3).exists(_.hasFormErrors)
-      def hasFieldErrors: Boolean = Seq(f1, f2, f3).exists(_.hasFieldErrors)
+      def hasFormErrors: Boolean = !errors.isEmpty || Seq[State[_]](f1, f2, f3).exists(_.hasFormErrors)
+      def hasFieldErrors: Boolean = Seq[State[_]](f1, f2, f3).exists(_.hasFieldErrors)
       override def model: FV = FV(f1.model, f2.model, f3.model, f4.model)
     }
 
@@ -101,10 +101,10 @@ class Test extends FunSuite {
                    g3: Int
                    )
 
-    case class FS[C1 <: Constraints[Int, _]](
+    case class FS[CS1 <: CState](
             g1: State[F.FV],
             g2: State[F.FV],
-            g3: FieldState[Int,C1]
+            g3: FieldState[Int,Id,CS1]
             ) extends State[FV] {
       def hasFormErrors: Boolean = !errors.isEmpty || Seq(g1, g2, g3).exists(_.hasFormErrors)
       def hasFieldErrors: Boolean = Seq(g1, g2, g3).exists(_.hasFieldErrors)
@@ -124,10 +124,10 @@ class Test extends FunSuite {
 
     println(fs)
 
-    val simpleRenderer: FieldState[_, _] => String =
+    def simpleRenderer[B[_]]: FieldState[_, B, _] => String =
         state => s"simple renderer - state: $state"
 
-    val enumRenderer: FieldState[_, Constraints[_, CState { type EN = Set }]] => String =
+    def enumRenderer[B[_]]: FieldState[_, B, CState { type EN = Set }] => String =
         state => s"enum renderer - state: $state; enum: ${state.constraints.en.get}"
 
     println(simpleRenderer(fs.f1))

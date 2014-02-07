@@ -2,13 +2,13 @@ package eu.swdev.play.form
 
 /**
   */
-case class Constraints[V, +CState](lb: Option[Bound[V]], ub: Option[Bound[V]], en: Option[Seq[V]]) {
+case class Constraints[V, +CS <: CState](lb: Option[Bound[V]], ub: Option[Bound[V]], en: Option[Seq[V]]) {
 
-  def le(v: V)(implicit ev: Ordering[V]) = copy[V, CState { type LB = Set }](lb = Some(Bound(v, "valErr.le", _ > 0)))
-  def lt(v: V)(implicit ev: Ordering[V]) = copy[V, CState { type LB = Set }](lb = Some(Bound(v, "valErr.lt", _ >= 0)))
-  def ge(v: V)(implicit ev: Ordering[V]) = copy[V, CState { type UB = Set }](ub = Some(Bound(v, "valErr.ge", _ < 0)))
-  def gt(v: V)(implicit ev: Ordering[V]) = copy[V, CState { type UB = Set }](ub = Some(Bound(v, "valErr.gt", _ <= 0)))
-  def enum(seq: Seq[V]) = copy[V, CState { type EN = Set }](en = Some(seq))
+  def le(v: V)(implicit ev: Ordering[V]) = copy[V, CS { type LB = Set }](lb = Some(Bound(v, "valErr.le", _ > 0)))
+  def lt(v: V)(implicit ev: Ordering[V]) = copy[V, CS { type LB = Set }](lb = Some(Bound(v, "valErr.lt", _ >= 0)))
+  def ge(v: V)(implicit ev: Ordering[V]) = copy[V, CS { type UB = Set }](ub = Some(Bound(v, "valErr.ge", _ < 0)))
+  def gt(v: V)(implicit ev: Ordering[V]) = copy[V, CS { type UB = Set }](ub = Some(Bound(v, "valErr.gt", _ <= 0)))
+  def enum(seq: Seq[V]) = copy[V, CS { type EN = Set }](en = Some(seq))
 
   def check(value: V): Seq[String] = {
     var errors = Seq[String]()

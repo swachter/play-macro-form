@@ -8,17 +8,17 @@ case class Field[V, B[_], CS <: CState](converter: FieldConverter[V, B], constra
   def gt(v: V)(implicit ev: Ordering[V]) = Field(converter, constraints.gt(v))
   def enum(seq: Seq[V]) = Field(converter, constraints.enum(seq))
 
-  def doParse(name: Name, map: Map[String, Seq[String]]): FieldState[B[V], Constraints[V, CS]] = {
+  def doParse(name: Name, map: Map[String, Seq[String]]): FieldState[V, B, CS] = {
     val view = map.getOrElse(name.value, Seq())
     converter.parse(view) match {
-      case Left(e) => FieldStateWithoutModel[V, B, Constraints[V, CS]](name, view, constraints)
-      case Right(m) => FieldStateWithModel(name, view, constraints, m)(converter)
+      case Left(e) => FieldStateWithoutModel[V, B, CS](name, view, constraints)
+      case Right(m) => FieldStateWithModel[V, B, CS](name, view, constraints, m)(converter)
     }
   }
 
-  def doFill(name: Name, model: B[V]): FieldState[B[V], Constraints[V, CS]] = {
+  def doFill(name: Name, model: B[V]): FieldState[V, B, CS] = {
     val view = converter.format(model)
-    FieldStateWithModel(name, view, constraints, model)(converter)
+    FieldStateWithModel[V, B, CS](name, view, constraints, model)(converter)
   }
 
 }
