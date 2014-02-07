@@ -78,10 +78,10 @@ class Test extends FunSuite {
   test("typesafe rendering") {
     val fs = F.fill(F.FV(4, None, Seq(2)))
 
-    def simpleRenderer[B[_]]: FieldState[_, B, _] => String =
+    val simpleRenderer: FieldState[_, _, _] => String =
       state => s"simple renderer - state: $state"
 
-    def enumRenderer[B[_]]: FieldState[_, B, CState { type EN = Set }] => String =
+    val enumRenderer: FieldState[_, _, CState { type EN = Set }] => String =
       state => s"enum renderer - state: $state; enum: ${state.constraints.en.get}"
 
     simpleRenderer(fs.f1)

@@ -42,7 +42,7 @@ object FormMacro {
     abstract class FieldInfo(index: Int, memberName: TermName, objectName: TermName) extends SpliceInfo(index, memberName) {
       val fillArg = q"$memberName.doFill(name + $strFieldName, model.$memberName)"
       val fsConstraint = q"class X[$constraintTypeName <: CState]" match { case q"class X[$t]" => t }
-      val fsParam = q"val $memberName: FieldState[$objectName.$memberName.V, $objectName.$memberName.B, $objectName.$memberName.CS]"
+      val fsParam = q"val $memberName: FieldState[$objectName.$memberName.V, $objectName.$memberName.B[$objectName.$memberName.V], $objectName.$memberName.CS]"
     }
 
     class SimpleFieldInfo(index: Int, memberName: TermName, valueType: Tree, objectName: TermName) extends FieldInfo(index, memberName, objectName) {

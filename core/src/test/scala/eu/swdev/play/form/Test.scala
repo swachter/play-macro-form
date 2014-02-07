@@ -55,10 +55,10 @@ class Test extends FunSuite {
                   )
 
     case class FS(
-                  f1: FieldState[F.f1.V, F.f1.B, F.f1.CS],
-                  f2: FieldState[F.f2.V, F.f2.B, F.f2.CS],
-                  f3: FieldState[F.f3.V, F.f3.B, F.f3.CS],
-                  f4: FieldState[F.f4.V, F.f4.B, F.f4.CS]
+                  f1: FieldState[F.f1.V, F.f1.B[F.f1.V], F.f1.CS],
+                  f2: FieldState[F.f2.V, F.f2.B[F.f2.V], F.f2.CS],
+                  f3: FieldState[F.f3.V, F.f3.B[F.f3.V], F.f3.CS],
+                  f4: FieldState[F.f4.V, F.f4.B[F.f4.V], F.f4.CS]
                   ) extends State[FV] {
       def hasFormErrors: Boolean = !errors.isEmpty || Seq[State[_]](f1, f2, f3).exists(_.hasFormErrors)
       def hasFieldErrors: Boolean = Seq[State[_]](f1, f2, f3).exists(_.hasFieldErrors)
@@ -102,7 +102,7 @@ class Test extends FunSuite {
     case class FS(
             g1: State[F.FV],
             g2: State[F.FV],
-            g3: FieldState[G.g3.V,G.g3.B,G.g3.CS]
+            g3: FieldState[G.g3.V, G.g3.B[G.g3.V], G.g3.CS]
             ) extends State[FV] {
       def hasFormErrors: Boolean = !errors.isEmpty || Seq(g1, g2, g3).exists(_.hasFormErrors)
       def hasFieldErrors: Boolean = Seq(g1, g2, g3).exists(_.hasFieldErrors)
@@ -122,10 +122,10 @@ class Test extends FunSuite {
 
     println(fs)
 
-    def simpleRenderer[B[_]]: FieldState[_, B, _] => String =
+    val simpleRenderer: FieldState[_, _, _] => String =
         state => s"simple renderer - state: $state"
 
-    def enumRenderer[B[_]]: FieldState[_, B, CState { type EN = Set }] => String =
+    val enumRenderer: FieldState[_, _, CState { type EN = Set }] => String =
         state => s"enum renderer - state: $state; enum: ${state.constraints.en.get}"
 
     println(simpleRenderer(fs.f1))
