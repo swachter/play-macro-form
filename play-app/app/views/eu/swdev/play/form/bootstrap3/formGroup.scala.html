@@ -1,0 +1,5 @@
+@(fs: _root_.eu.swdev.play.form.FieldState[_, _, _])(inner: Html)(implicit formSupport: _root_.eu.swdev.play.form.FormSupport)
+<div class="form-group @if(fs.hasErrors) {has-error}">
+  <label for="@fs.name">@fs.name</label>
+  @inner
+</div>

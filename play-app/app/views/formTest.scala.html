@@ -1,0 +1,8 @@
+@* formTest Template File *@
+@(formState: _root_.com.abc.F.FS)(implicit formSupport: _root_.eu.swdev.play.form.FormSupport)
+@import formSupport._
+@main("Form-Test") {
+  <form>
+    @formState.f1.inputText
+  </form>
+}
