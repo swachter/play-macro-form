@@ -26,6 +26,12 @@ trait State[+M] {
 
 trait FieldState[V, M, +CS <: CState] extends State[M] {
 
+  /*
+   * NB: The FieldState trait must not have a higher kinded type parameter because it is used as an argument
+   * type in play templates. Play does not support generic template or other means to specify a higher
+   * kinded argument type.
+   */
+
   def name: Name
   def hasFormErrors = false
   def hasFieldErrors: Boolean = !errors.isEmpty

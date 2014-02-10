@@ -102,8 +102,6 @@ object FormMacro {
             // Define the state class of the form.
             // The state class aggregates the states of its nested fields and forms.
             //
-            // The fsConstraints are of the form: C0 <: Constraints[<V>, CState]
-            //
             // If there are any validations defined then they are called right in the constructor thereby ensuring
             // that a form state is always validated.
             val fsClass = q"""
