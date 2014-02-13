@@ -1,4 +1,4 @@
-package eu.swdev.play.form
+package eu.swdev.web.play
 
 import play.api.templates.Html
 import views.html.eu.swdev.play.form.bootstrap3

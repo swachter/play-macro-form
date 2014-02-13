@@ -1,11 +1,28 @@
-package eu.swdev.play.form
+package eu.swdev.web.form
 
 import scala.reflect.macros.Context
 import scala.language.experimental.macros
 import scala.annotation.StaticAnnotation
 import scala.reflect.api.Universe
 
-/**
+/** The Form annotation is a macro annotation that can be applied on objects that describe input forms.
+  *
+  * A form is described by an immutable object that contains "val" members for fields and referenced nested form
+  * descriptions.
+  *
+  * A form description can be used to "parse" a Map[String, Seq[String]] into a so called form state. A form state
+  * contains for each directly or indirectly contained field the Seq[String] value (from the input map),
+  * any conversion errors that occurred when the Seq[String] was converted into a typed value,
+  * and possibly the converted typed value of the field. A form state can also be produced when by "filling" an
+  * existing typed value for the form into the form.
+  *
+  * The Form annotation augments the annotated object with two case classes named FS and FV that represent the form state
+  * and form value, respectively. In addition the two methods "def parse(view: Map[String, Seq[String]]): FS" and
+  * "def fill(model: FV): FS" are created.
+  *
+  * The form state contains the information that is necessary to render the form. The form state indicates if there
+  * were conversion or validation errors. If there were no such errors then the form value can be extracted by the
+  * "def model: FV" method.
   */
 class Form extends StaticAnnotation {
   def macroTransform(annottees: Any*) = macro FormMacro.impl
@@ -32,7 +49,6 @@ object FormMacro {
       val strFieldName = memberName.toString()
       def fvParam: ValDef
       def fsParam: ValDef
-      def fsConstraint: TypeDef
       def fillArg: Tree
       val parseArg = q"$memberName.doParse(name + $strFieldName, view)"
       val modelArg = q"$memberName.model"
@@ -41,7 +57,6 @@ object FormMacro {
 
     abstract class FieldInfo(index: Int, memberName: TermName, objectName: TermName) extends SpliceInfo(index, memberName) {
       val fillArg = q"$memberName.doFill(name + $strFieldName, model.$memberName)"
-      val fsConstraint = q"class X[$constraintTypeName <: CState]" match { case q"class X[$t]" => t }
       val fsParam = q"val $memberName: FieldState[$objectName.$memberName.V, $objectName.$memberName.B[$objectName.$memberName.V], $objectName.$memberName.CS]"
     }
 
@@ -56,7 +71,6 @@ object FormMacro {
     class FormInfo(index: Int, memberName: TermName, value: Tree) extends SpliceInfo(index, memberName) {
       val fvParam = q"val $memberName: $value.FV"
       val fsParam = q"val $memberName: State[$value.FV]"
-      val fsConstraint = q"class X[$constraintTypeName <: Constraints[_, _]]" match { case q"class X[$t]" => t }
       val fillArg = q"$memberName.doFill(name + $strFieldName, model.$memberName).asInstanceOf[State[$memberName.FV]]"
     }
 
@@ -65,8 +79,10 @@ object FormMacro {
       // -> remove the last method application and recurse
       case (q"val $fieldName = $a.$f($x)", objectName, index) => processField(q"val $fieldName = $a", objectName, index)
       case (q"val $fieldName = field[$boxType[$valueType]]", objectName, index) => new BoxFieldInfo(index, fieldName, valueType, boxType, objectName)
+      // TODO: the field[$valueType,$boxType] case can be remove when sbt 0.14 is used (after "Not a simple type:" warning got fixed)
       case (q"val $fieldName = field[$valueType,$boxType]", objectName, index) => new BoxFieldInfo(index, fieldName, valueType, boxType, objectName)
       case (q"val $fieldName = field[$valueType]", objectName, index) => new SimpleFieldInfo(index, fieldName, valueType, objectName)
+      // TODO: the field2 case can be removed when sbt 0.14 is used and the field2 method is superseeded by a new field method implementation
       case (q"val $fieldName = field2[$boxType[$valueType]]", objectName, index) => new BoxFieldInfo(index, fieldName, valueType, boxType, objectName)
     }
 
@@ -91,37 +107,34 @@ object FormMacro {
             val memberNames = spliceInfos.map(_.qMemberName)
             val fvParams = spliceInfos.map(_.fvParam)
             val fsParams = spliceInfos.map(_.fsParam)
-            val fsConstraints = spliceInfos.map(_.fsConstraint)
             val fillArgs = spliceInfos.map(_.fillArg)
             val parseArgs = spliceInfos.map(_.parseArg)
             val modelArgs = spliceInfos.map(_.modelArg)
 
-            // Define the value class that holds the typed value of the form.
-            val fvClass = q"case class FV(..$fvParams)"
-
-            // Define the state class of the form.
-            // The state class aggregates the states of its nested fields and forms.
-            //
-            // If there are any validations defined then they are called right in the constructor thereby ensuring
-            // that a form state is always validated.
-            val fsClass = q"""
-            case class FS(..$fsParams) extends eu.swdev.play.form.State[FV] {
-              def hasFormErrors = !errors.isEmpty || Seq[State[_]](..$memberNames).exists(_.hasFormErrors)
-              def hasFieldErrors = Seq[State[_]](..$memberNames).exists(_.hasFieldErrors)
-              def model = FV(..$modelArgs)
-              ..${validations}
-            }"""
-
-            val fillMethod1 = q"def doFill(name: Name, model: FV) = FS(..$fillArgs)"
-            val parseMethod1 = q"def doParse(name: Name, view: Map[String, Seq[String]]) = FS(..$parseArgs)"
-
-            val fillMethod2 = q"def fill(model: FV) = doFill(Name.empty, model)"
-            val parseMethod2 = q"def parse(view: Map[String, Seq[String]]) = doParse(Name.empty, view)"
-
             val tbody = body.asInstanceOf[List[Tree]]
 
-            // output the modified object definition by inserting various parts
-            q"object $objectName { ..${fvClass :: fsClass :: fillMethod1 :: parseMethod1 :: fillMethod2 :: parseMethod2 :: tbody} }"
+            // output the modified object
+            q"""
+            object $objectName {
+
+                  import eu.swdev.web.form._
+
+                  def doFill(name: Name, model: FV) = FS(..$fillArgs)
+                  def doParse(name: Name, view: Map[String, Seq[String]]) = FS(..$parseArgs)
+                  def fill(model: FV) = doFill(Name.empty, model)
+                  def parse(view: Map[String, Seq[String]]) = doParse(Name.empty, view)
+
+                  case class FV(..$fvParams)
+
+                  case class FS(..$fsParams) extends State[FV] {
+                    def hasFormErrors = !errors.isEmpty || Seq[State[_]](..$memberNames).exists(_.hasFormErrors)
+                    def hasFieldErrors = Seq[State[_]](..$memberNames).exists(_.hasFieldErrors)
+                    def model = FV(..$modelArgs)
+                    ..${validations}
+                  }
+
+                  ..$tbody
+            }"""
           }
           case x => x
         }

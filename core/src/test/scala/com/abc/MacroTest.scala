@@ -1,11 +1,11 @@
-package abc
+package com.abc
 
-import eu.swdev.web.form._
+import eu.swdev.web.form.Form
 import org.scalatest.FunSuite
 
-/**
+/** Tests the Form macro annotation
   */
-class Test extends FunSuite {
+class MacroTest extends FunSuite {
 
   @Form
   object F {
@@ -54,7 +54,6 @@ class Test extends FunSuite {
     val gsm = gs.model
     assert(g === gsm)
 
-    import Name.usedAsStringKey
 
     val fv = Map[String, Seq[String]](fs.f1.name -> fs.f1.view, fs.f2.name -> fs.f2.view, fs.f3.name -> fs.f3.view)
     val fp = F.parse(fv)
@@ -77,6 +76,8 @@ class Test extends FunSuite {
 
   test("typesafe rendering") {
     val fs = F.fill(F.FV(4, None, Seq(2)))
+
+    import eu.swdev.web.form.{FieldState, CState, Set}
 
     val simpleRenderer: FieldState[_, _, _] => String =
       state => s"simple renderer - state: $state"

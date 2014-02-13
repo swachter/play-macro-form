@@ -1,4 +1,4 @@
-package eu.swdev.play.form
+package eu.swdev.web.form
 
 /**
   */

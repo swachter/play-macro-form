@@ -1,4 +1,4 @@
-package eu.swdev.play
+package eu.swdev.web
 
 import scala.util.{Failure, Success, Try}
 

@@ -1,4 +1,4 @@
-package eu.swdev.play.form
+package eu.swdev.web.form
 
 case class Field[VP, BP[_], CSP <: CState](converter: FieldConverter[VP, BP], constraints: Constraints[VP, CSP]) {
 

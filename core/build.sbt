@@ -2,7 +2,7 @@ scalaVersion := "2.10.3"
 
 libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
 
-libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.0.RC1" % "test"
+libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.1.0-RC2" % "test"
 
 libraryDependencies += "org.scalamacros" % "quasiquotes" % "2.0.0-M3" cross CrossVersion.full
 
