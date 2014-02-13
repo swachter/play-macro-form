@@ -8,7 +8,7 @@ import org.scalatest.FunSuite
   */
 class BoilerplateTest extends FunSuite {
 
-  // A form with all the boilerplate written manually
+  // a form with all the boilerplate written manually
   object F {
 
     //
@@ -82,7 +82,7 @@ class BoilerplateTest extends FunSuite {
 
   }
 
-  // A form with all the boilerplate written manually
+  // another form with all the boilerplate written manually
   object G {
 
     //
