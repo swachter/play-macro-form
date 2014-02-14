@@ -3,7 +3,7 @@ package controllers
 import play.api._
 import play.api.mvc._
 import com.abc.F
-import eu.swdev.play.form.FormSupportImpl
+import eu.swdev.web.play.FormSupportImpl
 
 object Application extends Controller {
 

@@ -1,6 +1,6 @@
 package com.abc
 
-import eu.swdev.play.form._
+import eu.swdev.web.form.Form
 
 @Form
 object F {
