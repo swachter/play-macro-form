@@ -31,7 +31,7 @@ package object form {
     def format(t: Int): String = t.toString
     def parse(s: String): Either[String, Int] = Try(Integer.parseInt(s)) match {
       case Success(i) => Right(i)
-      case Failure(e) => Left(e.getMessage)
+      case Failure(e) => Left(s"${e.getClass.getName}: ${e.getMessage}")
     }
   }
 

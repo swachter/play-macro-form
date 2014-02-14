@@ -2,7 +2,7 @@
 @(formState: com.abc.F.FS)(implicit formSupport: eu.swdev.web.play.FormSupport)
 @import formSupport._
 @main("Form-Test") {
-  <form method="GET" action="processForm">
+  <form method="GET" action="@routes.Application.processForm">
     @formState.f1.inputText
     <input type="submit" />
   </form>
