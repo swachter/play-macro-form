@@ -15,7 +15,7 @@ case class Field[VP, BP[_], CSP <: CState](converter: FieldConverter[VP, BP], co
   def doParse(name: Name, map: Map[String, Seq[String]]): FieldState[VP, BP[VP], CSP] = {
     val view = map.getOrElse(name.value, Seq())
     converter.parse(view) match {
-      case Left(e) => FieldStateWithoutModel[VP, BP, CSP](name, view, constraints)
+      case Left(e) => FieldStateWithoutModel[VP, BP, CSP](name, view, constraints).addErrors(e)
       case Right(m) => FieldStateWithModel[VP, BP, CSP](name, view, constraints, m)(converter)
     }
   }

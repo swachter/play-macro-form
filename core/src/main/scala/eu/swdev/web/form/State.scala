@@ -13,8 +13,14 @@ trait State[+M] {
 
   var errors: Seq[String] = Seq()
 
-  def addError(error: String): Unit = {
+  def addError(error: String): this.type = {
     errors = error +: errors
+    this
+  }
+
+  def addErrors(errs: Seq[String]): this.type = {
+    errors = errs ++ errors
+    this
   }
 
   def hasErrors = hasFormErrors || hasFieldErrors

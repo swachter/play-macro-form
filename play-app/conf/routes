@@ -9,3 +9,5 @@ GET     /                           controllers.Application.index
 GET     /assets/*file               controllers.Assets.at(path="/public", file)
 
 GET     /test                       controllers.Application.test
+
+GET     /processForm                controllers.Application.processForm

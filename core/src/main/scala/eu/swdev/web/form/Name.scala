@@ -16,6 +16,7 @@ class Name(val value: String) extends AnyVal {
     }
   }
 
+  override def toString = value
 }
 
 object Name {

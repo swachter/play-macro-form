@@ -2,7 +2,7 @@ package eu.swdev.web.play
 
 import eu.swdev.web.form._
 import play.api.templates.Html
-import views.html.eu.swdev.play.form.bootstrap3
+import views.html.tags.eu.swdev.play.form.bootstrap3
 
 trait FormRenderer[M, CS <: CState] {
   

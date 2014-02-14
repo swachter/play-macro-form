@@ -1,8 +1,9 @@
 @* formTest Template File *@
-@(formState: _root_.com.abc.F.FS)(implicit formSupport: _root_.eu.swdev.web.play.FormSupport)
+@(formState: com.abc.F.FS)(implicit formSupport: eu.swdev.web.play.FormSupport)
 @import formSupport._
 @main("Form-Test") {
-  <form>
+  <form method="GET" action="processForm">
     @formState.f1.inputText
+    <input type="submit" />
   </form>
 }

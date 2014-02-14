@@ -65,14 +65,14 @@ class BoilerplateTest extends FunSuite {
       override def model: FV = FV(f1.model, f2.model, f3.model, f4.model)
     }
 
+    //
+    // end of boilerplate
+    //
+
     val f1 = field[Int]
     val f2 = field[Int, Option].lt(7)
     val f3 = field[Int].enum(Seq(3, 4, 5))
     val f4 = field2[Seq[Int]]
-
-    //
-    // end of boilerplate
-    //
 
     def validate(fs: FS): Unit = {
       if (fs.f1.model % 2 == 0) {
@@ -127,7 +127,7 @@ class BoilerplateTest extends FunSuite {
     // end of boilerplate
     //
 
-    val g1 = F
+    val g1 = F // reference another form
     val g2 = F
     val g3 = field[Int]
 
