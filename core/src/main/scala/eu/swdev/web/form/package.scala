@@ -41,7 +41,8 @@ package object form {
 
   trait FieldCreator[M] {
     type V
-    def createField: Field[V, M, CState]
+    type CS <: CState
+    def createField: Field[V, M, CS]
   }
 
   //
@@ -50,25 +51,34 @@ package object form {
 
   implicit def simpleFieldCreator[VP](implicit simpleConverter: SimpleConverter[VP]) = new FieldCreator[VP] {
     type V = VP
-    def createField: Field[V, V, CState] = {
+    type CS = CState {
+      type OC = ExactlyOne
+    }
+    def createField: Field[V, V, CS] = {
       val handler = SimpleFieldHandler(simpleConverter)
-      Field[V, V, CState](Constraints(handler))
+      Field[V, V, CS](Constraints(handler))
     }
   }
 
   implicit def optionFieldCreator[VP](implicit simpleConverter: SimpleConverter[VP]) = new FieldCreator[Option[VP]] {
     type V = VP
-    def createField: Field[V, Option[VP], CState] = {
+    type CS = CState {
+      type OC = ZeroOrOne
+    }
+    def createField: Field[V, Option[VP], CS] = {
       val handler = OptionFieldHandler(simpleConverter)
-      Field[V, Option[VP], CState](Constraints(handler))
+      Field[V, Option[VP], CS](Constraints(handler))
     }
   }
 
   implicit def seqFieldCreator[VP](implicit simpleConverter: SimpleConverter[VP]) = new FieldCreator[Seq[VP]] {
     type V = VP
-    def createField: Field[V, Seq[VP], CState] = {
+    type CS = CState {
+      type OC = ZeroOrMore
+    }
+    def createField: Field[V, Seq[VP], CS] = {
       val handler = SeqFieldHandler(simpleConverter)
-      Field[V, Seq[VP], CState](Constraints(handler))
+      Field[V, Seq[VP], CS](Constraints(handler))
     }
   }
 

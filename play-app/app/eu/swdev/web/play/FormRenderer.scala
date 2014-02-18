@@ -9,7 +9,8 @@ trait FormRenderer[V, M, CS <: CState] {
   def inputText(implicit defaultFormName: Name): Html
   def checkBox(implicit defaultFormName: Name, checkBoxValueInfo: CheckBoxValueInfo[V]): Html
 
-  def checkBoxes(implicit defaultFormName: Name, ev: CS <:< CState { type EN = Set } ): Html
+  def checkBoxGroup(inLineBoxes: Boolean)(implicit defaultFormName: Name, ev: CS <:< CState { type EN = Set; type OC = ZeroOrMore } ): Html
+  def radioButtonGroup(inLineBoxes: Boolean)(implicit defaultFormName: Name, ev: CS <:< CState { type EN = Set; type OC <: AtMostOne } ): Html
 
 }
 
@@ -38,7 +39,28 @@ class FormRendererImpl[V, M, CS <: CState](val fieldState: FieldState[V, M, CS],
     bootstrap3.checkBoxField(fieldState, checkBoxValueInfo)
   }
 
-  def checkBoxes(implicit defaultFormName: Name, ev: CS <:< CState { type EN = Set } ): Html
+  def checkBoxGroup(inLineBoxes: Boolean)(implicit defaultFormName: Name, ev: CS <:< CState { type EN = Set; type OC = ZeroOrMore } ): Html = {
+    val checkBoxes = for {
+      v <- fieldState.constraints.en.get.seq
+    } yield {
+      val strValue = fieldState.constraints.handler.simpleConverter.format(v)
+      val checked = fieldState.view.contains(strValue)
+      bootstrap3.checkBox(fieldState.name.toString, strValue, checked, strValue, inLineBoxes)
+    }
+    bootstrap3.checkBoxOrRadioButtonGroup(fieldState, checkBoxes)
+  }
+
+  def radioButtonGroup(inLineBoxes: Boolean)(implicit defaultFormName: Name, ev: CS <:< CState { type EN = Set; type OC <: AtMostOne } ): Html = {
+    val radioButtons = for {
+      v <- fieldState.constraints.en.get.seq
+    } yield {
+      val strValue = fieldState.constraints.handler.simpleConverter.format(v)
+      val checked = fieldState.view.contains(strValue)
+      bootstrap3.radioButton(fieldState.name.toString, strValue, checked, strValue, inLineBoxes)
+    }
+    bootstrap3.checkBoxOrRadioButtonGroup(fieldState, radioButtons)
+  }
+
 }
 
 trait CheckBoxValueInfo[V] {

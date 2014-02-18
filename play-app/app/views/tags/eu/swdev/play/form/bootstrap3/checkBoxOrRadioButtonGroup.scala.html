@@ -1,0 +1,5 @@
+@(fs: eu.swdev.web.form.FieldState[_, _, eu.swdev.web.form.CState], checkBoxesOrRadioButtons: Seq[Html])(implicit formSupport: eu.swdev.web.play.FormSupport)
+@formGroup(fs) {
+  @label(fs)
+  @for(b <- checkBoxesOrRadioButtons) { @b }
+}

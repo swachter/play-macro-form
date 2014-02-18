@@ -29,7 +29,7 @@ case class Constraints[V, M, +CS <: CState](handler: FieldHandler[V, M], lb: Opt
 }
 
 object Constraints {
-  def apply[V, M](handler: FieldHandler[V, M]): Constraints[V, M, CState] = Constraints[V, M, CState](handler, None, None, None, Nil, Nil, Nil)
+  def apply[V, M, CS <: CState](handler: FieldHandler[V, M]): Constraints[V, M, CS] = Constraints[V, M, CS](handler, None, None, None, Nil, Nil, Nil)
 }
 
 case class Bound[V: Ordering](value: V, error: String, chk: Int => Boolean) extends ((Seq[String], V) => Seq[String]) {
@@ -62,5 +62,15 @@ trait CState {
   type LB <: Unset
   type UB <: Unset
   type EN <: Unset
+  type OC <: Occurrence
 }
 
+sealed trait Occurrence
+
+sealed trait ZeroOrMore extends Occurrence
+
+sealed trait AtMostOne extends Occurrence
+
+sealed trait ZeroOrOne extends AtMostOne
+
+sealed trait ExactlyOne extends AtMostOne

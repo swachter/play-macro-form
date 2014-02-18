@@ -1,8 +1,15 @@
-@(name: String, value: String, checked: Boolean, label: String)
-<div class="checkbox">
-  <label>
+@(name: String, value: String, checked: Boolean, label: String, inLineBox: Boolean)
+@if(inLineBox) {
+  <label class="checkbox-inline">
     <input name="@name" type="checkbox" class="form-control" value="@value" @if(checked) { checked="checked" }) />
     @label
   </label>
-</div>
+} else {
+  <div class="checkbox">
+    <label>
+      <input name="@name" type="checkbox" class="form-control" value="@value" @if(checked) { checked="checked" }) />
+      @label
+    </label>
+  </div>
+}
 

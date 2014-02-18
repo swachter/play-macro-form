@@ -12,7 +12,7 @@ object Application extends Controller {
   }
   
   def test = Action {
-    val fs = F.fill(F.FV(5, false))
+    val fs = F.fill(F.FV(5, false, Seq(), 1, None))
     fs.f1.addError("Fehler!")
     Ok(views.html.formTest(fs)(new FormSupportImpl))
   }

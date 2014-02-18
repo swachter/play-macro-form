@@ -5,6 +5,9 @@
   <form method="GET" action="@routes.Application.processForm">
     @formState.f1.inputText
     @formState.f2.checkBox
+    @formState.f3.checkBoxGroup(true)
+    @formState.f4.radioButtonGroup(true)
+    @formState.f5.radioButtonGroup(true)
     <input type="submit" />
   </form>
 }
