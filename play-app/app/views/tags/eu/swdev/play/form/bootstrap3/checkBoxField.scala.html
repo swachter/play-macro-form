@@ -1,0 +1,5 @@
+@(fs: eu.swdev.web.form.FieldState[_, _, eu.swdev.web.form.CState], checkBoxValueInfo: eu.swdev.web.play.CheckBoxValueInfo[_])(implicit formSupport: eu.swdev.web.play.FormSupport)
+@formGroup(fs) {
+  @checkBox(fs.name, checkBoxValueInfo.checkedValue, checkBoxValueInfo.isChecked(fs.view), fs.name)
+  <input name="@{fs.name}.default" type="hidden" value="@checkBoxValueInfo.uncheckedValue" />
+}

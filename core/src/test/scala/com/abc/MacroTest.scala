@@ -10,8 +10,8 @@ class MacroTest extends FunSuite {
   @Form
   object F {
     val f1 = field[Int].lt(5).enum(Seq(2,3,4))
-    val f2 = field[Int, Option]
-    val f3 = field2[Seq[Int]]
+    val f2 = field[Option[Int]]
+    val f3 = field[Seq[Int]]
 
     // method is called when a FormState is constructed
     def test(fs: FS): Unit = {

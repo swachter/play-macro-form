@@ -4,6 +4,7 @@
 @main("Form-Test") {
   <form method="GET" action="@routes.Application.processForm">
     @formState.f1.inputText
+    @formState.f2.checkBox
     <input type="submit" />
   </form>
 }

@@ -57,7 +57,7 @@ object FormMacro {
 
     abstract class FieldInfo(index: Int, memberName: TermName, objectName: TermName) extends SpliceInfo(index, memberName) {
       val fillArg = q"$memberName.doFill(name + $strFieldName, model.$memberName)"
-      val fsParam = q"val $memberName: FieldState[$objectName.$memberName.V, $objectName.$memberName.B[$objectName.$memberName.V], $objectName.$memberName.CS]"
+      val fsParam = q"val $memberName: FieldState[$objectName.$memberName.V, $objectName.$memberName.M, $objectName.$memberName.CS]"
     }
 
     class SimpleFieldInfo(index: Int, memberName: TermName, valueType: Tree, objectName: TermName) extends FieldInfo(index, memberName, objectName) {
@@ -79,11 +79,7 @@ object FormMacro {
       // -> remove the last method application and recurse
       case (q"val $fieldName = $a.$f($x)", objectName, index) => processField(q"val $fieldName = $a", objectName, index)
       case (q"val $fieldName = field[$boxType[$valueType]]", objectName, index) => new BoxFieldInfo(index, fieldName, valueType, boxType, objectName)
-      // TODO: the field[$valueType,$boxType] case can be remove when sbt 0.14 is used (after "Not a simple type:" warning got fixed)
-      case (q"val $fieldName = field[$valueType,$boxType]", objectName, index) => new BoxFieldInfo(index, fieldName, valueType, boxType, objectName)
       case (q"val $fieldName = field[$valueType]", objectName, index) => new SimpleFieldInfo(index, fieldName, valueType, objectName)
-      // TODO: the field2 case can be removed when sbt 0.14 is used and the field2 method is superseeded by a new field method implementation
-      case (q"val $fieldName = field2[$boxType[$valueType]]", objectName, index) => new BoxFieldInfo(index, fieldName, valueType, boxType, objectName)
     }
 
     val processForm: PartialFunction[(Tree, TermName, Int), SpliceInfo] = {

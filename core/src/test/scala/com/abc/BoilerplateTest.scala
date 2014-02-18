@@ -55,10 +55,10 @@ class BoilerplateTest extends FunSuite {
     // If there are any validations defined then they are called right in the constructor thereby ensuring
     // that a form state is always validated.
     case class FS(
-                  f1: FieldState[F.f1.V, F.f1.B[F.f1.V], F.f1.CS],
-                  f2: FieldState[F.f2.V, F.f2.B[F.f2.V], F.f2.CS],
-                  f3: FieldState[F.f3.V, F.f3.B[F.f3.V], F.f3.CS],
-                  f4: FieldState[F.f4.V, F.f4.B[F.f4.V], F.f4.CS]
+                  f1: FieldState[F.f1.V, F.f1.M, F.f1.CS],
+                  f2: FieldState[F.f2.V, F.f2.M, F.f2.CS],
+                  f3: FieldState[F.f3.V, F.f3.M, F.f3.CS],
+                  f4: FieldState[F.f4.V, F.f4.M, F.f4.CS]
                   ) extends State[FV] {
       def hasFormErrors: Boolean = !errors.isEmpty || Seq[State[_]](f1, f2, f3).exists(_.hasFormErrors)
       def hasFieldErrors: Boolean = Seq[State[_]](f1, f2, f3).exists(_.hasFieldErrors)
@@ -70,9 +70,9 @@ class BoilerplateTest extends FunSuite {
     //
 
     val f1 = field[Int]
-    val f2 = field[Int, Option].lt(7)
+    val f2 = field[Option[Int]].lt(7)
     val f3 = field[Int].enum(Seq(3, 4, 5))
-    val f4 = field2[Seq[Int]]
+    val f4 = field[Seq[Int]].addVCheck((errs, v) => if (v % 2 == 0) "must be odd" +: errs else errs)
 
     def validate(fs: FS): Unit = {
       if (fs.f1.model % 2 == 0) {
@@ -116,7 +116,7 @@ class BoilerplateTest extends FunSuite {
     case class FS(
             g1: State[F.FV],
             g2: State[F.FV],
-            g3: FieldState[G.g3.V, G.g3.B[G.g3.V], G.g3.CS]
+            g3: FieldState[G.g3.V, G.g3.M, G.g3.CS]
             ) extends State[FV] {
       def hasFormErrors: Boolean = !errors.isEmpty || Seq(g1, g2, g3).exists(_.hasFormErrors)
       def hasFieldErrors: Boolean = Seq(g1, g2, g3).exists(_.hasFieldErrors)

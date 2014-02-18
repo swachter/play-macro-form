@@ -1,28 +1,33 @@
 package eu.swdev.web.form
 
-case class Field[VP, BP[_], CSP <: CState](converter: FieldConverter[VP, BP], constraints: Constraints[VP, CSP]) {
+case class Field[VP, MP, CSP <: CState](constraints: Constraints[VP, MP, CSP]) {
 
   type V = VP
-  type B[X] = BP[X]
+  type M = MP
   type CS = CSP
 
-  def le(v: VP)(implicit ev: Ordering[VP]) = Field(converter, constraints.le(v))
-  def lt(v: VP)(implicit ev: Ordering[VP]) = Field(converter, constraints.lt(v))
-  def ge(v: VP)(implicit ev: Ordering[VP]) = Field(converter, constraints.ge(v))
-  def gt(v: VP)(implicit ev: Ordering[VP]) = Field(converter, constraints.gt(v))
-  def enum(seq: Seq[VP]) = Field(converter, constraints.enum(seq))
+  def le(v: VP)(implicit ev: Ordering[VP]) = Field(constraints.le(v))
+  def lt(v: VP)(implicit ev: Ordering[VP]) = Field(constraints.lt(v))
+  def ge(v: VP)(implicit ev: Ordering[VP]) = Field(constraints.ge(v))
+  def gt(v: VP)(implicit ev: Ordering[VP]) = Field(constraints.gt(v))
+  def enum(seq: Seq[VP]) = Field(constraints.enum(seq))
 
-  def doParse(name: Name, map: Map[String, Seq[String]]): FieldState[VP, BP[VP], CSP] = {
-    val view = map.getOrElse(name.value, Seq())
-    converter.parse(view) match {
-      case Left(e) => FieldStateWithoutModel[VP, BP, CSP](name, view, constraints).addErrors(e)
-      case Right(m) => FieldStateWithModel[VP, BP, CSP](name, view, constraints, m)(converter)
+  def addSCheck(check: Check[String]) = Field(constraints.addSCheck(check))
+  def addVCheck(check: Check[V]) = Field(constraints.addVCheck(check))
+  def addMCheck(check: Check[M]) = Field(constraints.addMCheck(check))
+
+
+  def doParse(name: Name, map: Map[String, Seq[String]]): FieldState[VP, MP, CSP] = {
+    val view = map.getOrElse(name.value, map.getOrElse(name.value + ".default", Seq()))
+    constraints.handler.parse(view) match {
+      case Left(e) => FieldStateWithoutModel[VP, MP, CSP](name, view, constraints).addErrors(e)
+      case Right(m) => FieldStateWithModel[VP, MP, CSP](name, view, constraints, m)
     }
   }
 
-  def doFill(name: Name, model: BP[VP]): FieldState[VP, BP[VP], CSP] = {
-    val view = converter.format(model)
-    FieldStateWithModel[VP, BP, CSP](name, view, constraints, model)(converter)
+  def doFill(name: Name, model: MP): FieldState[VP, MP, CSP] = {
+    val view = constraints.handler.format(model)
+    FieldStateWithModel[VP, MP, CSP](name, view, constraints, model)
   }
 
 }

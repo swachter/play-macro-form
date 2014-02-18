@@ -1,12 +1,9 @@
 @(fs: eu.swdev.web.form.FieldState[_, _, _])(inner: Html)(implicit formSupport: eu.swdev.web.play.FormSupport)
 <div class="form-group @if(fs.hasErrors) {has-error}">
-  <label for="@fs.name">@fs.name</label>
+  @inner
   @if(fs.hasFieldErrors) {
-    <div class="input-group">
-      <span class="input-group-addon"><span class="glyphicon glyphicon-question-sign" data-content="@fs.errors.mkString("; ")"></span></span>
-      @inner
-    </div>
-  } else {
-    @inner
+    <small class="help-block">
+      @fs.errors.mkString("; ")
+    </small>
   }
 </div>

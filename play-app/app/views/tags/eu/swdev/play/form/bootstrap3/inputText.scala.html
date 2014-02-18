@@ -1,4 +1,5 @@
 @(fs: eu.swdev.web.form.FieldState[_, _, eu.swdev.web.form.CState])(implicit formSupport: eu.swdev.web.play.FormSupport)
 @formGroup(fs) {
+  @label(fs)
   <input name="@fs.name" type="text" class="form-control" placeholder="Text input" value="@fs.view.headOption.getOrElse("")"/>
 }

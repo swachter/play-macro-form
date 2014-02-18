@@ -12,14 +12,13 @@ object Application extends Controller {
   }
   
   def test = Action {
-    val fs = F.fill(F.FV(5))
+    val fs = F.fill(F.FV(5, false))
     fs.f1.addError("Fehler!")
     Ok(views.html.formTest(fs)(new FormSupportImpl))
   }
 
   def processForm = Action { implicit request =>
 
-    println
     val fs = F.parse(request.queryString)
 
     println(fs)

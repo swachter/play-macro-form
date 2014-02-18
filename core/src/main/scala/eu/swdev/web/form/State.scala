@@ -42,15 +42,13 @@ trait FieldState[V, M, +CS <: CState] extends State[M] {
   def hasFormErrors = false
   def hasFieldErrors: Boolean = !errors.isEmpty
   def view: Seq[String]
-  def constraints: Constraints[V, CS]
+  def constraints: Constraints[V, M, CS]
 }
 
-// a field converter is used to validate the field value during construction
-// a second argument list is used for that field converter because it needs not to be part of the field state
-case class FieldStateWithModel[V, B[_], CS <: CState](name: Name, view: Seq[String], constraints: Constraints[V, CS], model: B[V])(fc: FieldConverter[V, B]) extends FieldState[V, B[V], CS] {
-  errors = fc.validate(model, constraints)
+case class FieldStateWithModel[V, M, CS <: CState](name: Name, view: Seq[String], constraints: Constraints[V, M, CS], model: M) extends FieldState[V, M, CS] {
+  errors = constraints.check(model)
 }
 
-case class FieldStateWithoutModel[V, B[_], CS <: CState](name: Name, view: Seq[String], constraints: Constraints[V, CS]) extends FieldState[V, B[V], CS] {
-  def model: B[V] = throw new NoSuchElementException(s"field does not have a model value - it contains errors: $errors")
+case class FieldStateWithoutModel[V, M, CS <: CState](name: Name, view: Seq[String], constraints: Constraints[V, M, CS]) extends FieldState[V, M, CS] {
+  def model: M = throw new NoSuchElementException(s"field does not have a model value - it contains errors: $errors")
 }
