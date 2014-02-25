@@ -17,6 +17,9 @@ class Name(val value: String) extends AnyVal {
   }
 
   override def toString = value
+
+  def hasTail = value.indexOf('.') >= 0
+  def tail = Name(value.substring(value.indexOf('.') + 1))
 }
 
 object Name {

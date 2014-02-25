@@ -1,13 +1,14 @@
 @* formTest Template File *@
-@(formState: com.abc.F.FS)(implicit formSupport: eu.swdev.web.play.FormSupport)
-@import formSupport._
+@(formState: com.abc.F.FS)(implicit lang: Lang, bsa: BootstrapAttrs)
 @main("Form-Test") {
-  <form method="GET" action="@routes.Application.processForm">
-    @formState.f1.inputText
-    @formState.f2.checkBox
-    @formState.f3.checkBoxGroup(true)
-    @formState.f4.radioButtonGroup(true)
-    @formState.f5.radioButtonGroup(true)
-    <input type="submit" />
+  <form class="form-horizontal" method="GET" action="@routes.Application.processForm">
+    <fieldset>
+        @formState.f1.inputText
+        @formState.f2.checkBox
+        @formState.f3.checkBoxGroup(true)
+        @formState.f4.radioButtonGroup(true)
+        @formState.f5.radioButtonGroup(true)
+        <input type="submit" />
+    </fieldset>
   </form>
 }

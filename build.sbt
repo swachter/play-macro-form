@@ -17,11 +17,15 @@ lazy val playApp = Project("playApp", file("play-app")).dependsOn(core).settings
     version := "1.0-SNAPSHOT",
     resolvers += Resolver.sonatypeRepo("snapshots"),
     resolvers += Resolver.sonatypeRepo("releases"),
+    libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.1.0-RC2" % "test",
     libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value,
     addCompilerPlugin("org.scalamacros" % "paradise" % "2.0.0-M3" cross CrossVersion.full),
     scalacOptions += "-feature",
     scalacOptions += "-language:higherKinds"
-  ).settings(play.Project.playScalaSettings: _*)
+  ).settings(play.Project.playScalaSettings: _*).settings(
+    templatesImport += "eu.swdev.web.form._",
+    templatesImport += "eu.swdev.web.play._"
+  )
 
 
 lazy val root = project.in(file(".")).aggregate(core, playApp)
