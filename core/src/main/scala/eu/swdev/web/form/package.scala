@@ -23,7 +23,7 @@ package object form {
     def format(t: Int): String = t.toString
     def parse(s: String): Either[Error, Int] = Try(Integer.parseInt(s)) match {
       case Success(i) => Right(i)
-      case Failure(e) => Left(Error("exception", s"${e.getClass.getName}: ${e.getMessage}"))
+      case Failure(e) => Left(Error("exception", e.getClass.getName, e.getMessage))
     }
   }
 
@@ -31,7 +31,7 @@ package object form {
     def format(t: Boolean): String = t.toString
     def parse(s: String): Either[Error, Boolean] = Try(java.lang.Boolean.parseBoolean(s)) match {
       case Success(i) => Right(i)
-      case Failure(e) => Left(Error("exception", s"${e.getClass.getName}: ${e.getMessage}"))
+      case Failure(e) => Left(Error("exception", e.getClass.getName, e.getMessage))
     }
   }
 

@@ -78,12 +78,12 @@ class MacroTest extends FunSuite {
   test("typesafe rendering") {
     val fs = F.fill(F.FV(4, None, Seq(2)))
 
-    import eu.swdev.web.form.{FieldState, CState, Set}
+    import eu.swdev.web.form.{FieldState, CState, IsSet}
 
     val simpleRenderer: FieldState[_, _, _] => String =
       state => s"simple renderer - state: $state"
 
-    val enumRenderer: FieldState[_, _, CState { type EN = Set }] => String =
+    val enumRenderer: FieldState[_, _, CState { type EN = IsSet }] => String =
       state => s"enum renderer - state: $state; enum: ${state.constraints.en.get}"
 
     simpleRenderer(fs.f1)

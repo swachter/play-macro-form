@@ -1,5 +1,12 @@
 @(fs: eu.swdev.web.form.FieldState[_, _, CState], checkBoxValueInfo: CheckBoxValueInfo[_])(implicit lang: Lang, formName: Name, bsa: BootstrapAttrs)
 @formGroup(fs) {
-  @checkBox(fs.name, checkBoxValueInfo.checkedValue, checkBoxValueInfo.isChecked(fs.view), fs.name, false)
-  <input name="@{fs.name}.default" type="hidden" value="@checkBoxValueInfo.uncheckedValue" />
+  <div class="checkbox">
+    <label>
+      <input @bsa.input.name(fs) type="checkbox" @bsa.input.id(fs) value="@checkBoxValueInfo.checkedValue" @if(checkBoxValueInfo.isChecked(fs.view)) { checked="checked" } @Html(bsa.input += ("class", "form-control"))/>
+      <input name="@bsa.input.nameForDefault(fs)" type="hidden" value="@checkBoxValueInfo.uncheckedValue" />
+      @fs.name
+    </label>
+  </div>
+
+
 }

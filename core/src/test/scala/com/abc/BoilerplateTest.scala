@@ -144,12 +144,12 @@ class BoilerplateTest extends FunSuite {
 
     println(fs)
 
-    import eu.swdev.web.form.{FieldState, CState, Set}
+    import eu.swdev.web.form.{FieldState, CState, IsSet}
 
     val simpleRenderer: FieldState[_, _, _] => String =
         state => s"simple renderer - state: $state"
 
-    val enumRenderer: FieldState[_, _, CState { type EN = Set }] => String =
+    val enumRenderer: FieldState[_, _, CState { type EN = IsSet }] => String =
         state => s"enum renderer - state: $state; enum: ${state.constraints.en.get}"
 
     println(simpleRenderer(fs.f1))

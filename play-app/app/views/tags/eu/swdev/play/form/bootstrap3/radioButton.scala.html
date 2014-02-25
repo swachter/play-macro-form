@@ -1,13 +1,13 @@
 @(name: String, value: String, checked: Boolean, label: String, inLineBox: Boolean)
 @if(inLineBox) {
   <label class="radio-inline">
-    <input name="@name" type="radio" class="form-control" value="@value" @if(checked) { checked="checked" }) />
+    <input name="@name" type="radio" class="form-control" value="@value" @if(checked) { checked="checked" } />
     @label
   </label>
 } else {
   <div class="radio">
     <label>
-      <input name="@name" type="radio" class="form-control" value="@value" @if(checked) { checked="checked" }) />
+      <input name="@name" type="radio" class="form-control" value="@value" @if(checked) { checked="checked" } />
       @label
     </label>
   </div>

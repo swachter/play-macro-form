@@ -1,2 +1,2 @@
 @(fs: FieldState[_, _, _])(implicit lang: Lang, bsa: BootstrapAttrs, formName: Name)
-<label for="@formUtil.id(fs)" @formUtil.attrs(bsa.label)>@formUtil.label(fs)</label>
+<label @(bsa.label.`for`(fs)) @Html(bsa.label)>@formUtil.label(fs)</label>
