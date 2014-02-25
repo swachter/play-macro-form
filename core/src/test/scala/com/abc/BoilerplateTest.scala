@@ -72,11 +72,11 @@ class BoilerplateTest extends FunSuite {
     val f1 = field[Int]
     val f2 = field[Option[Int]].lt(7)
     val f3 = field[Int].enum(Seq(3, 4, 5))
-    val f4 = field[Seq[Int]].addVCheck((errs, v) => if (v % 2 == 0) "must be odd" +: errs else errs)
+    val f4 = field[Seq[Int]].addVCheck((errs, v) => if (v % 2 == 0) Error("must be odd") +: errs else errs)
 
     def validate(fs: FS): Unit = {
       if (fs.f1.model % 2 == 0) {
-        fs.f1.addError("number must not be even")
+        fs.f1.addError(Error("number must not be even"))
       }
     }
 

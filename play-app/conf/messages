@@ -3,3 +3,7 @@ form.label.f2 = Field 2
 form.label.f3 = Field 3
 form.label.f4 = Field 4
 form.label.f5 = Field 5
+
+form.placeholder.f1 = please enter a number
+
+form.error.lt = Value must be less than {0}

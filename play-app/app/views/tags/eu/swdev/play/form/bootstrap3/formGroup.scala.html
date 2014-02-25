@@ -1,11 +1,11 @@
 @(fs: eu.swdev.web.form.FieldState[_, _, _])(inner: Html)(implicit lang: Lang, formName: Name, bsa: BootstrapAttrs)
-<div @formUtil.attrs(bsa.formGroup.+=("class", if (fs.hasErrors) "has-error" else ""))>
+<div @formUtil.attrs(bsa.formGroup += ("class", if (fs.hasErrors) "has-error" else ""))>
   @label(fs)
   <div @formUtil.attrs(bsa.inputDiv)>
     @inner
     @if(fs.hasFieldErrors) {
       <small class="help-block">
-        @fs.errors.mkString("; ")
+        @formUtil.errors(fs)
       </small>
     }
   </div>

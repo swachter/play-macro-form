@@ -12,6 +12,14 @@ import eu.swdev.web.form.Set
   */
 package object play {
 
+  /**
+   * Provides various methods for rendering fields.
+   *
+   * @param fieldState
+   * @tparam V
+   * @tparam M
+   * @tparam CS
+   */
   implicit class FormRenderer[V, M, CS <: CState](val fieldState: FieldState[V, M, CS]) extends AnyVal {
 
     def inputText(implicit formName: Name = Name.empty, bootstrapAttrs: BootstrapAttrs = BootstrapAttrs.empty, lang: Lang): Html = {
@@ -47,24 +55,38 @@ package object play {
   }
 
   object formUtil {
+    
     def id(fieldState: FieldState[_, _, _])(implicit formName: Name): String = (formName + fieldState.name).toString
     def name(fieldState: FieldState[_, _, _])(implicit formName: Name): String = id(fieldState)
     def value(fieldState: FieldState[_, _, _]): String = fieldState.view.headOption.getOrElse("")
     def attrs(attrs: Attrs) = Html(attrs.toString)
 
     def label(fieldState: FieldState[_, _, _])(implicit formName: Name, lang: Lang): String = {
-      def findLabel(n: Name): Option[String] = {
-        val key = s"form.label.${n.toString}"
+      def findLabel(name: Name): Option[String] = findMessage(name, "form.label")
+      findLabel(formName + fieldState.name).getOrElse(findLabel(fieldState.name).getOrElse((formName + fieldState.name).toString))
+    }
+
+    def errors(fieldState: FieldState[_, _, _])(implicit lang: Lang): Html = {
+      Html(fieldState.errors.map(e => findMessage(fieldState.name + e.key, "form.error", e.args: _*).getOrElse(e.key)).mkString("<br>"))
+    }
+
+    def placeholder(fieldState: FieldState[_, _, _])(implicit lang: Lang): Html = {
+      def findLabel(name: Name): Option[String] = findMessage(name, "form.label")
+      Html(findMessage(fieldState.name, "form.placeholder").map(p => s"""placeholder="$p""""").getOrElse(""))
+    }
+
+    private def findMessage(name: Name, keyPrefix: String, args: Any*)(implicit lang: Lang): Option[String] = {
+      def doFind(n: Name): Option[String] = {
+        val key = s"$keyPrefix.${n.toString}"
         if (Messages.isDefinedAt(key)) {
-          Some(Messages(key))
+          Some(Messages(key, args: _*))
         } else if (n.hasTail) {
-          findLabel(n.tail)
+          doFind(n.tail)
         } else {
           None
         }
       }
-      println(s"lang: $lang")
-      findLabel(formName + fieldState.name).getOrElse(findLabel(fieldState.name).getOrElse((formName + fieldState.name).toString))
+      doFind(name)
     }
   }
 

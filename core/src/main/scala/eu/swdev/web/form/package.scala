@@ -21,17 +21,17 @@ package object form {
 
   implicit val IntConverter = new SimpleConverter[Int] {
     def format(t: Int): String = t.toString
-    def parse(s: String): Either[String, Int] = Try(Integer.parseInt(s)) match {
+    def parse(s: String): Either[Error, Int] = Try(Integer.parseInt(s)) match {
       case Success(i) => Right(i)
-      case Failure(e) => Left(s"${e.getClass.getName}: ${e.getMessage}")
+      case Failure(e) => Left(Error("exception", s"${e.getClass.getName}: ${e.getMessage}"))
     }
   }
 
   implicit val BooleanConverter = new SimpleConverter[Boolean] {
     def format(t: Boolean): String = t.toString
-    def parse(s: String): Either[String, Boolean] = Try(java.lang.Boolean.parseBoolean(s)) match {
+    def parse(s: String): Either[Error, Boolean] = Try(java.lang.Boolean.parseBoolean(s)) match {
       case Success(i) => Right(i)
-      case Failure(e) => Left(s"${e.getClass.getName}: ${e.getMessage}")
+      case Failure(e) => Left(Error("exception", s"${e.getClass.getName}: ${e.getMessage}"))
     }
   }
 
@@ -88,5 +88,5 @@ package object form {
 
 
 
-  type Check[X] = (Seq[String], X) => Seq[String]
+  type Check[X] = (Seq[Error], X) => Seq[Error]
 }

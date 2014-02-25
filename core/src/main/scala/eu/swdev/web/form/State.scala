@@ -11,14 +11,14 @@ trait State[+M] {
    */
   def model: M
 
-  var errors: Seq[String] = Seq()
+  var errors: Seq[Error] = Seq()
 
-  def addError(error: String): this.type = {
+  def addError(error: Error): this.type = {
     errors = error +: errors
     this
   }
 
-  def addErrors(errs: Seq[String]): this.type = {
+  def addErrors(errs: Seq[Error]): this.type = {
     errors = errs ++ errors
     this
   }

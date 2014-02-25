@@ -2,7 +2,7 @@ package eu.swdev.web.form
 
 trait FieldConverter[V, M] {
 
-  def parse(view: Seq[String]): Either[Seq[String], M]
+  def parse(view: Seq[String]): Either[Seq[Error], M]
   def format(model: M): Seq[String]
 
 }
@@ -19,11 +19,11 @@ trait FieldHandler[V, M] extends FieldConverter[V, M] with FieldFolder[V, M] {
 
 case class SimpleFieldHandler[V](simpleConverter: SimpleConverter[V]) extends FieldHandler[V, V] {
 
-  def parse(view: Seq[String]): Either[Seq[String], V] = {
+  def parse(view: Seq[String]): Either[Seq[Error], V] = {
     if (view.isEmpty) {
-      Left(Seq("missing input"))
+      Left(Seq(Error("missing")))
     } else if (!view.tail.isEmpty) {
-      Left(Seq("ambiguous input"))
+      Left(Seq(Error("ambiguous")))
     } else {
       simpleConverter.parse(view.head) match {
         case Right(r) => Right(r)
@@ -41,11 +41,11 @@ case class SimpleFieldHandler[V](simpleConverter: SimpleConverter[V]) extends Fi
 
 case class OptionFieldHandler[V](simpleConverter: SimpleConverter[V]) extends FieldHandler[V, Option[V]] {
 
-  def parse(view: Seq[String]): Either[Seq[String], Option[V]] = {
+  def parse(view: Seq[String]): Either[Seq[Error], Option[V]] = {
     if (view.isEmpty) {
       Right(None)
     } else if (!view.tail.isEmpty) {
-      Left(Seq("ambiguous input"))
+      Left(Seq(Error("ambiguous")))
     } else {
       simpleConverter.parse(view.head) match {
         case Right(r) => Right(Some(r))
@@ -63,7 +63,7 @@ case class OptionFieldHandler[V](simpleConverter: SimpleConverter[V]) extends Fi
 
 case class SeqFieldHandler[V](simpleConverter: SimpleConverter[V]) extends FieldHandler[V, Seq[V]] {
 
-  def parse(view: Seq[String]): Either[Seq[String], Seq[V]] = {
+  def parse(view: Seq[String]): Either[Seq[Error], Seq[V]] = {
     val parsed = view.map(simpleConverter.parse(_))
     val errors = parsed.collect { case Left(s) => s }
     if (errors.isEmpty) {

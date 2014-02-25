@@ -14,22 +14,12 @@ object Application extends Controller {
   }
   
   def test = Action { implicit request =>
-    println(s"lang2: ${implicitly[Lang]}")
-    println(s"req: $request")
-    println(s"req.accept: ${request.acceptLanguages}")
     val formState = F.fill(F.FV(5, false, Seq(), 1, None))
-    formState.f1.addError("Fehler!")
     Ok(views.html.formTest(formState))
   }
 
   def processForm = Action { implicit request =>
-
     val formState = F.parse(request.queryString)
-
-    println(s"lang2: ${implicitly[Lang]}")
-    println(s"req: $request")
-    println(formState)
-    println(s"errors: ${formState.f1.errors}")
     Ok(views.html.formTest(formState))
 
   }

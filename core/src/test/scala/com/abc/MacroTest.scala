@@ -1,7 +1,8 @@
 package com.abc
 
-import eu.swdev.web.form.Form
+import eu.swdev.web.form.{Error, Form}
 import org.scalatest.FunSuite
+import scala.Error
 
 /** Tests the Form macro annotation
   */
@@ -16,7 +17,7 @@ class MacroTest extends FunSuite {
     // method is called when a FormState is constructed
     def test(fs: FS): Unit = {
       if (fs.f1.model % 2 == 0) {
-        fs.f1.addError("valErr.odd")
+        fs.f1.addError(Error("odd"))
       }
     }
   }
@@ -29,7 +30,7 @@ class MacroTest extends FunSuite {
 
     def validate(fs: FS): Unit = {
       if (fs.g2.model % 2 == 1) {
-        fs.g2.addError("valErr.even")
+        fs.g2.addError(Error("even"))
       }
     }
   }
@@ -71,7 +72,7 @@ class MacroTest extends FunSuite {
   test("form constraints") {
     val fs = F.fill(F.FV(4, None, Seq()))
     assert(fs.f1.errors.size == 1)
-    assert(fs.f1.errors.head == "valErr.odd")
+    assert(fs.f1.errors.head == Error("odd"))
   }
 
   test("typesafe rendering") {
