@@ -1,0 +1,7 @@
+@(tpe: String, label: String)(implicit bsa: BootstrapAttrs)
+<div @Html(bsa.formGroup)>
+  <div @Html(bsa.label)></div>
+  <div @Html(bsa.inputDiv)>
+    <button @(bsa.button.`type`(tpe)) @Html(bsa.button)>@label</button>
+  </div>
+</div>

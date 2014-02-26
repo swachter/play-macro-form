@@ -117,14 +117,14 @@ object FormMacro {
 
                   import eu.swdev.web.form._
 
-                  def doFill(name: Name, model: FV) = FS(..$fillArgs)
-                  def doParse(name: Name, view: Map[String, Seq[String]]) = FS(..$parseArgs)
+                  def doFill(name: Name, model: FV) = FS(name, ..$fillArgs)
+                  def doParse(name: Name, view: Map[String, Seq[String]]) = FS(name, ..$parseArgs)
                   def fill(model: FV) = doFill(Name($objectStrName), model)
                   def parse(view: Map[String, Seq[String]]) = doParse(Name($objectStrName), view)
 
                   case class FV(..$fvParams)
 
-                  case class FS(..$fsParams) extends State[FV] {
+                  case class FS(_name: Name, ..$fsParams) extends FormState[FV] {
                     def hasFormErrors = !errors.isEmpty || Seq[State[_]](..$memberNames).exists(_.hasFormErrors)
                     def hasFieldErrors = Seq[State[_]](..$memberNames).exists(_.hasFieldErrors)
                     def model = FV(..$modelArgs)

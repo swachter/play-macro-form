@@ -19,7 +19,7 @@ package object play {
    * @tparam M
    * @tparam CS
    */
-  implicit class FormRenderer[V, M, CS <: CState](val fieldState: FieldState[V, M, CS]) extends AnyVal {
+  implicit class FieldRenderer[V, M, CS <: CState](val fieldState: FieldState[V, M, CS]) extends AnyVal {
 
     def inputText(implicit formName: Name = Name.empty, bootstrapAttrs: BootstrapAttrs = BootstrapAttrs.empty, lang: Lang): Html = {
       bootstrap3.input(fieldState, "text")
@@ -51,7 +51,17 @@ package object play {
       bootstrap3.checkBoxOrRadioButtonGroup(fieldState, radioButtons)
     }
 
-    def submit: Html = bootstrap3.submit(implicit formName: Name = Name.empty, bootstrapAtts: BootstrapAttrs = BootstrapAttrs.empty, lang: Lang)
+  }
+  
+  implicit class FormRenderer[M](val formState: FormState[M]) {
+
+    def submit(implicit bootstrapAttrs: BootstrapAttrs = BootstrapAttrs.empty, lang: Lang): Html = button("submit")
+
+    def button(tpe: String = "submit")(implicit bootstrapAttrs: BootstrapAttrs = BootstrapAttrs.empty, lang: Lang): Html = {
+      val label = formUtil.findMessage(formState._name + "submit", "form.button").getOrElse(s"${formState._name}.submit")
+      bootstrap3.button("submit", label)
+    }
+
 
   }
 

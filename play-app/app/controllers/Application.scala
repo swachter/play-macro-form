@@ -35,9 +35,10 @@ object Application extends Controller {
   implicit val bootstrapAttrs = BootstrapAttrs(
     form = Attrs("class", "form-horizontal"), // form-horizontal
     formGroup = Attrs("class", "form-group"),
-    label = Attrs("class", "control-label col-md-4"), // col-md-4
-    inputDiv = Attrs("class", "col-md-4"), // col-md-4
-    input = Attrs("class", "form-control input-md")
+    label = Attrs("class", "control-label col-xs-3"), // col-md-4
+    inputDiv = Attrs("class", "col-xs-6"), // col-md-4
+    input = Attrs("class", "form-control input-xs"),
+    button = Attrs("class", "btn") // btn-default
   )
 
 
