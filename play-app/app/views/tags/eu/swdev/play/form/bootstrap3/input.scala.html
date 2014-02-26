@@ -1,4 +1,4 @@
-@(fs: FieldState[_, _, CState], inputType: String)(implicit bsa: BootstrapAttrs, formName: Name, lang: Lang)
+@(fs: FieldState[_, _, CState], inputType: String)(implicit bsa: BootstrapAttrs, lang: Lang)
 @formGroup(fs) {
   <input @bsa.input.name(fs) @(bsa.input.`type`(inputType)) @bsa.input.id(fs) @bsa.input.value(fs) @bsa.input.placeholder(fs) @Html(bsa.input += ("class", "form-control"))/>
 }

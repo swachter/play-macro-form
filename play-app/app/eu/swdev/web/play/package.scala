@@ -21,15 +21,15 @@ package object play {
    */
   implicit class FieldRenderer[V, M, CS <: CState](val fieldState: FieldState[V, M, CS]) extends AnyVal {
 
-    def inputText(implicit formName: Name = Name.empty, bootstrapAttrs: BootstrapAttrs = BootstrapAttrs.empty, lang: Lang): Html = {
+    def inputText(implicit bootstrapAttrs: BootstrapAttrs = BootstrapAttrs.empty, lang: Lang): Html = {
       bootstrap3.input(fieldState, "text")
     }
 
-    def checkBox(implicit formName: Name = Name.empty, bootstrapAttrs: BootstrapAttrs = BootstrapAttrs.empty, checkBoxValueInfo: CheckBoxValueInfo[V], lang: Lang): Html = {
+    def checkBox(implicit bootstrapAttrs: BootstrapAttrs = BootstrapAttrs.empty, checkBoxValueInfo: CheckBoxValueInfo[V], lang: Lang): Html = {
       bootstrap3.checkBoxField(fieldState, checkBoxValueInfo)
     }
 
-    def checkBoxGroup(inLineBoxes: Boolean)(implicit formName: Name = Name.empty, bootstrapAttrs: BootstrapAttrs = BootstrapAttrs.empty, lang: Lang, ev: CS <:< CState { type EN = IsSet; type OC = ZeroOrMore } ): Html = {
+    def checkBoxGroup(inLineBoxes: Boolean)(implicit bootstrapAttrs: BootstrapAttrs = BootstrapAttrs.empty, lang: Lang, ev: CS <:< CState { type EN = IsSet; type OC = ZeroOrMore } ): Html = {
       val checkBoxes = for {
         v <- fieldState.constraints.en.get.seq
       } yield {
@@ -40,7 +40,7 @@ package object play {
       bootstrap3.checkBoxOrRadioButtonGroup(fieldState, checkBoxes)
     }
 
-    def radioButtonGroup(inLineBoxes: Boolean)(implicit formName: Name = Name.empty, bootstrapAttrs: BootstrapAttrs = BootstrapAttrs.empty, lang: Lang, ev: CS <:< CState { type EN = IsSet; type OC <: AtMostOne } ): Html = {
+    def radioButtonGroup(inLineBoxes: Boolean)(implicit bootstrapAttrs: BootstrapAttrs = BootstrapAttrs.empty, lang: Lang, ev: CS <:< CState { type EN = IsSet; type OC <: AtMostOne } ): Html = {
       val radioButtons = for {
         v <- fieldState.constraints.en.get.seq
       } yield {
@@ -67,14 +67,14 @@ package object play {
 
   class OutputAttrs(val map: Map[String, Set[String]]) extends AnyVal {
     
-    def id(fieldState: FieldState[_, _, _])(implicit formName: Name): Html =
-      attr("id", (formName + fieldState.name).toString)
+    def id(fieldState: FieldState[_, _, _]): Html =
+      attr("id", fieldState.name.toString)
 
-    def name(fieldState: FieldState[_, _, _])(implicit formName: Name): Html =
-      attr("name", (formName + fieldState.name).toString)
+    def name(fieldState: FieldState[_, _, _]): Html =
+      attr("name", fieldState.name.toString)
 
-    def nameForDefault(fieldState: FieldState[_, _, _])(implicit formName: Name): String = {
-      val n = map.getOrElse("name", Set()).headOption.getOrElse((formName + fieldState.name).toString)
+    def nameForDefault(fieldState: FieldState[_, _, _]): String = {
+      val n = map.getOrElse("name", Set()).headOption.getOrElse(fieldState.name.toString)
       s"$n.default"
     }
 
@@ -84,8 +84,8 @@ package object play {
     def `type`(inputType: String): Html =
       attr("type", inputType)
 
-    def `for`(fieldState: FieldState[_, _, _])(implicit formName: Name): Html =
-      attr("for", (formName + fieldState.name).toString)
+    def `for`(fieldState: FieldState[_, _, _]): Html =
+      attr("for", fieldState.name.toString)
 
     def placeholder(fieldState: FieldState[_, _, _])(implicit lang: Lang): Html =
       attr("placeholder", formUtil.findMessage(fieldState.name, "form.placeholder").getOrElse(""))
@@ -104,9 +104,9 @@ package object play {
 
   object formUtil {
 
-    def label(fieldState: FieldState[_, _, _])(implicit formName: Name, lang: Lang): String = {
+    def label(fieldState: FieldState[_, _, _])(implicit lang: Lang): String = {
       def findLabel(name: Name): Option[String] = findMessage(name, "form.label")
-      findLabel(formName + fieldState.name).getOrElse(findLabel(fieldState.name).getOrElse((formName + fieldState.name).toString))
+      findLabel(fieldState.name).getOrElse(fieldState.name.toString)
     }
 
     def errors(fieldState: FieldState[_, _, _])(implicit lang: Lang): Html = {

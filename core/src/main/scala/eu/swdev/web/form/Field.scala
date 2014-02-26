@@ -16,7 +16,7 @@ case class Field[VP, MP, CSP <: CState](constraints: Constraints[VP, MP, CSP]) {
   def addVCheck(check: Check[V]) = Field(constraints.addVCheck(check))
   def addMCheck(check: Check[M]) = Field(constraints.addMCheck(check))
 
-  def doParse(name: Name, map: Map[String, Seq[String]]): FieldState[VP, MP, CSP] = {
+  def parse(map: Map[String, Seq[String]], name: Name): FieldState[VP, MP, CSP] = {
     val view = map.getOrElse(name.toString, map.getOrElse(name.toString + ".default", Seq()))
     constraints.handler.parse(view) match {
       case Left(e) => FieldStateWithoutModel[VP, MP, CSP](name, view, constraints).addErrors(e)
@@ -24,7 +24,7 @@ case class Field[VP, MP, CSP <: CState](constraints: Constraints[VP, MP, CSP]) {
     }
   }
 
-  def doFill(name: Name, model: MP): FieldState[VP, MP, CSP] = {
+  def fill(model: MP, name: Name): FieldState[VP, MP, CSP] = {
     val view = constraints.handler.format(model)
     FieldStateWithModel[VP, MP, CSP](name, view, constraints, model)
   }

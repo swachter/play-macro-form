@@ -49,14 +49,13 @@ object FormMacro {
       val strFieldName = memberName.toString()
       def fvParam: ValDef
       def fsParam: ValDef
-      def fillArg: Tree
-      val parseArg = q"$memberName.doParse(name + $strFieldName, view)"
+      def fillArg = q"$memberName.fill(model.$memberName, name + $strFieldName)"
+      val parseArg = q"$memberName.parse(view, name + $strFieldName)"
       val modelArg = q"$memberName.model"
       val constraintTypeName: TypeName = newTypeName(s"C$index")
     }
 
     abstract class FieldInfo(index: Int, memberName: TermName, objectName: TermName) extends SpliceInfo(index, memberName) {
-      val fillArg = q"$memberName.doFill(name + $strFieldName, model.$memberName)"
       val fsParam = q"val $memberName: FieldState[$objectName.$memberName.V, $objectName.$memberName.M, $objectName.$memberName.CS]"
     }
 
@@ -71,7 +70,6 @@ object FormMacro {
     class FormInfo(index: Int, memberName: TermName, value: Tree) extends SpliceInfo(index, memberName) {
       val fvParam = q"val $memberName: $value.FV"
       val fsParam = q"val $memberName: $value.FS"
-      val fillArg = q"$memberName.doFill(name + $strFieldName, model.$memberName)"
     }
 
     def processField: PartialFunction[(Tree, TermName, Int), SpliceInfo] = {
@@ -117,10 +115,8 @@ object FormMacro {
 
                   import eu.swdev.web.form._
 
-                  def doFill(name: Name, model: FV) = FS(name, ..$fillArgs)
-                  def doParse(name: Name, view: Map[String, Seq[String]]) = FS(name, ..$parseArgs)
-                  def fill(model: FV) = doFill(Name($objectStrName), model)
-                  def parse(view: Map[String, Seq[String]]) = doParse(Name($objectStrName), view)
+                  def fill(model: FV, name: Name = Name($objectStrName)) = FS(name, ..$fillArgs)
+                  def parse(view: Map[String, Seq[String]], name: Name = Name($objectStrName)) = FS(name, ..$parseArgs)
 
                   case class FV(..$fvParams)
 
