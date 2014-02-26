@@ -30,7 +30,7 @@ class BoilerplateTest extends FunSuite {
       fs
     }
 
-    def fill(model: FV) = doFill(Name.empty, model)
+    def fill(model: FV) = doFill(Name("F"), model)
 
     def doParse(name: Name, view: Map[String, Seq[String]]) = FS(
       f1.doParse(name + "f1", view),
@@ -39,7 +39,7 @@ class BoilerplateTest extends FunSuite {
       f4.doParse(name + "f4", view)
     )
 
-    def parse(view: Map[String, Seq[String]]) = doParse(Name.empty, view)
+    def parse(view: Map[String, Seq[String]]) = doParse(Name("F"), view)
 
     // Define the value class that holds the typed value of the form.
     case class FV(
@@ -97,7 +97,7 @@ class BoilerplateTest extends FunSuite {
       g3.doFill(name + "g3", model.g3)
     )
 
-    def fill(model: FV) = doFill(Name.empty, model)
+    def fill(model: FV) = doFill(Name("G"), model)
 
     def doParse(name: Name, view: Map[String, Seq[String]]) = FS(
       g1.doParse(name + "g1", view),
@@ -105,7 +105,7 @@ class BoilerplateTest extends FunSuite {
       g3.doParse(name + "g3", view)
     )
 
-    def parse(view: Map[String, Seq[String]]) = doParse(Name.empty, view)
+    def parse(view: Map[String, Seq[String]]) = doParse(Name("G"), view)
 
     case class FV(
                    g1: F.FV,
@@ -137,13 +137,6 @@ class BoilerplateTest extends FunSuite {
 
     val fs = F.fill(F.FV(1, Some(2), 3, Seq(4, 5)))
 
-    println(fs.f1.model)
-    println(fs.f2.model)
-    println(fs.f3.model)
-    println(fs.f4.model)
-
-    println(fs)
-
     import eu.swdev.web.form.{FieldState, CState, IsSet}
 
     val simpleRenderer: FieldState[_, _, _] => String =
@@ -152,12 +145,8 @@ class BoilerplateTest extends FunSuite {
     val enumRenderer: FieldState[_, _, CState { type EN = IsSet }] => String =
         state => s"enum renderer - state: $state; enum: ${state.constraints.en.get}"
 
-    println(simpleRenderer(fs.f1))
-    println(enumRenderer(fs.f3))
-
     val gs = G.fill(G.FV(fs.model, fs.model, 9))
 
-    println(gs)
   }
 
 }

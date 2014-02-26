@@ -34,7 +34,7 @@ trait FieldState[V, M, +CS <: CState] extends State[M] {
 
   /*
    * NB: The FieldState trait must not have a higher kinded type parameter because it is used as an argument
-   * type in play templates. Play does not support generic template or other means to specify a higher
+   * type in play templates. Play does not support generic templates or other means to specify a higher
    * kinded argument type.
    */
 
@@ -51,4 +51,8 @@ case class FieldStateWithModel[V, M, CS <: CState](name: Name, view: Seq[String]
 
 case class FieldStateWithoutModel[V, M, CS <: CState](name: Name, view: Seq[String], constraints: Constraints[V, M, CS]) extends FieldState[V, M, CS] {
   def model: M = throw new NoSuchElementException(s"field does not have a model value - it contains errors: $errors")
+}
+
+trait FormState[M] extends State[M] {
+  def _name: Name
 }

@@ -51,6 +51,8 @@ package object play {
       bootstrap3.checkBoxOrRadioButtonGroup(fieldState, radioButtons)
     }
 
+    def submit: Html = bootstrap3.submit(implicit formName: Name = Name.empty, bootstrapAtts: BootstrapAttrs = BootstrapAttrs.empty, lang: Lang)
+
   }
 
   class OutputAttrs(val map: Map[String, Set[String]]) extends AnyVal {

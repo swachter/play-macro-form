@@ -103,6 +103,7 @@ object Attrs {
 }
 
 case class BootstrapAttrs (
+  form: Attrs,
   formGroup: Attrs,
   label: Attrs,
   inputDiv: Attrs,
@@ -110,6 +111,6 @@ case class BootstrapAttrs (
 )
 
 object BootstrapAttrs {
-  val empty = BootstrapAttrs(Attrs.empty, Attrs.empty, Attrs.empty, Attrs.empty)
+  val empty = BootstrapAttrs(Attrs.empty, Attrs.empty, Attrs.empty, Attrs.empty, Attrs.empty)
 }
 

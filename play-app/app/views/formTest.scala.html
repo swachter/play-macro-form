@@ -1,7 +1,7 @@
 @* formTest Template File *@
 @(formState: com.abc.F.FS)(implicit lang: Lang, bsa: BootstrapAttrs)
 @main("Form-Test") {
-  <form class="form-horizontal" method="GET" action="@routes.Application.processForm">
+  <form method="GET" action="@routes.Application.processForm" @Html(bsa.form)>
     <fieldset>
         @formState.f1.inputText
         @formState.f2.checkBox

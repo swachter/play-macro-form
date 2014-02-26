@@ -1,6 +1,6 @@
 package com.abc
 
-import eu.swdev.web.form.{Error, Form}
+import eu.swdev.web.form.{Name, Error, Form}
 import org.scalatest.FunSuite
 import scala.Error
 
@@ -62,6 +62,14 @@ class MacroTest extends FunSuite {
 
     val hs = H.fill(H.FV(5))
 
+  }
+
+  test("field names") {
+    val f = F.FV(2, Some(4), Seq(1, 2))
+    val g = G.FV(f, 4, f)
+    val gs = G.fill(g)
+    assert(gs.g1.f1.name === Name("G") + "g1" + "f1")
+    assert(gs.g2.name === Name("G") + "g2")
   }
 
   test("field constraints") {

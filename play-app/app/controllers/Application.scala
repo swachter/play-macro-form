@@ -24,11 +24,21 @@ object Application extends Controller {
 
   }
 
+//  implicit val bootstrapAttrs = BootstrapAttrs(
+//    form = Attrs(), // form-horizontal
+//    formGroup = Attrs("class", "form-group"),
+//    label = Attrs("class", "control-label"), // col-md-4
+//    inputDiv = Attrs(), // col-md-4
+//    input = Attrs()
+//  )
+
   implicit val bootstrapAttrs = BootstrapAttrs(
+    form = Attrs("class", "form-horizontal"), // form-horizontal
     formGroup = Attrs("class", "form-group"),
-    label = Attrs("class", "col-md-4 control-label"),
-    inputDiv = Attrs("class", "col-md-4"),
-    input = Attrs()
+    label = Attrs("class", "control-label col-md-4"), // col-md-4
+    inputDiv = Attrs("class", "col-md-4"), // col-md-4
+    input = Attrs("class", "form-control input-md")
   )
+
 
 }

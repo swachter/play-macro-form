@@ -70,8 +70,8 @@ object FormMacro {
 
     class FormInfo(index: Int, memberName: TermName, value: Tree) extends SpliceInfo(index, memberName) {
       val fvParam = q"val $memberName: $value.FV"
-      val fsParam = q"val $memberName: State[$value.FV]"
-      val fillArg = q"$memberName.doFill(name + $strFieldName, model.$memberName).asInstanceOf[State[$memberName.FV]]"
+      val fsParam = q"val $memberName: $value.FS"
+      val fillArg = q"$memberName.doFill(name + $strFieldName, model.$memberName)"
     }
 
     def processField: PartialFunction[(Tree, TermName, Int), SpliceInfo] = {
@@ -109,6 +109,8 @@ object FormMacro {
 
             val tbody = body.asInstanceOf[List[Tree]]
 
+            val objectStrName = objectName.decoded
+
             // output the modified object
             q"""
             object $objectName {
@@ -117,8 +119,8 @@ object FormMacro {
 
                   def doFill(name: Name, model: FV) = FS(..$fillArgs)
                   def doParse(name: Name, view: Map[String, Seq[String]]) = FS(..$parseArgs)
-                  def fill(model: FV) = doFill(Name.empty, model)
-                  def parse(view: Map[String, Seq[String]]) = doParse(Name.empty, view)
+                  def fill(model: FV) = doFill(Name($objectStrName), model)
+                  def parse(view: Map[String, Seq[String]]) = doParse(Name($objectStrName), view)
 
                   case class FV(..$fvParams)
 
@@ -143,17 +145,17 @@ object FormMacro {
 
 }
 
-class ReflectionUtil(val universe: Universe) {
-
-  import universe._
-
-  def valMembers(typ: Type): List[TermSymbol] = {
-    typ.members.iterator.filter(_.isTerm).map(_.asTerm).filter(_.isVal).toList
-  }
-
-  def printAllValues(typ: Type): Unit = {
-
-    valMembers(typ).foreach(ts => println(s"ts: $ts; typeSignature: ${ts.typeSignature}; typeSignatureIn: ${ts.typeSignatureIn(typ)}; class: ${ts.getClass}"))
-
-  }
-}
+//class ReflectionUtil(val universe: Universe) {
+//
+//  import universe._
+//
+//  def valMembers(typ: Type): List[TermSymbol] = {
+//    typ.members.iterator.filter(_.isTerm).map(_.asTerm).filter(_.isVal).toList
+//  }
+//
+//  def printAllValues(typ: Type): Unit = {
+//
+//    valMembers(typ).foreach(ts => println(s"ts: $ts; typeSignature: ${ts.typeSignature}; typeSignatureIn: ${ts.typeSignatureIn(typ)}; class: ${ts.getClass}"))
+//
+//  }
+//}
