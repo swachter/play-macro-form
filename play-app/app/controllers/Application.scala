@@ -4,8 +4,6 @@ import play.api.mvc._
 import com.abc.F
 import eu.swdev.web.play._
 import eu.swdev.web.form.{FieldState, CState, Name}
-import eu.swdev.web.play.BootstrapAttrs
-import play.api.i18n.Lang
 
 object Application extends Controller {
 
@@ -32,14 +30,13 @@ object Application extends Controller {
 //    input = Attrs()
 //  )
 
-  implicit val bootstrapAttrs = BootstrapAttrs(
-    form = Attrs("class", "form-horizontal"), // form-horizontal
-    formGroup = Attrs("class", "form-group"),
-    label = Attrs("class", "control-label col-xs-3"), // col-md-4
-    inputDiv = Attrs("class", "col-xs-6"), // col-md-4
-    input = Attrs("class", "form-control input-xs"),
-    button = Attrs("class", "btn") // btn-default
+  implicit val bootstrapStyle = Style(
+    Bss.form := Attrs("class", "form-horizontal"), // form-horizontal
+    Bss.formGroup := Attrs("class", "form-group"),
+    Bss.label := Attrs("class", "control-label col-xs-3"), // col-md-4
+    Bss.inputDiv := Attrs("class", "col-xs-6"), // col-md-4
+    Bss.input := Attrs("class", "form-control input-xs"),
+    Bss.button := Attrs("class", "btn") // btn-default
   )
-
 
 }

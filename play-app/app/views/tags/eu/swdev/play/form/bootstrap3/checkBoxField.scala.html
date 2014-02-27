@@ -1,8 +1,8 @@
-@(fs: eu.swdev.web.form.FieldState[_, _, CState], checkBoxValueInfo: CheckBoxValueInfo[_])(implicit lang: Lang, bsa: BootstrapAttrs)
+@(fs: eu.swdev.web.form.FieldState[_, _, CState], checkBoxValueInfo: CheckBoxValueInfo[_])(implicit lang: Lang, style: Style)
 @formGroup(fs) {
   <div class="checkbox">
     <label>
-      <input @Html(bsa.input ~= ("name", fs.name) ~= ("type", "checkbox") ~= ("id", fs.name) ~= ("value", checkBoxValueInfo.checkedValue) := (checkBoxValueInfo.isChecked(fs.view), "checked", "checked") += ("class", "form-control"))/>
+      <input @Html(Bss.input ~= ("name", fs.name) ~= ("type", "checkbox") ~= ("id", fs.name) ~= ("value", checkBoxValueInfo.checkedValue) := (checkBoxValueInfo.isChecked(fs.view), "checked", "checked") += ("class", "form-control"))/>
       <input name="@fs.nameForDefault" type="hidden" value="@checkBoxValueInfo.uncheckedValue" />
       @fs.name
     </label>

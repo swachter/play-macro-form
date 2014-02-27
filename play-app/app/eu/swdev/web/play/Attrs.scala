@@ -54,6 +54,7 @@ class Attrs(val map: Map[String, Set[String]]) {
   }
 
   abstract class AttrsOps {
+    def apply(attrName: String, value: Set[String]): Attrs = doApply(attrName, value)
     def apply(attrName: String, value: String*): Attrs = doApply(attrName, value)
     def apply(check: Boolean, attrName: String, value: String*): Attrs = if (check) doApply(attrName, value) else Attrs.this
     def apply(attr: Option[Attr]): Attrs = attr match {
@@ -106,15 +107,97 @@ object Attrs {
    * @return
    */
   implicit def attrsToString(attrs: Attrs): String = attrs.toString
+
 }
 
 case class Attr(attrName: String, attrValue: String*)
 
-case class BootstrapAttrs (
-  form: Attrs,
-  formGroup: Attrs,
-  label: Attrs,
-  inputDiv: Attrs,
-  input: Attrs,
-  button: Attrs
-)
+/**
+ * A style defines attributes for various items.
+ *
+ * For example a style can contain the Html attributes that should be applied to different Html elements.
+ * 
+ * @param map
+ */
+case class Style(map: Map[String, Attrs]) extends AnyVal {
+  def apply(key: String): Attrs = map.getOrElse(key, Attrs.empty)
+}
+
+object Style {
+  val empty = Style(Map[String, Attrs]())
+
+  /**
+   * Creates a style by applying a sequence of styles to an empty style.
+   * @param stylers
+   * @return
+   */
+  def apply(stylers: Styler*): Style = stylers.foldLeft(empty)((b, h) => h.transform(b))
+}
+
+/**
+ * A styler is responsible for a certain styled item. It allows to apply style modifications and to access the
+ * resulting attributes.
+ *
+ * @param key A key that identifies a certain styled item (e.g. a specific Html element).
+ * @param modifications A list of modifications that is applied to a style.
+ */
+case class Styler(key: String, modifications: List[Attrs => Attrs] = Nil) {
+
+  def select(s: Style): Attrs = modifications.foldRight(s(key))((m, a) => m(a))
+  def transform(s: Style): Style = new Style(s.map + (key -> select(s)))
+
+  def += = new Modifier {
+    override def doApply(attrName: String, value: Set[String]): Styler = Styler(key, ((a: Attrs) => a.+=(attrName, value)) :: modifications)
+  }
+  def := = new Modifier {
+    override def doApply(attrName: String, value: Set[String]): Styler = Styler(key, ((a: Attrs) => a.:=(attrName, value)) :: modifications)
+  }
+  def -= = new Modifier {
+    override def doApply(attrName: String, value: Set[String]): Styler = Styler(key, ((a: Attrs) => a.-=(attrName, value)) :: modifications)
+  }
+  def ~= = new Modifier {
+    override def doApply(attrName: String, value: Set[String]): Styler = Styler(key, ((a: Attrs) => a.~=(attrName, value)) :: modifications)
+  }
+
+  trait Modifier {
+    def apply(attrName: String, value: String*): Styler = doApply(attrName, value)
+    def apply(check: Boolean, attrName: String, value: String*): Styler = if (check) doApply(attrName, value) else Styler.this
+    def apply(attr: Option[Attr]): Styler = attr match {
+      case Some(a) => doApply(a.attrName, a.attrValue)
+      case None => Styler.this
+    }
+    def apply(attrs: Attrs): Styler = {
+      attrs.map.foldLeft(Styler.this)((h, t) => doApply(t._1, t._2))
+    }
+    def doApply(attrName: String, value: Seq[String]): Styler = doApply(attrName, Attrs.toSet(value))
+    def doApply(attrName: String, value: Set[String]): Styler
+  }
+
+}
+
+object Styler {
+  /**
+   * Implicit conversion that allows to use an styler as an argument to the @Html method.
+   *
+   * The conversion selects the corresponding attributes from an implicitly available style and converts these attributes
+   * into their Html representation.
+   *
+   * @param styler
+   * @param style
+   * @return
+   */
+  implicit def toString(styler: Styler)(implicit style: Style): String = styler.select(style).toString
+}
+
+/**
+ * Bootstrap stylers
+ */
+object Bss {
+  val form = Styler("form")
+  val formGroup = Styler("formGroup")
+  val label = Styler("label")
+  val inputDiv = Styler("inputDiv")
+  val input = Styler("input")
+  val button = Styler("button")
+}
+

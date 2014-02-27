@@ -16,7 +16,7 @@ package object play {
    */
   trait FieldRenderer[V, M, CS <: CState] {
 
-    implicit def bootstrapAttrs: BootstrapAttrs
+    implicit def style: Style
     implicit def lang: Lang
     def fieldState: FieldState[V, M, CS]
 
@@ -55,7 +55,7 @@ package object play {
 
   trait FormRenderer[M] {
 
-    implicit def bootstrapAttrs: BootstrapAttrs
+    implicit def style: Style
     implicit def lang: Lang
     def formState: FormState[M]
 
@@ -68,49 +68,42 @@ package object play {
 
   }
 
-  implicit class FieldRendererImpl[V, M, CS <: CState](val fieldState: FieldState[V, M, CS])(implicit val bootstrapAttrs: BootstrapAttrs, val lang: Lang) extends FieldRenderer[V, M, CS]
+  implicit class FieldRendererImpl[V, M, CS <: CState](val fieldState: FieldState[V, M, CS])(implicit val style: Style, val lang: Lang) extends FieldRenderer[V, M, CS]
 
-  implicit class FormRendererImpl[M](val formState: FormState[M])(implicit val bootstrapAttrs: BootstrapAttrs, val lang: Lang) extends FormRenderer[M]
+  implicit class FormRendererImpl[M](val formState: FormState[M])(implicit val style: Style, val lang: Lang) extends FormRenderer[M]
 
   trait WithAttrs[R] {
-    def withAttrs(form: Attrs = null, formGroup: Attrs = null, label: Attrs = null, inputDiv: Attrs = null, input: Attrs = null, button: Attrs = null): R = {
-      val bsa = BootstrapAttrs(
-        form = sel(form, bootstrapAttrs.form),
-        formGroup = sel(formGroup, bootstrapAttrs.formGroup),
-        label = sel(label, bootstrapAttrs.label),
-        inputDiv = sel(inputDiv, bootstrapAttrs.inputDiv),
-        input = sel(input, bootstrapAttrs.input),
-        button = sel(button, bootstrapAttrs.button)
-      )
+    def withAttrs(stylers: Styler*): R = {
+      val bsa = stylers.foldLeft(style)((b, h) => h.transform(b))
       renderer(bsa)
     }
-    def bootstrapAttrs: BootstrapAttrs
-    def renderer(bsa: BootstrapAttrs): R
+    def style: Style
+    def renderer(style: Style): R
     def sel(attrs: Attrs, defaultAttrs: Attrs) = if (attrs != null) attrs else defaultAttrs
   }
 
-  implicit class FieldWithAttrs[V, M, CS <: CState](val fieldStateArg: FieldState[V, M, CS])(implicit val bootstrapAttrs: BootstrapAttrs, val langArg: Lang) extends WithAttrs[FieldRenderer[V, M, CS]] {
-    def renderer(bsa: BootstrapAttrs)= new FieldRenderer[V, M, CS] {
+  implicit class FieldWithAttrs[V, M, CS <: CState](val fieldStateArg: FieldState[V, M, CS])(implicit val style: Style, val langArg: Lang) extends WithAttrs[FieldRenderer[V, M, CS]] {
+    def renderer(st: Style)= new FieldRenderer[V, M, CS] {
       override def fieldState = fieldStateArg
       override implicit def lang: Lang = langArg
-      override implicit def bootstrapAttrs: BootstrapAttrs = bsa
+      override implicit def style: Style = st
     }
   }
 
 
 
-  implicit class FormWithAttrs[M](val formStateArg: FormState[M])(implicit val bootstrapAttrs: BootstrapAttrs, val langArg: Lang) extends WithAttrs[FormRenderer[M]] {
-    def renderer(bsa: BootstrapAttrs) = new FormRenderer[M] {
+  implicit class FormWithAttrs[M](val formStateArg: FormState[M])(implicit val style: Style, val langArg: Lang) extends WithAttrs[FormRenderer[M]] {
+    def renderer(st: Style) = new FormRenderer[M] {
       override def formState: FormState[M] = formStateArg
       override implicit def lang: Lang = langArg
-      override implicit def bootstrapAttrs: BootstrapAttrs = bsa
+      override implicit def style: Style = st
     }
   }
 
   implicit class FieldAttrs[V, M, CS <: CState](val fieldState: FieldState[V, M, CS]) extends AnyVal {
     def placeholder(implicit lang: Lang): Option[Attr] = formUtil.findMessage(fieldState.name, "form.placeholder").map(Attr("placeholder", _))
-    def labelFor(implicit bsa: BootstrapAttrs): String = bsa.input.map.getOrElse("id", Set()).headOption.getOrElse(fieldState.name.toString)
-    def nameForDefault(implicit bsa: BootstrapAttrs): String = bsa.input.map.getOrElse("name", Set()).headOption.getOrElse(fieldState.name.toString) + ".default"
+    def labelFor(implicit style: Style): String = Bss.input.select(style).map.getOrElse("id", Set()).headOption.getOrElse(fieldState.name.toString)
+    def nameForDefault(implicit style: Style): String = Bss.input.select(style).map.getOrElse("name", Set()).headOption.getOrElse(fieldState.name.toString) + ".default"
   }
 
 

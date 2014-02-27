@@ -1,7 +1,7 @@
-@(fs: eu.swdev.web.form.FieldState[_, _, CState])(inner: Html)(implicit lang: Lang, bsa: BootstrapAttrs)
-<div @Html(bsa.formGroup += (fs.hasFieldErrors, "class", "has-error"))>
+@(fs: eu.swdev.web.form.FieldState[_, _, CState])(inner: Html)(implicit lang: Lang, style: Style)
+<div @Html(Bss.formGroup += (fs.hasFieldErrors, "class", "has-error"))>
   @label(fs)
-  <div @Html(bsa.inputDiv)>
+  <div @Html(Bss.inputDiv)>
     @inner
     @if(fs.hasFieldErrors) {
       <small class="help-block">

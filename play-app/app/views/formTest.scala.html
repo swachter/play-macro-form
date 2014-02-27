@@ -1,14 +1,14 @@
 @* formTest Template File *@
-@(formState: com.abc.F.FS)(implicit lang: Lang, bsa: BootstrapAttrs)
+@(formState: com.abc.F.FS)(implicit lang: Lang, style: Style)
 @main("Form-Test") {
-  <form method="GET" action="@routes.Application.processForm" @Html(bsa.form)>
+  <form @Html(Bss.form ~= ("method", "GET") ~= ("action", routes.Application.processForm.toString))>
     <fieldset>
         @formState.f1.inputText
         @formState.f2.checkBox
         @formState.f3.checkBoxGroup(true)
         @formState.f4.radioButtonGroup(true)
         @formState.f5.radioButtonGroup(true)
-        @formState.withAttrs(button = bsa.button += ("class", "btn-primary")).submit
+        @formState.withAttrs(Bss.button += ("class", "btn-primary")).submit
     </fieldset>
   </form>
 }
