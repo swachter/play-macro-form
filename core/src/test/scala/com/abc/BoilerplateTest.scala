@@ -74,7 +74,7 @@ class BoilerplateTest extends FunSuite {
                   f2: FieldState[F.f2.V, F.f2.M, F.f2.CS],
                   f3: FieldState[F.f3.V, F.f3.M, F.f3.CS],
                   f4: FieldState[F.f4.V, F.f4.M, F.f4.CS]
-                  ) extends State[FV] {
+                  ) extends FormState[FV] {
       def hasFormErrors: Boolean = !errors.isEmpty || Seq[State[_]](f1, f2, f3).exists(_.hasFormErrors)
       def hasFieldErrors: Boolean = Seq[State[_]](f1, f2, f3).exists(_.hasFieldErrors)
       override def model: FV = FV(f1.model, f2.model, f3.model, f4.model)
@@ -131,7 +131,7 @@ class BoilerplateTest extends FunSuite {
             g1: State[F.FV],
             g2: State[F.FV],
             g3: FieldState[G.g3.V, G.g3.M, G.g3.CS]
-            ) extends State[FV] {
+            ) extends FormState[FV] {
       def hasFormErrors: Boolean = !errors.isEmpty || Seq(g1, g2, g3).exists(_.hasFormErrors)
       def hasFieldErrors: Boolean = Seq(g1, g2, g3).exists(_.hasFieldErrors)
       override def model: FV = FV(g1.model, g2.model, g3.model)

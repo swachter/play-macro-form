@@ -3,52 +3,47 @@ package eu.swdev.web.play
 import scala.util.parsing.combinator.RegexParsers
 import play.api.templates.Html
 
-/** Supports the manipulation of a set of attributes.
+/** Represents a set of attributes.
   *
-  * The value of an attribute is a set of strings. Methods to set, add, remove values of an attribute.
+  * The value of an attribute is a set of strings. Methods allow to set, add, or remove attribute values.
   *
-  * Attrs instances can be used inside templates to augment or tweak attributes that are given as parameters from
-  * the outside to templates.
+  * Attrs instances can be used inside templates to augment or tweak attributes that are given as template parameters.
   */
-class Attrs(val map: Map[String, Set[String]]) extends AnyVal {
+class Attrs(val map: Map[String, Set[String]]) {
 
   import Attrs._
 
   /**
-   * Sets an attribute.
-   *
-   * @param attrName
-   * @param value
+   * Set an attribute.
    * @return
    */
-  def :=(attrName: String, value: String*) = new Attrs(map + (attrName -> toSet(value)))
+  def := = new AttrsOps {
+    override def doApply(attrName: String, value: Set[String]): Attrs = new Attrs(map + (attrName -> value))
+  }
 
   /**
-   * Adds attribute values.
-   *
-   * @param attrName
-   * @param value
+   * Add attribute values.
    * @return
    */
-  def +=(attrName: String, value: String*) = new Attrs(map + (attrName -> (map.getOrElse(attrName, Set()) ++ toSet(value))))
+  def += = new AttrsOps {
+    override def doApply(attrName: String, value: Set[String]): Attrs = new Attrs(map + (attrName -> (map.getOrElse(attrName, Set()) ++ value)))
+  }
 
   /**
-   * Removes attribute values.
-   *
-   * @param attrName
-   * @param value
+   * Remove attribute values.
    * @return
    */
-  def -=(attrName: String, value: String*) = new Attrs(map + (attrName -> (map.getOrElse(attrName, Set()) -- toSet(value))))
+  def -= = new AttrsOps {
+    override def doApply(attrName: String, value: Set[String]): Attrs = if (map.contains(attrName)) new Attrs(map + (attrName -> (map(attrName) -- value))) else Attrs.this
+  }
 
   /**
-   * Sets the specified attribute if it is not already set.
-   *
-   * @param attrName
-   * @param value
+   * Set the specified attribute if it is not already set.
    * @return
    */
-  def ~=(attrName: String, value: String*) = new Attrs(if (map.contains(attrName)) map else map + (attrName -> toSet(value)))
+  def ~= = new AttrsOps {
+    override def doApply(attrName: String, value: Set[String]): Attrs = if (map.contains(attrName)) Attrs.this else new Attrs(map + (attrName -> value))
+  }
 
   override def toString: String = {
     (for {
@@ -56,6 +51,17 @@ class Attrs(val map: Map[String, Set[String]]) extends AnyVal {
     } yield {
       s"""${me._1}="${me._2.filter(!_.isEmpty).mkString(" ")}""""
     }).mkString(" ")
+  }
+
+  abstract class AttrsOps {
+    def apply(attrName: String, value: String*): Attrs = doApply(attrName, value)
+    def apply(check: Boolean, attrName: String, value: String*): Attrs = if (check) doApply(attrName, value) else Attrs.this
+    def apply(attr: Option[Attr]): Attrs = attr match {
+      case Some(a) => doApply(a.attrName, a.attrValue)
+      case None => Attrs.this
+    }
+    def doApply(attrName: String, value: Seq[String]): Attrs = doApply(attrName, toSet(value))
+    def doApply(attrName: String, value: Set[String]): Attrs
   }
 
 }
@@ -102,6 +108,8 @@ object Attrs {
   implicit def attrsToString(attrs: Attrs): String = attrs.toString
 }
 
+case class Attr(attrName: String, attrValue: String*)
+
 case class BootstrapAttrs (
   form: Attrs,
   formGroup: Attrs,
@@ -110,8 +118,3 @@ case class BootstrapAttrs (
   input: Attrs,
   button: Attrs
 )
-
-object BootstrapAttrs {
-  val empty = BootstrapAttrs(Attrs.empty, Attrs.empty, Attrs.empty, Attrs.empty, Attrs.empty, Attrs.empty)
-}
-

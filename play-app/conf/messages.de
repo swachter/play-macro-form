@@ -6,4 +6,6 @@ form.label.f5 = Feld 5
 
 form.placeholder.f1 = Bitte geben Sie eine Zahl ein
 
+form.button.submit = Daten absenden
+
 form.error.lt = Wert muss kleiner als {0} sein

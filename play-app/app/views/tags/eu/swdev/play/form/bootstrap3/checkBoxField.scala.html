@@ -2,8 +2,8 @@
 @formGroup(fs) {
   <div class="checkbox">
     <label>
-      <input @bsa.input.name(fs) type="checkbox" @bsa.input.id(fs) value="@checkBoxValueInfo.checkedValue" @if(checkBoxValueInfo.isChecked(fs.view)) { checked="checked" } @Html(bsa.input += ("class", "form-control"))/>
-      <input name="@bsa.input.nameForDefault(fs)" type="hidden" value="@checkBoxValueInfo.uncheckedValue" />
+      <input @Html(bsa.input ~= ("name", fs.name) ~= ("type", "checkbox") ~= ("id", fs.name) ~= ("value", checkBoxValueInfo.checkedValue) := (checkBoxValueInfo.isChecked(fs.view), "checked", "checked") += ("class", "form-control"))/>
+      <input name="@fs.nameForDefault" type="hidden" value="@checkBoxValueInfo.uncheckedValue" />
       @fs.name
     </label>
   </div>
