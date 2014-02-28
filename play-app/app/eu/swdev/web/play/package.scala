@@ -73,13 +73,12 @@ package object play {
   implicit class FormRendererImpl[M](val formState: FormState[M])(implicit val style: Style, val lang: Lang) extends FormRenderer[M]
 
   trait WithAttrs[R] {
-    def withAttrs(stylers: Styler*): R = {
-      val bsa = stylers.foldLeft(style)((b, h) => h.transform(b))
-      renderer(bsa)
+    def withAttrs(styledItems: StyledItem*): R = {
+      val transformedStyle = styledItems.foldLeft(style)((b, h) => h.transform(b))
+      renderer(transformedStyle)
     }
     def style: Style
     def renderer(style: Style): R
-    def sel(attrs: Attrs, defaultAttrs: Attrs) = if (attrs != null) attrs else defaultAttrs
   }
 
   implicit class FieldWithAttrs[V, M, CS <: CState](val fieldStateArg: FieldState[V, M, CS])(implicit val style: Style, val langArg: Lang) extends WithAttrs[FieldRenderer[V, M, CS]] {
@@ -102,8 +101,8 @@ package object play {
 
   implicit class FieldAttrs[V, M, CS <: CState](val fieldState: FieldState[V, M, CS]) extends AnyVal {
     def placeholder(implicit lang: Lang): Option[Attr] = formUtil.findMessage(fieldState.name, "form.placeholder").map(Attr("placeholder", _))
-    def labelFor(implicit style: Style): String = Bss.input.select(style).map.getOrElse("id", Set()).headOption.getOrElse(fieldState.name.toString)
-    def nameForDefault(implicit style: Style): String = Bss.input.select(style).map.getOrElse("name", Set()).headOption.getOrElse(fieldState.name.toString) + ".default"
+    def labelFor(implicit style: Style): String = Bss.input.attrs(style).map.getOrElse("id", Set()).headOption.getOrElse(fieldState.name.toString)
+    def nameForDefault(implicit style: Style): String = Bss.input.attrs(style).map.getOrElse("name", Set()).headOption.getOrElse(fieldState.name.toString) + ".default"
   }
 
 

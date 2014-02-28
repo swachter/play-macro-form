@@ -22,21 +22,16 @@ object Application extends Controller {
 
   }
 
-//  implicit val bootstrapAttrs = BootstrapAttrs(
-//    form = Attrs(), // form-horizontal
-//    formGroup = Attrs("class", "form-group"),
-//    label = Attrs("class", "control-label"), // col-md-4
-//    inputDiv = Attrs(), // col-md-4
-//    input = Attrs()
-//  )
-
+  /**
+   * Create a style by applying style modifications to an empty style.
+   */
   implicit val bootstrapStyle = Style(
-    Bss.form := Attrs("class", "form-horizontal"), // form-horizontal
-    Bss.formGroup := Attrs("class", "form-group"),
-    Bss.label := Attrs("class", "control-label col-xs-3"), // col-md-4
-    Bss.inputDiv := Attrs("class", "col-xs-6"), // col-md-4
-    Bss.input := Attrs("class", "form-control input-xs"),
-    Bss.button := Attrs("class", "btn") // btn-default
+    Bss.form += Attrs("class", "form-horizontal"), // form-horizontal
+    Bss.formGroup += Attrs("class", "form-group"),
+    Bss.label += Attrs("class", "control-label col-xs-3"),
+    Bss.inputDiv += Attrs("class", "col-xs-9"),
+    Bss.input += Attrs("class", "form-control"),
+    Bss.button += Attrs("class", "btn") // btn-default
   )
 
 }

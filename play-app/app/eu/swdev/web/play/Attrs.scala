@@ -6,8 +6,6 @@ import play.api.templates.Html
 /** Represents a set of attributes.
   *
   * The value of an attribute is a set of strings. Methods allow to set, add, or remove attribute values.
-  *
-  * Attrs instances can be used inside templates to augment or tweak attributes that are given as template parameters.
   */
 class Attrs(val map: Map[String, Set[String]]) {
 
@@ -72,6 +70,14 @@ object Attrs {
   val empty = new Attrs(Map[String, Set[String]]())
 
   def apply(): Attrs = empty
+
+  /**
+   * Creates a set of attributes by parsing its Html representation. Attribute values can be space separated lists of
+   * strings that are stored in a set.
+   *
+   * @param string
+   * @return
+   */
   def apply(string: String): Attrs = new Attrs(AttrsParser.parseAll(AttrsParser.attrs, string).get)
   def apply(attrName: String, value: String*): Attrs = new Attrs(Map(attrName -> toSet(value)))
 
@@ -113,7 +119,7 @@ object Attrs {
 case class Attr(attrName: String, attrValue: String*)
 
 /**
- * A style defines attributes for various items.
+ * A style contains sets of attributes. The sets of attributes are identified by keys.
  *
  * For example a style can contain the Html attributes that should be applied to different Html elements.
  * 
@@ -127,77 +133,82 @@ object Style {
   val empty = Style(Map[String, Attrs]())
 
   /**
-   * Creates a style by applying a sequence of styles to an empty style.
-   * @param stylers
+   * Creates a style by applying a sequence of style transformations to an empty style.
+   * @param styledItem
    * @return
    */
-  def apply(stylers: Styler*): Style = stylers.foldLeft(empty)((b, h) => h.transform(b))
+  def apply(styledItem: StyledItem*): Style = styledItem.foldLeft(empty)((b, h) => h.transform(b))
 }
 
 /**
- * A styler is responsible for a certain styled item. It allows to apply style modifications and to access the
- * resulting attributes.
+ * A StyledItem represents an item that is to be styled by a set of attributes (e.g. an Html element). A StyledItem
+ * is identified by its key.
  *
- * @param key A key that identifies a certain styled item (e.g. a specific Html element).
- * @param modifications A list of modifications that is applied to a style.
+ * A StyledItem allows to
+ *
+ *   - get its set of attributes from a Style
+ *   - transform a Style by applying modifications to its set of attributes 
+ *
+ * @param key Identifies this StyledItem. The key is used to retrieve the corresponding set of attributes from a Style.
+ * @param modifications Modifications that are applied to the set of attributes corresponding to this StyledItem.
  */
-case class Styler(key: String, modifications: List[Attrs => Attrs] = Nil) {
+case class StyledItem(key: String, modifications: List[Attrs => Attrs] = Nil) {
 
-  def select(s: Style): Attrs = modifications.foldRight(s(key))((m, a) => m(a))
-  def transform(s: Style): Style = new Style(s.map + (key -> select(s)))
+  def attrs(style: Style): Attrs = modifications.foldRight(style(key))((m, a) => m(a))
+  def transform(style: Style): Style = new Style(style.map + (key -> attrs(style)))
 
   def += = new Modifier {
-    override def doApply(attrName: String, value: Set[String]): Styler = Styler(key, ((a: Attrs) => a.+=(attrName, value)) :: modifications)
+    override def doApply(attrName: String, value: Set[String]): StyledItem = StyledItem(key, ((a: Attrs) => a.+=(attrName, value)) :: modifications)
   }
   def := = new Modifier {
-    override def doApply(attrName: String, value: Set[String]): Styler = Styler(key, ((a: Attrs) => a.:=(attrName, value)) :: modifications)
+    override def doApply(attrName: String, value: Set[String]): StyledItem = StyledItem(key, ((a: Attrs) => a.:=(attrName, value)) :: modifications)
   }
   def -= = new Modifier {
-    override def doApply(attrName: String, value: Set[String]): Styler = Styler(key, ((a: Attrs) => a.-=(attrName, value)) :: modifications)
+    override def doApply(attrName: String, value: Set[String]): StyledItem = StyledItem(key, ((a: Attrs) => a.-=(attrName, value)) :: modifications)
   }
   def ~= = new Modifier {
-    override def doApply(attrName: String, value: Set[String]): Styler = Styler(key, ((a: Attrs) => a.~=(attrName, value)) :: modifications)
+    override def doApply(attrName: String, value: Set[String]): StyledItem = StyledItem(key, ((a: Attrs) => a.~=(attrName, value)) :: modifications)
   }
 
   trait Modifier {
-    def apply(attrName: String, value: String*): Styler = doApply(attrName, value)
-    def apply(check: Boolean, attrName: String, value: String*): Styler = if (check) doApply(attrName, value) else Styler.this
-    def apply(attr: Option[Attr]): Styler = attr match {
+    def apply(attrName: String, value: String*): StyledItem = doApply(attrName, value)
+    def apply(check: Boolean, attrName: String, value: String*): StyledItem = if (check) doApply(attrName, value) else StyledItem.this
+    def apply(attr: Option[Attr]): StyledItem = attr match {
       case Some(a) => doApply(a.attrName, a.attrValue)
-      case None => Styler.this
+      case None => StyledItem.this
     }
-    def apply(attrs: Attrs): Styler = {
-      attrs.map.foldLeft(Styler.this)((h, t) => doApply(t._1, t._2))
+    def apply(attrs: Attrs): StyledItem = {
+      attrs.map.foldLeft(StyledItem.this)((h, t) => doApply(t._1, t._2))
     }
-    def doApply(attrName: String, value: Seq[String]): Styler = doApply(attrName, Attrs.toSet(value))
-    def doApply(attrName: String, value: Set[String]): Styler
+    def doApply(attrName: String, value: Seq[String]): StyledItem = doApply(attrName, Attrs.toSet(value))
+    def doApply(attrName: String, value: Set[String]): StyledItem
   }
 
 }
 
-object Styler {
+object StyledItem {
   /**
-   * Implicit conversion that allows to use an styler as an argument to the @Html method.
+   * Implicit conversion that allows to use a styled item as an argument to the @Html method.
    *
    * The conversion selects the corresponding attributes from an implicitly available style and converts these attributes
    * into their Html representation.
    *
-   * @param styler
+   * @param styledItem
    * @param style
    * @return
    */
-  implicit def toString(styler: Styler)(implicit style: Style): String = styler.select(style).toString
+  implicit def toString(styledItem: StyledItem)(implicit style: Style): String = styledItem.attrs(style).toString
 }
 
 /**
- * Bootstrap stylers
+ * Styled items for outputting Bootstrap forms.
  */
 object Bss {
-  val form = Styler("form")
-  val formGroup = Styler("formGroup")
-  val label = Styler("label")
-  val inputDiv = Styler("inputDiv")
-  val input = Styler("input")
-  val button = Styler("button")
+  val form = StyledItem("form")
+  val formGroup = StyledItem("formGroup")
+  val label = StyledItem("label")
+  val inputDiv = StyledItem("inputDiv")
+  val input = StyledItem("input")
+  val button = StyledItem("button")
 }
 
