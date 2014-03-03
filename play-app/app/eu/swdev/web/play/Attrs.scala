@@ -5,9 +5,11 @@ import play.api.templates.Html
 
 /** Represents a set of attributes.
   *
-  * The value of an attribute is a set of strings. Methods allow to set, add, or remove attribute values.
+  * The value of an attribute is a set of strings. The strings must not contain whitespace.
+  *
+  * Methods allow to set, add, remove, or specify default attribute values.
   */
-class Attrs(val map: Map[String, Set[String]]) {
+class Attrs (val map: Map[String, Set[String]]) extends AnyVal {
 
   import Attrs._
 
@@ -15,34 +17,31 @@ class Attrs(val map: Map[String, Set[String]]) {
    * Set an attribute.
    * @return
    */
-  def := = new AttrsOps {
-    override def doApply(attrName: String, value: Set[String]): Attrs = new Attrs(map + (attrName -> value))
-  }
+  def := = new AttrsAssignOp(map)
 
   /**
    * Add attribute values.
    * @return
    */
-  def += = new AttrsOps {
-    override def doApply(attrName: String, value: Set[String]): Attrs = new Attrs(map + (attrName -> (map.getOrElse(attrName, Set()) ++ value)))
-  }
+  def += = new AttrsPlusOp(map)
 
   /**
    * Remove attribute values.
    * @return
    */
-  def -= = new AttrsOps {
-    override def doApply(attrName: String, value: Set[String]): Attrs = if (map.contains(attrName)) new Attrs(map + (attrName -> (map(attrName) -- value))) else Attrs.this
-  }
+  def -= = new AttrsMinusOp(map)
 
   /**
    * Set the specified attribute if it is not already set.
    * @return
    */
-  def ~= = new AttrsOps {
-    override def doApply(attrName: String, value: Set[String]): Attrs = if (map.contains(attrName)) Attrs.this else new Attrs(map + (attrName -> value))
-  }
+  def ~= = new AttrsTildeOp(map)
 
+  /**
+   * Returns an Html representation of the attributes.
+   *
+   * @return
+   */
   override def toString: String = {
     (for {
       me <- map
@@ -51,18 +50,43 @@ class Attrs(val map: Map[String, Set[String]]) {
     }).mkString(" ")
   }
 
-  abstract class AttrsOps {
-    def apply(attrName: String, value: Set[String]): Attrs = doApply(attrName, value)
-    def apply(attrName: String, value: String*): Attrs = doApply(attrName, value)
-    def apply(check: Boolean, attrName: String, value: String*): Attrs = if (check) doApply(attrName, value) else Attrs.this
-    def apply(attr: Option[Attr]): Attrs = attr match {
-      case Some(a) => doApply(a.attrName, a.attrValue)
-      case None => Attrs.this
-    }
-    def doApply(attrName: String, value: Seq[String]): Attrs = doApply(attrName, toSet(value))
-    def doApply(attrName: String, value: Set[String]): Attrs
+}
+
+trait AttrsOp extends Any {
+
+  def apply(attrName: String, value: Set[String]): Attrs = doApply(attrName, value)
+
+  def apply(attrName: String, value: String*): Attrs = doApply(attrName, value)
+
+  def apply(check: Boolean, attrName: String, value: String*): Attrs = if (check) doApply(attrName, value) else new Attrs(map)
+
+  def apply(attr: Option[Attr]): Attrs = attr match {
+    case Some(a) => doApply(a.attrName, a.attrValue)
+    case None => new Attrs(map)
   }
 
+  def doApply(attrName: String, value: Seq[String]): Attrs = doApply(attrName, Attrs.toSet(value))
+
+  def doApply(attrName: String, value: Set[String]): Attrs
+
+  def map: Map[String, Set[String]]
+
+}
+
+class AttrsAssignOp(val map: Map[String, Set[String]]) extends AnyVal with AttrsOp {
+  override def doApply(attrName: String, value: Set[String]): Attrs = new Attrs(map + (attrName -> value))
+}
+
+class AttrsPlusOp(val map: Map[String, Set[String]]) extends AnyVal with AttrsOp {
+  override def doApply(attrName: String, value: Set[String]): Attrs = new Attrs(map + (attrName -> (map.getOrElse(attrName, Set()) ++ value)))
+}
+
+class AttrsMinusOp(val map: Map[String, Set[String]]) extends AnyVal with AttrsOp {
+  override def doApply(attrName: String, value: Set[String]): Attrs = if (map.contains(attrName)) new Attrs(map + (attrName -> (map(attrName) -- value))) else new Attrs(map)
+}
+
+class AttrsTildeOp(val map: Map[String, Set[String]]) extends AnyVal with AttrsOp {
+  override def doApply(attrName: String, value: Set[String]): Attrs = if (map.contains(attrName)) new Attrs(map) else new Attrs(map + (attrName -> value))
 }
 
 object Attrs {
@@ -72,15 +96,31 @@ object Attrs {
   def apply(): Attrs = empty
 
   /**
-   * Creates a set of attributes by parsing its Html representation. Attribute values can be space separated lists of
+   * Creates a set of attributes by parsing an Html fragment. Attribute values can be space separated lists of
    * strings that are stored in a set.
    *
    * @param string
    * @return
    */
   def apply(string: String): Attrs = new Attrs(AttrsParser.parseAll(AttrsParser.attrs, string).get)
+
+  /**
+   * Creates a set of attributes that contains one attribute.
+   *
+   * @param attrName
+   * @param value
+   * @return
+   */
   def apply(attrName: String, value: String*): Attrs = new Attrs(Map(attrName -> toSet(value)))
 
+  /**
+   * String interpolator that allows to create a set of attributes from an Html fragment.
+   *
+   * First the specified string is interpolated using the standard string interpolator (s"..."). Then the resulting
+   * Html fragment is parsed and converted into an attribute set.
+   *
+   * @param sc
+   */
   implicit class AttrInterpolator(val sc: StringContext) extends AnyVal {
     def attrs(args: Any*): Attrs = {
       val s = sc.s(args: _*)
@@ -112,10 +152,20 @@ object Attrs {
    * @param attrs
    * @return
    */
-  implicit def attrsToString(attrs: Attrs): String = attrs.toString
+  implicit def attrsToString(attrs: Attrs): String = {
+    println(s"attrs.class: ${attrs.getClass.getName}")
+    attrs.toString
+  }
 
 }
 
+/**
+ * Represents an attribute with its value.
+ *
+ * @param attrName  The name of the attribute.
+ * @param attrValue The value of the attribute. Each string in the sequence of strings may be a whitespace separated
+ *                  sequence of strings by itself.
+ */
 case class Attr(attrName: String, attrValue: String*)
 
 /**
@@ -197,7 +247,10 @@ object StyledItem {
    * @param style
    * @return
    */
-  implicit def toString(styledItem: StyledItem)(implicit style: Style): String = styledItem.attrs(style).toString
+  implicit def toString(styledItem: StyledItem)(implicit style: Style): String = {
+    println(s"styledItem.attrs(style).class: ${styledItem.attrs(style).getClass.getName}")
+    styledItem.attrs(style).toString
+  }
 }
 
 /**
