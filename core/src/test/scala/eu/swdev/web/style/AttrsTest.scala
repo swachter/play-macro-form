@@ -1,4 +1,5 @@
-import eu.swdev.web.play.Attrs
+package eu.swdev.web.style
+
 import org.scalatest.{Inside, FunSuite}
 
 /**
@@ -12,7 +13,6 @@ class AttrsTest extends FunSuite with Inside {
   }
 
   test("attrs parser") {
-    import eu.swdev.web.play._
     import Attrs._
 
     inside(AttrsParser.parseAll(AttrsParser.attrName, """name""")) { case AttrsParser.Success("name", _) => }

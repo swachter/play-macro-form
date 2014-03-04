@@ -24,6 +24,7 @@ lazy val playApp = Project("playApp", file("play-app")).dependsOn(core).settings
     scalacOptions += "-language:higherKinds"
   ).settings(play.Project.playScalaSettings: _*).settings(
     templatesImport += "eu.swdev.web.form._",
+    templatesImport += "eu.swdev.web.style._",
     templatesImport += "eu.swdev.web.play._"
   )
 

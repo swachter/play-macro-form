@@ -3,7 +3,7 @@ package eu.swdev.web
 import _root_.play.api.i18n.{Messages, Lang}
 import _root_.play.api.templates.Html
 import eu.swdev.web.form._
-
+import eu.swdev.web.style._
 import scala.language.implicitConversions
 import views.html.tags.eu.swdev.play.form.bootstrap3
 

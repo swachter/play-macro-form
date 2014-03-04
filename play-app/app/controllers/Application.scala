@@ -4,6 +4,7 @@ import play.api.mvc._
 import com.abc.F
 import eu.swdev.web.play._
 import eu.swdev.web.form.{FieldState, CState, Name}
+import eu.swdev.web.style.Style
 
 object Application extends Controller {
 
@@ -26,12 +27,12 @@ object Application extends Controller {
    * Create a style by applying style modifications to an empty style.
    */
   implicit val bootstrapStyle = Style(
-    Bss.form += Attrs("class", "form-horizontal"), // form-horizontal
-    Bss.formGroup += Attrs("class", "form-group"),
-    Bss.label += Attrs("class", "control-label col-xs-3"),
-    Bss.inputDiv += Attrs("class", "col-xs-9"),
-    Bss.input += Attrs("class", "form-control"),
-    Bss.button += Attrs("class", "btn") // btn-default
+    Bss.form += ("class", "form-horizontal"), // form-horizontal
+    Bss.formGroup += ("class", "form-group"),
+    Bss.label += ("class", "control-label col-xs-3"),
+    Bss.inputDiv += ("class", "col-xs-9"),
+    Bss.input += ("class", "form-control"),
+    Bss.button += ("class", "btn") // btn-default
   )
 
 }
