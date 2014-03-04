@@ -35,7 +35,7 @@ package object play {
       } yield {
         val strValue = fieldState.constraints.handler.simpleConverter.format(v)
         val checked = fieldState.view.contains(strValue)
-        bootstrap3.checkBox(fieldState.name.toString, strValue, checked, strValue, inLineBoxes)
+        bootstrap3.checkBox(fieldState._name.toString, strValue, checked, strValue, inLineBoxes)
       }
       bootstrap3.checkBoxOrRadioButtonGroup(fieldState, checkBoxes)
     }
@@ -46,13 +46,18 @@ package object play {
       } yield {
         val strValue = fieldState.constraints.handler.simpleConverter.format(v)
         val checked = fieldState.view.contains(strValue)
-        bootstrap3.radioButton(fieldState.name.toString, strValue, checked, strValue, inLineBoxes)
+        bootstrap3.radioButton(fieldState._name.toString, strValue, checked, strValue, inLineBoxes)
       }
       bootstrap3.checkBoxOrRadioButtonGroup(fieldState, radioButtons)
     }
 
   }
 
+  /**
+   * Provides methods for rendering form related things.
+   *
+   * @tparam M
+   */
   trait FormRenderer[M] {
 
     implicit def style: Style
@@ -66,22 +71,49 @@ package object play {
       bootstrap3.button("submit", label)
     }
 
+    def form(content: Html): Html = bootstrap3.form(formState)(content)
+
   }
 
   implicit class FieldRendererImpl[V, M, CS <: CState](val fieldState: FieldState[V, M, CS])(implicit val style: Style, val lang: Lang) extends FieldRenderer[V, M, CS]
 
   implicit class FormRendererImpl[M](val formState: FormState[M])(implicit val style: Style, val lang: Lang) extends FormRenderer[M]
 
-  trait WithAttrs[R] {
-    def withAttrs(styledItems: StyledItem*): R = {
+  //
+  //
+  //
+
+  /**
+   * Provides the withStyle method.
+   *
+   * @tparam R
+   */
+  trait WithStyle[R] {
+    /**
+     * Transforms a given style and returns a renderer that uses the transformed style.
+     *
+     * @param styledItems
+     * @return
+     */
+    def withStyle(styledItems: StyledItem*): R = {
       val transformedStyle = styledItems.foldLeft(style)((b, h) => h.transform(b))
       renderer(transformedStyle)
     }
-    def style: Style
-    def renderer(style: Style): R
+    protected[this] def style: Style
+    protected[this] def renderer(style: Style): R
   }
 
-  implicit class FieldWithAttrs[V, M, CS <: CState](val fieldStateArg: FieldState[V, M, CS])(implicit val style: Style, val langArg: Lang) extends WithAttrs[FieldRenderer[V, M, CS]] {
+  /**
+   * Allows to use the withStyle method on fields.
+   *
+   * @param fieldStateArg
+   * @param style
+   * @param langArg
+   * @tparam V
+   * @tparam M
+   * @tparam CS
+   */
+  implicit class FieldWithStyle[V, M, CS <: CState](val fieldStateArg: FieldState[V, M, CS])(implicit val style: Style, val langArg: Lang) extends WithStyle[FieldRenderer[V, M, CS]] {
     def renderer(st: Style)= new FieldRenderer[V, M, CS] {
       override def fieldState = fieldStateArg
       override implicit def lang: Lang = langArg
@@ -89,9 +121,15 @@ package object play {
     }
   }
 
-
-
-  implicit class FormWithAttrs[M](val formStateArg: FormState[M])(implicit val style: Style, val langArg: Lang) extends WithAttrs[FormRenderer[M]] {
+  /**
+   * Allows to use the withStyleMethod on forms.
+   *
+   * @param formStateArg
+   * @param style
+   * @param langArg
+   * @tparam M
+   */
+  implicit class FormWithStyle[M](val formStateArg: FormState[M])(implicit val style: Style, val langArg: Lang) extends WithStyle[FormRenderer[M]] {
     def renderer(st: Style) = new FormRenderer[M] {
       override def formState: FormState[M] = formStateArg
       override implicit def lang: Lang = langArg
@@ -99,10 +137,15 @@ package object play {
     }
   }
 
+  //
+  //
+  //
+
   implicit class FieldAttrs[V, M, CS <: CState](val fieldState: FieldState[V, M, CS]) extends AnyVal {
-    def placeholder(implicit lang: Lang): Option[Attr] = formUtil.findMessage(fieldState.name, "form.placeholder").map(Attr("placeholder", _))
-    def labelFor(implicit style: Style): String = Bss.input.attrs(style).map.getOrElse("id", Set()).headOption.getOrElse(fieldState.name.toString)
-    def nameForDefault(implicit style: Style): String = Bss.input.attrs(style).map.getOrElse("name", Set()).headOption.getOrElse(fieldState.name.toString) + ".default"
+    def placeholder(implicit lang: Lang): Option[Attr] = formUtil.findMessage(fieldState._name, "form.placeholder").map(Attr("placeholder", _))
+    def labelFor(implicit style: Style): String = Bss.input.attrs(style).map.getOrElse("id", Set()).headOption.getOrElse(fieldState._name.toString)
+    def nameForDefault(implicit style: Style): String = Bss.input.attrs(style).map.getOrElse("name", Set()).headOption.getOrElse(fieldState._name.toString) + ".default"
+    def name: String = fieldState._name.toString
   }
 
 
@@ -110,11 +153,14 @@ package object play {
 
     def label(fieldState: FieldState[_, _, _])(implicit lang: Lang): String = {
       def findLabel(name: Name): Option[String] = findMessage(name, "form.label")
-      findLabel(fieldState.name).getOrElse(fieldState.name.toString)
+      findLabel(fieldState._name).getOrElse(fieldState._name.toString)
     }
 
+    def errors(formState: FormState[_])(implicit lang: Lang): Html = {
+      Html(formState.collectFormErrors(Nil).map(e => findMessage(formState._name + e.key, "form.error", e.args: _*).getOrElse(e.key)).mkString("<br>"))
+    }
     def errors(fieldState: FieldState[_, _, _])(implicit lang: Lang): Html = {
-      Html(fieldState.errors.map(e => findMessage(fieldState.name + e.key, "form.error", e.args: _*).getOrElse(e.key)).mkString("<br>"))
+      Html(fieldState._errors.map(e => findMessage(fieldState._name + e.key, "form.error", e.args: _*).getOrElse(e.key)).mkString("<br>"))
     }
 
     def findMessage(name: Name, keyPrefix: String, args: Any*)(implicit lang: Lang): Option[String] = {

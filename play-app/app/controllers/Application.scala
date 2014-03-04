@@ -3,7 +3,7 @@ package controllers
 import play.api.mvc._
 import com.abc.F
 import eu.swdev.web.play._
-import eu.swdev.web.form.{FieldState, CState, Name}
+import eu.swdev.web.form.{Error, FieldState, CState, Name}
 import eu.swdev.web.style.Style
 
 object Application extends Controller {
@@ -14,6 +14,7 @@ object Application extends Controller {
   
   def test = Action { implicit request =>
     val formState = F.fill(F.FV(5, false, Seq(), 1, None))
+    formState.addError(Error("form error"))
     Ok(views.html.formTest(formState))
   }
 

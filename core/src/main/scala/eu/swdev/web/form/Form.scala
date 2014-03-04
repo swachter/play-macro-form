@@ -51,7 +51,7 @@ object FormMacro {
       def fsParam: ValDef
       def fillArg = q"$memberName.fill(model.$memberName, name + $strFieldName)"
       val parseArg = q"$memberName.parse(view, name + $strFieldName)"
-      val modelArg = q"$memberName.model"
+      val modelArg = q"$memberName._model"
       val constraintTypeName: TypeName = newTypeName(s"C$index")
     }
 
@@ -121,9 +121,10 @@ object FormMacro {
                   case class FV(..$fvParams)
 
                   case class FS(_name: Name, ..$fsParams) extends FormState[FV] {
-                    def hasFormErrors = !errors.isEmpty || Seq[State[_]](..$memberNames).exists(_.hasFormErrors)
+                    def hasFormErrors = !_errors.isEmpty || Seq[State[_]](..$memberNames).exists(_.hasFormErrors)
+                    def collectFormErrors(accu: Seq[eu.swdev.web.form.Error]) = Seq(..$memberNames).foldLeft(if (_errors.isEmpty) accu else _errors ++ accu)((a, m) => m.collectFormErrors(a))
                     def hasFieldErrors = Seq[State[_]](..$memberNames).exists(_.hasFieldErrors)
-                    def model = FV(..$modelArgs)
+                    def _model = FV(..$modelArgs)
                     ..${validations}
                   }
 

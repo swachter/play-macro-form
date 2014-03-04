@@ -4,22 +4,24 @@ package eu.swdev.web.form
   */
 trait State[+M] {
 
+  def _name: Name
+
   /**
    * Gets the typed value of a field or form. This method must only be called of hasFieldErrors returns false.
    *
    * @return The typed value of a field or form
    */
-  def model: M
+  def _model: M
 
-  var errors: Seq[Error] = Seq()
+  var _errors: Seq[Error] = Seq()
 
   def addError(error: Error): this.type = {
-    errors = error +: errors
+    _errors = error +: _errors
     this
   }
 
   def addErrors(errs: Seq[Error]): this.type = {
-    errors = errs ++ errors
+    _errors = errs ++ _errors
     this
   }
 
@@ -28,6 +30,8 @@ trait State[+M] {
   def hasFormErrors: Boolean
 
   def hasFieldErrors: Boolean
+
+  def collectFormErrors(accu: Seq[Error]): Seq[Error]
 }
 
 trait FieldState[V, M, +CS <: CState] extends State[M] {
@@ -38,21 +42,21 @@ trait FieldState[V, M, +CS <: CState] extends State[M] {
    * kinded argument type.
    */
 
-  def name: Name
   def hasFormErrors = false
-  def hasFieldErrors: Boolean = !errors.isEmpty
+  def hasFieldErrors: Boolean = !_errors.isEmpty
   def view: Seq[String]
   def constraints: Constraints[V, M, CS]
+  override def collectFormErrors(accu: Seq[Error]): Seq[Error] = accu
 }
 
-case class FieldStateWithModel[V, M, CS <: CState](name: Name, view: Seq[String], constraints: Constraints[V, M, CS], model: M) extends FieldState[V, M, CS] {
-  errors = constraints.check(model)
+case class FieldStateWithModel[V, M, CS <: CState](_name: Name, view: Seq[String], constraints: Constraints[V, M, CS], _model: M) extends FieldState[V, M, CS] {
+  _errors = constraints.check(_model)
 }
 
-case class FieldStateWithoutModel[V, M, CS <: CState](name: Name, view: Seq[String], constraints: Constraints[V, M, CS]) extends FieldState[V, M, CS] {
-  def model: M = throw new NoSuchElementException(s"field does not have a model value - it contains errors: $errors")
+case class FieldStateWithoutModel[V, M, CS <: CState](_name: Name, view: Seq[String], constraints: Constraints[V, M, CS]) extends FieldState[V, M, CS] {
+  def _model: M = throw new NoSuchElementException(s"field does not have a model value - it contains errors: ${_errors}")
 }
 
 trait FormState[M] extends State[M] {
-  def _name: Name
+
 }

@@ -157,10 +157,7 @@ object Attrs {
    * @param attrs
    * @return
    */
-  implicit def attrsToString(attrs: Attrs): String = {
-    println(s"attrs.class: ${attrs.getClass.getName}")
-    attrs.toString
-  }
+  implicit def attrsToString(attrs: Attrs): String = attrs.toString
 
 }
 

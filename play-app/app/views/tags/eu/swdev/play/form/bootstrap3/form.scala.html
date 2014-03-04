@@ -1,0 +1,16 @@
+@* formTest Template File *@
+@(formState: FormState[_])(content: Html)(implicit lang: Lang, style: Style)
+<form @Html(Bss.form ~= ("method", "GET") ~= ("action", routes.Application.processForm.toString))>
+  <fieldset>
+    @content
+  </fieldset>
+  @if(formState.hasFormErrors) {
+    <div class="form-group has-error">
+      <div class="col-xs-12">
+        <small class="help-block">
+          @formUtil.errors(formState)
+        </small>
+      </div>
+    </div>
+  }
+</form>

@@ -75,9 +75,10 @@ class BoilerplateTest extends FunSuite {
                   f3: FieldState[F.f3.V, F.f3.M, F.f3.CS],
                   f4: FieldState[F.f4.V, F.f4.M, F.f4.CS]
                   ) extends FormState[FV] {
-      def hasFormErrors: Boolean = !errors.isEmpty || Seq[State[_]](f1, f2, f3).exists(_.hasFormErrors)
+      def hasFormErrors: Boolean = !_errors.isEmpty || Seq[State[_]](f1, f2, f3).exists(_.hasFormErrors)
       def hasFieldErrors: Boolean = Seq[State[_]](f1, f2, f3).exists(_.hasFieldErrors)
-      override def model: FV = FV(f1.model, f2.model, f3.model, f4.model)
+      override def _model: FV = FV(f1._model, f2._model, f3._model, f4._model)
+      override def collectFormErrors(accu: Seq[Error]): Seq[Error] = Seq(f1, f2, f3).foldLeft(if (_errors.isEmpty) accu else _errors ++ accu)((a, f) => f.collectFormErrors(a))
     }
 
     //
@@ -90,7 +91,7 @@ class BoilerplateTest extends FunSuite {
     val f4 = field[Seq[Int]].addVCheck((errs, v) => if (v % 2 == 0) Error("must be odd") +: errs else errs)
 
     def validate(fs: FS): Unit = {
-      if (fs.f1.model % 2 == 0) {
+      if (fs.f1._model % 2 == 0) {
         fs.f1.addError(Error("number must not be even"))
       }
     }
@@ -132,9 +133,10 @@ class BoilerplateTest extends FunSuite {
             g2: State[F.FV],
             g3: FieldState[G.g3.V, G.g3.M, G.g3.CS]
             ) extends FormState[FV] {
-      def hasFormErrors: Boolean = !errors.isEmpty || Seq(g1, g2, g3).exists(_.hasFormErrors)
+      def hasFormErrors: Boolean = !_errors.isEmpty || Seq(g1, g2, g3).exists(_.hasFormErrors)
       def hasFieldErrors: Boolean = Seq(g1, g2, g3).exists(_.hasFieldErrors)
-      override def model: FV = FV(g1.model, g2.model, g3.model)
+      override def _model: FV = FV(g1._model, g2._model, g3._model)
+      override def collectFormErrors(accu: Seq[Error]): Seq[Error] = Seq(g1, g2, g3).foldLeft(if (_errors.isEmpty) accu else _errors ++ accu)((a, f) => f.collectFormErrors(a))
     }
 
     //
@@ -159,7 +161,7 @@ class BoilerplateTest extends FunSuite {
     val enumRenderer: FieldState[_, _, CState { type EN = IsSet }] => String =
         state => s"enum renderer - state: $state; enum: ${state.constraints.en.get}"
 
-    val gs = G.fill(G.FV(fs.model, fs.model, 9))
+    val gs = G.fill(G.FV(fs._model, fs._model, 9))
 
   }
 

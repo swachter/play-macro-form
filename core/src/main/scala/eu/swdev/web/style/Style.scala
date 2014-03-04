@@ -7,12 +7,12 @@ package eu.swdev.web.style
  *
  * @param map
  */
-case class Style(map: Map[String, Attrs]) extends AnyVal {
+class Style(val map: Map[String, Attrs]) extends AnyVal {
   def apply(key: String): Attrs = map.getOrElse(key, Attrs.empty)
 }
 
 object Style {
-  val empty = Style(Map[String, Attrs]())
+  val empty = new Style(Map[String, Attrs]())
 
   /**
    * Creates a style by applying a sequence of style transformations to an empty style.
@@ -93,9 +93,6 @@ object StyledItem {
    * @param style
    * @return
    */
-  implicit def toString(styledItem: StyledItem)(implicit style: Style): String = {
-    println(s"styledItem.attrs(style).class: ${styledItem.attrs(style).getClass.getName}")
-    styledItem.attrs(style).toString
-  }
+  implicit def toString(styledItem: StyledItem)(implicit style: Style): String = styledItem.attrs(style).toString
 }
 
