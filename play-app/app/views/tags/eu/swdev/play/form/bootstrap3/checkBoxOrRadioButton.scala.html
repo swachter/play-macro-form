@@ -1,0 +1,17 @@
+@(tpe: String, name: String, value: String, checked: Boolean, label: String, stackedNotInline: Boolean)
+@inp = {
+<input name="@name" type="@tpe" class="form-control" value="@value" @if(checked) { checked="checked" } />
+@label
+}
+@if(stackedNotInline) {
+<div class="@tpe">
+  <label>
+     @inp
+  </label>
+</div>
+} else {
+<label class="@{tpe}-inline">
+  @inp
+</label>
+}
+

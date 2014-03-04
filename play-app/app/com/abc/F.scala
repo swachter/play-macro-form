@@ -9,4 +9,5 @@ object F {
   val f3 = field[Seq[Int]].enum(Seq(1, 2, 3))
   val f4 = field[Int].enum(Seq(1, 2, 3))
   val f5 = field[Option[Int]].enum(Seq(1, 2, 3))
+  val f6 = field[String]
 }

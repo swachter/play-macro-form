@@ -19,6 +19,11 @@ package object form {
   //
   //
 
+  implicit val StringConverter = new SimpleConverter[String] {
+    def format(t: String): String = t
+    def parse(s: String): Either[Error, String] = Right(s)
+  }
+
   implicit val IntConverter = new SimpleConverter[Int] {
     def format(t: Int): String = t.toString
     def parse(s: String): Either[Error, Int] = Try(Integer.parseInt(s)) match {

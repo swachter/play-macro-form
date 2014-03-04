@@ -25,30 +25,31 @@ package object play {
       bootstrap3.input(fieldState, "text")
     }
 
+    def inputPassword: Html = {
+      bootstrap3.input(fieldState, "password")
+    }
+
     def checkBox(implicit checkBoxValueInfo: CheckBoxValueInfo[V]): Html = {
       bootstrap3.checkBoxField(fieldState, checkBoxValueInfo)
     }
 
-    def checkBoxGroup(inLineBoxes: Boolean)(implicit ev: CS <:< CState { type EN = IsSet; type OC = ZeroOrMore } ): Html = {
-      val checkBoxes = for {
-        v <- fieldState.constraints.en.get.seq
-      } yield {
-        val strValue = fieldState.constraints.handler.simpleConverter.format(v)
-        val checked = fieldState.view.contains(strValue)
-        bootstrap3.checkBox(fieldState._name.toString, strValue, checked, strValue, inLineBoxes)
-      }
-      bootstrap3.checkBoxOrRadioButtonGroup(fieldState, checkBoxes)
+    def checkBoxGroup(stackedNotInline: Boolean)(implicit ev: CS <:< CState { type EN = IsSet; type OC = ZeroOrMore } ): Html = {
+      checkBoxOrRadioButtonGroup("checkbox", stackedNotInline)
     }
 
-    def radioButtonGroup(inLineBoxes: Boolean)(implicit ev: CS <:< CState { type EN = IsSet; type OC <: AtMostOne } ): Html = {
-      val radioButtons = for {
+    def radioButtonGroup(stackedNotInline: Boolean)(implicit ev: CS <:< CState { type EN = IsSet; type OC <: AtMostOne } ): Html = {
+      checkBoxOrRadioButtonGroup("radio", stackedNotInline)
+    }
+
+    def checkBoxOrRadioButtonGroup(tpe: String, stackedNotInline: Boolean): Html = {
+      val checkBoxOrRadioButtons = for {
         v <- fieldState.constraints.en.get.seq
       } yield {
         val strValue = fieldState.constraints.handler.simpleConverter.format(v)
         val checked = fieldState.view.contains(strValue)
-        bootstrap3.radioButton(fieldState._name.toString, strValue, checked, strValue, inLineBoxes)
+        bootstrap3.checkBoxOrRadioButton(tpe, fieldState._name.toString, strValue, checked, strValue, stackedNotInline)
       }
-      bootstrap3.checkBoxOrRadioButtonGroup(fieldState, radioButtons)
+      bootstrap3.checkBoxOrRadioButtonGroup(fieldState, checkBoxOrRadioButtons)
     }
 
   }

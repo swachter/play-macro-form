@@ -13,7 +13,7 @@ object Application extends Controller {
   }
   
   def test = Action { implicit request =>
-    val formState = F.fill(F.FV(5, false, Seq(), 1, None))
+    val formState = F.fill(F.FV(5, false, Seq(), 1, None, ""))
     formState.addError(Error("form error"))
     Ok(views.html.formTest(formState))
   }

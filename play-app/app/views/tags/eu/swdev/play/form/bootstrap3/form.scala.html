@@ -1,6 +1,6 @@
 @* formTest Template File *@
 @(formState: FormState[_])(content: Html)(implicit lang: Lang, style: Style)
-<form @Html(Bss.form ~= ("method", "GET") ~= ("action", routes.Application.processForm.toString))>
+<form @Html(Bss.form ~= ("method", "GET"))>
   <fieldset>
     @content
   </fieldset>
