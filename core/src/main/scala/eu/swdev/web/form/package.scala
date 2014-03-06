@@ -69,7 +69,7 @@ package object form {
     }
     def createField: Field[V, V, CS] = {
       val handler = SimpleFieldHandler(simpleConverter)
-      Field[V, V, CS](Constraints(handler))
+      Field[V, V, CS](handler)
     }
   }
 
@@ -80,7 +80,7 @@ package object form {
     }
     def createField: Field[V, Option[VP], CS] = {
       val handler = OptionFieldHandler(simpleConverter)
-      Field[V, Option[VP], CS](Constraints(handler))
+      Field[V, Option[VP], CS](handler)
     }
   }
 
@@ -91,7 +91,7 @@ package object form {
     }
     def createField: Field[V, Seq[VP], CS] = {
       val handler = SeqFieldHandler(simpleConverter)
-      Field[V, Seq[VP], CS](Constraints(handler))
+      Field[V, Seq[VP], CS](handler)
     }
   }
 

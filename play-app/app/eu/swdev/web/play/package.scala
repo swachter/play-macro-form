@@ -49,9 +49,9 @@ package object play {
 
     def buttonGroup(creator: ButtonCreator): Html = {
       val checkBoxOrRadioButtons = for {
-        v <- fieldState.constraints.en.get.seq
+        v <- fieldState.field.en.get.seq
       } yield {
-        val strValue = fieldState.constraints.handler.simpleConverter.format(v)
+        val strValue = fieldState.field.handler.simpleConverter.format(v)
         val checked = fieldState.view.contains(strValue)
         creator(fieldState._name.toString, strValue, checked, strValue)
       }
@@ -59,8 +59,8 @@ package object play {
     }
 
     def inputRange(implicit ev1: CS <:< CState { type LB = IsSetIncl; type UB = IsSetIncl }, inputRangeStyle: InputRangeStyler[V]): Html = {
-      val c = fieldState.constraints
-      bootstrap3.input(fieldState, "range")(Bss.input.modify(inputRangeStyle(c.lb.get.value, c.ub.get.value, c.handler.simpleConverter)).transform(style), lang)
+      val f = fieldState.field
+      bootstrap3.input(fieldState, "range")(Bss.input.modify(inputRangeStyle(f.lb.get.value, f.ub.get.value, f.handler.simpleConverter)).transform(style), lang)
     }
 
   }

@@ -159,7 +159,7 @@ class BoilerplateTest extends FunSuite {
         state => s"simple renderer - state: $state"
 
     val enumRenderer: FieldState[_, _, CState { type EN = IsSet }] => String =
-        state => s"enum renderer - state: $state; enum: ${state.constraints.en.get}"
+        state => s"enum renderer - state: $state; enum: ${state.field.en.get}"
 
     val gs = G.fill(G.FV(fs._model, fs._model, 9))
 

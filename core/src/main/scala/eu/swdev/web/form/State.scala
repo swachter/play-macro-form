@@ -45,16 +45,16 @@ trait FieldState[V, M, +CS <: CState] extends State[M] {
   def hasFormErrors = false
   def hasFieldErrors: Boolean = !_errors.isEmpty
   def view: Seq[String]
-  def constraints: Constraints[V, M, CS]
+  def field: Field[V, M, CS]
   override def collectFormErrors(accu: Seq[Error]): Seq[Error] = accu
 }
 
-case class FieldStateWithModel[V, M, CS <: CState](_name: Name, view: Seq[String], constraints: Constraints[V, M, CS], _model: M)(validate: Boolean) extends FieldState[V, M, CS] {
-  _errors = if (validate) constraints.check(_model) else Seq()
+case class FieldStateWithModel[V, M, CS <: CState](_name: Name, view: Seq[String], field: Field[V, M, CS], _model: M)(validate: Boolean) extends FieldState[V, M, CS] {
+  _errors = if (validate) field.check(_model) else Seq()
 }
 
-case class FieldStateWithoutModel[V, M, CS <: CState](_name: Name, view: Seq[String], constraints: Constraints[V, M, CS])(validate: Boolean) extends FieldState[V, M, CS] {
-  _errors = if (validate && constraints.required.isDefined) constraints.required.get :: Nil else Nil
+case class FieldStateWithoutModel[V, M, CS <: CState](_name: Name, view: Seq[String], field: Field[V, M, CS])(validate: Boolean) extends FieldState[V, M, CS] {
+  _errors = if (validate && field.required.isDefined) field.required.get :: Nil else Nil
   def _model: M = throw new NoSuchElementException(s"field does not have a model value - it contains errors: ${_errors}")
 }
 
