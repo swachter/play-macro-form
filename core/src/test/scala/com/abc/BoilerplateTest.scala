@@ -21,19 +21,19 @@ class BoilerplateTest extends FunSuite {
      * Fills a model value into a form state.
      *
      * @param model The model value that is filled into a form state.
-     * @param name The root name of all fields contained in the form. If the same form is rendered several times on
+     * @param nameArg The root name of all fields contained in the form. If the same form is rendered several times on
      *             a page then different root names must be supplied.
      * @return The resulting form state
      */
-    def fill(model: FV, name: Name = Name("F")) = {
+    def fill(model: FV, validateArg: Boolean = true, nameArg: Name = Name("F")) = {
       val fs = FS(
-        name,
-        f1.fill(model.f1, name + "f1"),
-        f2.fill(model.f2, name + "f2"),
-        f3.fill(model.f3, name + "f3"),
-        f4.fill(model.f4, name + "f3")
+        nameArg,
+        f1.fill(model.f1, validateArg, nameArg + "f1"),
+        f2.fill(model.f2, validateArg, nameArg + "f2"),
+        f3.fill(model.f3, validateArg, nameArg + "f3"),
+        f4.fill(model.f4, validateArg, nameArg + "f3")
       )
-      if (!fs.hasFieldErrors) {
+      if (validateArg && !fs.hasFieldErrors) {
         validate(fs)
       }
       fs
@@ -43,16 +43,16 @@ class BoilerplateTest extends FunSuite {
      * Parses the string representations of field values.
      *
      * @param view The string representations of field values.
-     * @param name The root name of all fields contained in the form. If the same form is rendered several times on
+     * @param nameArg The root name of all fields contained in the form. If the same form is rendered several times on
      *             a page then different root names must be supplied.
      * @return The resulting form state.
      */
-    def parse(view: Map[String, Seq[String]], name: Name = Name("F")) = FS(
-      name,
-      f1.parse(view, name + "f1"),
-      f2.parse(view, name + "f2"),
-      f3.parse(view, name + "f3"),
-      f4.parse(view, name + "f4")
+    def parse(view: Map[String, Seq[String]], validateArg: Boolean = true, nameArg: Name = Name("F")) = FS(
+      nameArg,
+      f1.parse(view, validateArg, nameArg + "f1"),
+      f2.parse(view, validateArg, nameArg + "f2"),
+      f3.parse(view, validateArg, nameArg + "f3"),
+      f4.parse(view, validateArg, nameArg + "f4")
     )
 
     // Define the value class that holds the typed value of the form.
@@ -107,18 +107,18 @@ class BoilerplateTest extends FunSuite {
 
     import eu.swdev.web.form._
 
-    def fill(model: FV, name: Name = Name("G")) = FS(
+    def fill(model: FV, validateArg: Boolean = true, name: Name = Name("G")) = FS(
       name,
-      g1.fill(model.g1, name + "g1"),
-      g2.fill(model.g2, name + "g2"),
-      g3.fill(model.g3, name + "g3")
+      g1.fill(model.g1, validateArg, name + "g1"),
+      g2.fill(model.g2, validateArg, name + "g2"),
+      g3.fill(model.g3, validateArg, name + "g3")
     )
 
-    def parse(view: Map[String, Seq[String]], name: Name = Name("G")) = FS(
+    def parse(view: Map[String, Seq[String]], validateArg: Boolean = true, name: Name = Name("G")) = FS(
       name,
-      g1.parse(view, name + "g1"),
-      g2.parse(view, name + "g2"),
-      g3.parse(view, name + "g3")
+      g1.parse(view, validateArg, name + "g1"),
+      g2.parse(view, validateArg, name + "g2"),
+      g3.parse(view, validateArg, name + "g3")
     )
 
     case class FV(

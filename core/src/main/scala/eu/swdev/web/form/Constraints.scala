@@ -2,8 +2,9 @@ package eu.swdev.web.form
 
 /**
   */
-case class Constraints[V, M, +CS <: CState](handler: FieldHandler[V, M], lb: Option[Bound[V]], ub: Option[Bound[V]], en: Option[Enum[V]], sChecks: Seq[Check[String]], vChecks: Seq[Check[V]], mChecks: Seq[Check[M]]) {
+case class Constraints[V, M, +CS <: CState](handler: FieldHandler[V, M], required: Option[Error], lb: Option[Bound[V]], ub: Option[Bound[V]], en: Option[Enum[V]], sChecks: Seq[Check[String]], vChecks: Seq[Check[V]], mChecks: Seq[Check[M]]) {
 
+  def req(error: Error) = copy[V, M, CS](required = Some(error))
   def le(v: V, error: Error)(implicit ev: Ordering[V]) = copy[V, M, CS { type UB = IsSetIncl }](ub = Some(Bound(v, error, _ > 0)))
   def lt(v: V, error: Error)(implicit ev: Ordering[V]) = copy[V, M, CS { type UB = IsSetExcl }](ub = Some(Bound(v, error, _ >= 0)))
   def ge(v: V, error: Error)(implicit ev: Ordering[V]) = copy[V, M, CS { type LB = IsSetIncl }](lb = Some(Bound(v, error, _ < 0)))
@@ -29,7 +30,7 @@ case class Constraints[V, M, +CS <: CState](handler: FieldHandler[V, M], lb: Opt
 }
 
 object Constraints {
-  def apply[V, M, CS <: CState](handler: FieldHandler[V, M]): Constraints[V, M, CS] = Constraints[V, M, CS](handler, None, None, None, Nil, Nil, Nil)
+  def apply[V, M, CS <: CState](handler: FieldHandler[V, M]): Constraints[V, M, CS] = Constraints[V, M, CS](handler, None, None, None, None, Nil, Nil, Nil)
 }
 
 case class Bound[V: Ordering](value: V, error: Error, chk: Int => Boolean) extends ((Seq[Error], V) => Seq[Error]) {

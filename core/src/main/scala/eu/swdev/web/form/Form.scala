@@ -49,8 +49,8 @@ object FormMacro {
       val strFieldName = memberName.toString()
       def fvParam: ValDef
       def fsParam: ValDef
-      def fillArg = q"$memberName.fill(model.$memberName, name + $strFieldName)"
-      val parseArg = q"$memberName.parse(view, name + $strFieldName)"
+      def fillArg = q"$memberName.fill(model.$memberName, validateArg, name + $strFieldName)"
+      val parseArg = q"$memberName.parse(view, validateArg, name + $strFieldName)"
       val modelArg = q"$memberName._model"
       val constraintTypeName: TypeName = newTypeName(s"C$index")
     }
@@ -93,7 +93,7 @@ object FormMacro {
 
             // collect calls to validation methods, i.e. methods with the signature FS[..] => Unit or WFS => Unit
             val validations: List[Tree] = body.collect {
-              case q"def $f(${_}: FS): Unit = ${_}" => q"$f(this)"
+              case q"def $f(${_}: FS): Unit = ${_}" => q"$f(fs)"
             }
 
             val spliceInfos: List[SpliceInfo] = body.zipWithIndex.map(t => (t._1, objectName, t._2)).collect(processField.orElse(processForm)).asInstanceOf[List[SpliceInfo]]
@@ -115,8 +115,16 @@ object FormMacro {
 
                   import eu.swdev.web.form._
 
-                  def fill(model: FV, name: Name = Name($objectStrName)) = FS(name, ..$fillArgs)
-                  def parse(view: Map[String, Seq[String]], name: Name = Name($objectStrName)) = FS(name, ..$parseArgs)
+                  def fill(model: FV, validateArg: Boolean = true, name: Name = Name($objectStrName)) = {
+                    val fs = FS(name, ..$fillArgs)
+                    if (validateArg && !fs.hasFieldErrors) { ..${validations} }
+                    fs
+                  }
+                  def parse(view: Map[String, Seq[String]], validateArg: Boolean = true, name: Name = Name($objectStrName)) = {
+                    val fs = FS(name, ..$parseArgs)
+                    if (validateArg && !fs.hasFieldErrors) { ..${validations} }
+                    fs
+                  }
 
                   case class FV(..$fvParams)
 
@@ -125,7 +133,6 @@ object FormMacro {
                     def collectFormErrors(accu: Seq[eu.swdev.web.form.Error]) = Seq(..$memberNames).foldLeft(if (_errors.isEmpty) accu else _errors ++ accu)((a, m) => m.collectFormErrors(a))
                     def hasFieldErrors = Seq[State[_]](..$memberNames).exists(_.hasFieldErrors)
                     def _model = FV(..$modelArgs)
-                    ..${validations}
                   }
 
                   ..$tbody
