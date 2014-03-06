@@ -1,8 +1,7 @@
 package com.abc
 
-import eu.swdev.web.form.{Name, Error, Form}
+import eu.swdev.web.form.{FieldState, CState, IsSet, IsSetIncl, Name, Error, Form}
 import org.scalatest.FunSuite
-import scala.Error
 
 /** Tests the Form macro annotation
   */
@@ -10,9 +9,9 @@ class MacroTest extends FunSuite {
 
   @Form
   object F {
-    val f1 = field[Int].lt(5).enum(Seq(2,3,4))
+    val f1 = field[Int].gt(1).lt(5).enum(Seq(2,3,4))
     val f2 = field[Option[Int]]
-    val f3 = field[Seq[Int]]
+    val f3 = field[Seq[Int]].ge(1).le(9)
 
     // method is called when a FormState is constructed
     def test(fs: FS): Unit = {
@@ -83,22 +82,19 @@ class MacroTest extends FunSuite {
     assert(fs.f1._errors.head == Error("odd"))
   }
 
-  test("typesafe rendering") {
+  test("constraint type tracking") {
     val fs = F.fill(F.FV(4, None, Seq(2)))
 
-    import eu.swdev.web.form.{FieldState, CState, IsSet}
+    case class FieldTest[V, M, CS <: CState](val fs: FieldState[V, M, CS]) {
+      def mustHaveEnum(implicit ev: CS <:< CState { type EN = IsSet }): Unit = {}
+      def mustHaveLeGe(implicit ev: CS <:< CState { type LB = IsSetIncl; type UB = IsSetIncl }): Unit = {}
+    }
 
-    val simpleRenderer: FieldState[_, _, _] => String =
-      state => s"simple renderer - state: $state"
-
-    val enumRenderer: FieldState[_, _, CState { type EN = IsSet }] => String =
-      state => s"enum renderer - state: $state; enum: ${state.constraints.en.get}"
-
-    simpleRenderer(fs.f1)
-    enumRenderer(fs.f1)
-
-    simpleRenderer(fs.f2)
-    assertTypeError("enumRenderer(fs.f2)")
+    FieldTest(fs.f1).mustHaveEnum
+    assertTypeError("FieldTest(fs.f2).mustHaveEnum")
+    FieldTest(fs.f3).mustHaveLeGe
+    assertTypeError("FieldTest(fs.f1).mustHaveLeGe")
+    assertTypeError("FieldTest(fs.f2).mustHaveLeGe")
 
   }
 }

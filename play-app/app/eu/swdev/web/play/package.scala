@@ -34,22 +34,33 @@ package object play {
     }
 
     def checkBoxGroup(stackedNotInline: Boolean)(implicit ev: CS <:< CState { type EN = IsSet; type OC = ZeroOrMore } ): Html = {
-      checkBoxOrRadioButtonGroup("checkbox", stackedNotInline)
+      buttonGroup((name, value, checked, label) => bootstrap3.checkBoxOrRadioButton("checkbox", name, value, checked, label, stackedNotInline))
     }
 
     def radioButtonGroup(stackedNotInline: Boolean)(implicit ev: CS <:< CState { type EN = IsSet; type OC <: AtMostOne } ): Html = {
-      checkBoxOrRadioButtonGroup("radio", stackedNotInline)
+      buttonGroup((name, value, checked, label) => bootstrap3.checkBoxOrRadioButton("radio", name, value, checked, label, stackedNotInline))
     }
 
-    def checkBoxOrRadioButtonGroup(tpe: String, stackedNotInline: Boolean): Html = {
+    def submitButtonGroup(stackedNotInline: Boolean = true)(implicit ev: CS <:< CState { type EN = IsSet } ): Html = {
+      buttonGroup((name, value, checked, label) => bootstrap3.buttonCtrl("submit", label)((Bss.button += ("value", value) += ("name", name)).transform(style)))
+    }
+
+    type ButtonCreator = (String, String, Boolean, String) => Html
+
+    def buttonGroup(creator: ButtonCreator): Html = {
       val checkBoxOrRadioButtons = for {
         v <- fieldState.constraints.en.get.seq
       } yield {
         val strValue = fieldState.constraints.handler.simpleConverter.format(v)
         val checked = fieldState.view.contains(strValue)
-        bootstrap3.checkBoxOrRadioButton(tpe, fieldState._name.toString, strValue, checked, strValue, stackedNotInline)
+        creator(fieldState._name.toString, strValue, checked, strValue)
       }
       bootstrap3.checkBoxOrRadioButtonGroup(fieldState, checkBoxOrRadioButtons)
+    }
+
+    def inputRange(implicit ev1: CS <:< CState { type LB = IsSetIncl; type UB = IsSetIncl }, inputRangeStyle: InputRangeStyler[V]): Html = {
+      val c = fieldState.constraints
+      bootstrap3.input(fieldState, "range")(Bss.input.modify(inputRangeStyle(c.lb.get.value, c.ub.get.value, c.handler.simpleConverter)).transform(style), lang)
     }
 
   }

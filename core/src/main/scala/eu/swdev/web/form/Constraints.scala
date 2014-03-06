@@ -4,10 +4,10 @@ package eu.swdev.web.form
   */
 case class Constraints[V, M, +CS <: CState](handler: FieldHandler[V, M], lb: Option[Bound[V]], ub: Option[Bound[V]], en: Option[Enum[V]], sChecks: Seq[Check[String]], vChecks: Seq[Check[V]], mChecks: Seq[Check[M]]) {
 
-  def le(v: V, error: Error)(implicit ev: Ordering[V]) = copy[V, M, CS { type LB = IsSet }](lb = Some(Bound(v, error, _ > 0)))
-  def lt(v: V, error: Error)(implicit ev: Ordering[V]) = copy[V, M, CS { type LB = IsSet }](lb = Some(Bound(v, error, _ >= 0)))
-  def ge(v: V, error: Error)(implicit ev: Ordering[V]) = copy[V, M, CS { type UB = IsSet }](ub = Some(Bound(v, error, _ < 0)))
-  def gt(v: V, error: Error)(implicit ev: Ordering[V]) = copy[V, M, CS { type UB = IsSet }](ub = Some(Bound(v, error, _ <= 0)))
+  def le(v: V, error: Error)(implicit ev: Ordering[V]) = copy[V, M, CS { type UB = IsSetIncl }](ub = Some(Bound(v, error, _ > 0)))
+  def lt(v: V, error: Error)(implicit ev: Ordering[V]) = copy[V, M, CS { type UB = IsSetExcl }](ub = Some(Bound(v, error, _ >= 0)))
+  def ge(v: V, error: Error)(implicit ev: Ordering[V]) = copy[V, M, CS { type LB = IsSetIncl }](lb = Some(Bound(v, error, _ < 0)))
+  def gt(v: V, error: Error)(implicit ev: Ordering[V]) = copy[V, M, CS { type LB = IsSetExcl }](lb = Some(Bound(v, error, _ <= 0)))
   def enum(v: Seq[V], error: Error) = copy[V, M, CS { type EN = IsSet }](en = Some(Enum(v, error)))
 
   def addSCheck(check: Check[String]) = copy[V, M, CS](sChecks = check +: sChecks)
@@ -50,6 +50,8 @@ case class Enum[V](seq: Seq[V], error: Error) extends ((Seq[Error], V) => Seq[Er
 
 trait Unset
 trait IsSet extends Unset
+trait IsSetIncl extends IsSet
+trait IsSetExcl extends IsSet
 
 /**
  * Tracks which kinds of constraints have been set in a constraint instance.

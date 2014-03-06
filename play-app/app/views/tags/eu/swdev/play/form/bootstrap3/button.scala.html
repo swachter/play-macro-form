@@ -2,6 +2,6 @@
 <div @Html(Bss.formGroup)>
   <div @Html(Bss.label)></div>
   <div @Html(Bss.inputDiv)>
-    <button @Html(Bss.button ~= ("type", tpe))>@label</button>
+    @buttonCtrl(tpe, label)
   </div>
 </div>

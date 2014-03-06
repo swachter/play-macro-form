@@ -26,7 +26,15 @@ package object form {
 
   implicit val IntConverter = new SimpleConverter[Int] {
     def format(t: Int): String = t.toString
-    def parse(s: String): Either[Error, Int] = Try(Integer.parseInt(s)) match {
+    def parse(s: String): Either[Error, Int] = Try(s.toInt) match {
+      case Success(i) => Right(i)
+      case Failure(e) => Left(Error("exception", e.getClass.getName, e.getMessage))
+    }
+  }
+
+  implicit val DoubleConverter = new SimpleConverter[Double] {
+    def format(t: Double): String = t.toString
+    def parse(s: String): Either[Error, Double] = Try(s.toDouble) match {
       case Success(i) => Right(i)
       case Failure(e) => Left(Error("exception", e.getClass.getName, e.getMessage))
     }
