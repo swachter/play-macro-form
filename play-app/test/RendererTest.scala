@@ -18,12 +18,12 @@ class RendererTest extends FunSuite {
     implicit val lang = Lang
     val fs = F.parse(Map.empty, false)
     fs.f1.inputRange
-    fs.f3.checkBoxGroup(true)
-    fs.f4.radioButtonGroup(true)
+    fs.f3.selectionGroup(true)
+    fs.f4.selectionList()
 
     assertTypeError("fs.f2.inputRange")
-    assertTypeError("fs.f5.checkBoxGroup(true)")
-    assertTypeError("fs.f6.radioButtonGroup(true)")
+    assertTypeError("fs.f6.selectionGroup(true)")
+    assertTypeError("fs.f8.selectionList()")
 
   }
 

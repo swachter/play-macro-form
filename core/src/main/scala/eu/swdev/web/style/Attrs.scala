@@ -27,7 +27,7 @@ object Attrs extends StyleDefs[AttrsT] {
    * @param value
    * @return
    */
-  def apply(attrName: String, value: String*): Attrs = Map(attrName -> toSet(value))
+  def apply[S: AttributeValue](attrName: String, value: S*): Attrs = Map(attrName -> value.toSet.flatMap((x: S) => implicitly[AttributeValue[S]].stringSet(x)))
 
   /**
    * String interpolator that allows to create a set of attributes from an Html fragment.
@@ -66,9 +66,32 @@ object Attrs extends StyleDefs[AttrsT] {
 
 /**
  * Represents an attribute with its value.
- *
- * @param attrName  The name of the attribute.
- * @param attrValue The value of the attribute. Each string in the sequence of strings may be a whitespace separated
- *                  sequence of strings by itself.
  */
-case class Attr(attrName: String, attrValue: String*)
+trait Attr {
+  def attrName: String
+  def attrValue: Set[String]
+}
+
+object Attr {
+  case class AttrImpl(attrName: String, attrValue: Set[String]) extends Attr
+  def apply[S: AttributeValue](attrName: String, attrValue: S*): Attr = AttrImpl(attrName, attrValue.toSet.flatMap((x: S) => implicitly[AttributeValue[S]].stringSet(x)))
+}
+
+/**
+ * Typeclass that describes how values are transformed into attribute values.
+ *
+ * @tparam S
+ */
+trait AttributeValue[S] {
+  def stringSet(value: S): Set[String]
+}
+
+object AttributeValue {
+  implicit val stringAttributeValue = new AttributeValue[String] {
+    override def stringSet(value: String): Set[String] = {
+      val b = Set.newBuilder[String]
+      value.split("\\s+").foreach(b += _)
+      b.result
+    }
+  }
+}

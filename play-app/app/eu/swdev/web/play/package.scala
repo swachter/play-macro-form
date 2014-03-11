@@ -1,6 +1,7 @@
 package eu.swdev.web
 
 import _root_.play.api.i18n.{Messages, Lang}
+import _root_.play.api.mvc.Call
 import _root_.play.api.templates.Html
 import eu.swdev.web.form._
 import eu.swdev.web.style._
@@ -233,6 +234,10 @@ package object play {
 
   implicit def atMostOneOccurrenceEvidence[O <: Occurrence](implicit ev: O <:< AtMostOne): OccurrenceEvidence[O] = new OccurrenceEvidence[O] {
     override def isMultiple: Boolean = false
+  }
+
+  implicit val callAttributeValue = new AttributeValue[Call] {
+    override def stringSet(value: Call): Set[String] = Set(value.toString())
   }
 
 }

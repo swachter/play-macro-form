@@ -1,7 +1,7 @@
 @* formTest Template File *@
 @(formState: com.abc.F.FS)(implicit lang: Lang, style: Style)
 @main("Form-Test") {
-  @formState.withStyle(Bss.form += ("action", routes.Application.processForm.toString)).form {
+  @formState.withStyle(Bss.form += ("action", routes.Application.processForm)).form {
     @formState.f1.inputRange
     @formState.f2.checkBox
     @formState.f3.selectionGroup(false)
