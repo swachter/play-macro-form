@@ -102,4 +102,5 @@ package object form {
 
 
   type Check[X] = (Seq[Error], X) => Seq[Error]
+
 }

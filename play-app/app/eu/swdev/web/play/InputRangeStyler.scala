@@ -1,7 +1,6 @@
 package eu.swdev.web.play
 
-import eu.swdev.web.style.Attr
-import eu.swdev.web.style.Attrs
+import eu.swdev.web.style._
 import eu.swdev.web.form.SimpleConverter
 
 /**
@@ -10,7 +9,7 @@ import eu.swdev.web.form.SimpleConverter
  * @tparam V
  */
 trait InputRangeStyler[V] {
-  def apply(lb: V, ub: V, sc: SimpleConverter[V]): Attrs => Attrs = a => a ~= ("type", "range") ~= ("min", sc.format(lb)) ~= ("max", sc.format(ub)) ~= step(lb, ub, sc)
+  def apply(lb: V, ub: V, sc: SimpleConverter[V]): AttrsT = Attrs ~= ("type", "range") ~= ("min", sc.format(lb)) ~= ("max", sc.format(ub)) ~= step(lb, ub, sc)
   protected def step(lb: V, ub: V, sc: SimpleConverter[V]): Option[Attr]
 }
 

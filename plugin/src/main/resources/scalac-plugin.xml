@@ -1,0 +1,4 @@
+<plugin>
+  <name>boxing-detector-plugin</name>
+  <classname>demo.BoxingDetectorPlugin</classname>
+</plugin>

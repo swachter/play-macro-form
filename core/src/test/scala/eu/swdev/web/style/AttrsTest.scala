@@ -8,8 +8,8 @@ class AttrsTest extends FunSuite with Inside {
 
   test("attrs") {
     val a1 = Attrs.empty += ("name", "value") += ("class", "c1", "c2")
-    assert(a1.map("name") === Set("value"))
-    assert(a1.map("class") === Set("c1", "c2"))
+    assert(a1("name") === Set("value"))
+    assert(a1("class") === Set("c1", "c2"))
   }
 
   test("attrs parser") {
@@ -21,7 +21,7 @@ class AttrsTest extends FunSuite with Inside {
 
     val as = attrs""" name="abc" """
 
-    assert(as.map("name").contains("abc"))
+    assert(as("name").contains("abc"))
 
   }
 }

@@ -1,5 +1,12 @@
+import sbt.Keys._
+
 scalaVersion := "2.10.3"
 
+lazy val plugin = project.settings(
+  name := "plugin",
+  libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value,
+  publishArtifact in Compile := false
+)
 
 lazy val core = project.settings(
       libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value,
@@ -9,7 +16,14 @@ lazy val core = project.settings(
       resolvers += Resolver.sonatypeRepo("releases"),
       addCompilerPlugin("org.scalamacros" % "paradise" % "2.0.0-M3" cross CrossVersion.full),
       scalacOptions += "-feature",
-      scalacOptions += "-language:higherKinds"
+      scalacOptions += "-language:higherKinds",
+      scalacOptions in Compile <++= (Keys.`package` in (plugin, Compile)) map { (jar: File) =>
+       val addPlugin = "-Xplugin:" + jar.getAbsolutePath
+       // add plugin timestamp to compiler options to trigger recompile of
+       // main after editing the plugin. (Otherwise a 'clean' is needed.)
+       val dummy = "-Jdummy=" + jar.lastModified
+       Seq(addPlugin, dummy)
+    }
   )
 
 lazy val playApp = Project("playApp", file("play-app")).dependsOn(core).settings(
@@ -21,7 +35,14 @@ lazy val playApp = Project("playApp", file("play-app")).dependsOn(core).settings
     libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value,
     addCompilerPlugin("org.scalamacros" % "paradise" % "2.0.0-M3" cross CrossVersion.full),
     scalacOptions += "-feature",
-    scalacOptions += "-language:higherKinds"
+    scalacOptions += "-language:higherKinds",
+      scalacOptions in Compile <++= (Keys.`package` in (plugin, Compile)) map { (jar: File) =>
+      val addPlugin = "-Xplugin:" + jar.getAbsolutePath
+      // add plugin timestamp to compiler options to trigger recompile of
+      // main after editing the plugin. (Otherwise a 'clean' is needed.)
+      val dummy = "-Jdummy=" + jar.lastModified
+      Seq(addPlugin, dummy)
+    }
   ).settings(play.Project.playScalaSettings: _*).settings(
     templatesImport += "eu.swdev.web.form._",
     templatesImport += "eu.swdev.web.style._",

@@ -8,8 +8,7 @@
     @formState.f4.radioButtonGroup(true)
     @formState.f5.radioButtonGroup(false)
     @formState.f6.inputPassword
-    @formState.f7.submitButtonGroup(true)
-    @* @formState.f7.withValueStyle(v => Bss.button += ("class", "btn btn-" + v)).submitButtonGroup(true) *@
+    @formState.f7.submitButtonGroup(false, valueStyler = v => Bss.button += ("class", "btn-" + v))
     @formState.f8.inputRange
     @formState.withStyle(Bss.button += ("class", "btn-primary")).submit
   }

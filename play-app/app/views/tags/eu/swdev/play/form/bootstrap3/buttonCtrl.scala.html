@@ -1,2 +1,11 @@
-@(tpe: String, label: String)(implicit style: Style)
+@(tpe: String, label: String, stackedNotInline: Boolean)(implicit style: Style)
+@btn = {
 <button @Html(Bss.button ~= ("type", tpe))>@label</button>
+}
+@if(stackedNotInline) {
+  <div class="@tpe">
+    @btn
+  </div>
+} else {
+  @btn
+}

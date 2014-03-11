@@ -1,25 +1,16 @@
 package eu.swdev.web.style
 
-/**
- * A style contains sets of attributes. The sets of attributes are identified by keys.
- *
- * For example a style can contain the Html attributes that should be applied to different Html elements.
- *
- * @param map
- */
-class Style(val map: Map[String, Attrs]) extends AnyVal {
-  def apply(key: String): Attrs = map.getOrElse(key, Attrs.empty)
-}
-
 object Style {
-  val empty = new Style(Map[String, Attrs]())
+  
+  val empty = Map[String, Attrs]() //new Style(Map[String, Attrs]())
 
   /**
    * Creates a style by applying a sequence of style transformations to an empty style.
-   * @param styledItem
+   *
+   * @param transformations
    * @return
    */
-  def apply(styledItem: StyledItem*): Style = styledItem.foldLeft(empty)((b, h) => h.transform(b))
+  def apply(transformations: (Style => Style)*): Style = transformations.foldLeft(empty)((b, t) => t(b))
 }
 
 /**
@@ -29,60 +20,22 @@ object Style {
  * A StyledItem allows to
  *
  *   - get its set of attributes from a Style
- *   - transform a Style by applying modifications to its set of attributes
+ *   - create a StyledItemT by combining it with an attribute set transformation
  *
  * @param key Identifies this StyledItem. The key is used to retrieve the corresponding set of attributes from a Style.
- * @param modifications Modifications that are applied to the set of attributes belonging to this StyledItem.
  */
-case class StyledItem(key: String, modifications: List[Attrs => Attrs] = Nil) {
+class StyledItem(val key: String) extends AnyVal {
 
-  def attrs(style: Style): Attrs = modifications.foldRight(style(key))((m, a) => m(a))
-  def transform(style: Style): Style = new Style(style.map + (key -> attrs(style)))
+  def attrs(style: Style): Attrs = style.attrs(this)
 
-  def modify(m: Attrs => Attrs) = StyledItem(key, m :: modifications)
+  def apply(attrsT: AttrsT): StyledItemT = StyledItemT(this, attrsT :: Nil)
 
-  def += = new StyledItemPlusOp(this)
-  def := = new StyledItemAssignOp(this)
-  def -= = new StyledItemMinusOp(this)
-  def ~= = new StyledItemTildeOp(this)
-
-}
-
-/**
- * Base trait for operations that work on a StyledItem. The trait provides several overloaded variants of the apply
- * method. Each variant allows to supply the arguments for the operation in a different way.
- *
- * NB: The trait must extends Any in order to usable as a mixin for a value class (cf. universal trait).
- */
-trait StyledItemOp extends Any {
-  def apply(attrName: String, value: String*): StyledItem = doApply(attrName, value)
-  def apply(check: Boolean, attrName: String, value: String*): StyledItem = if (check) doApply(attrName, value) else styledItem
-  def apply(attr: Option[Attr]): StyledItem = attr match {
-    case Some(a) => doApply(a.attrName, a.attrValue)
-    case None => styledItem
-  }
-  def apply(attrs: Attrs): StyledItem = {
-    attrs.map.foldLeft(styledItem)((h, t) => doApply(t._1, t._2))
-  }
-  def doApply(attrName: String, value: Seq[String]): StyledItem = doApply(attrName, Attrs.toSet(value))
-  def doApply(attrName: String, value: Set[String]): StyledItem
-  def styledItem: StyledItem
-}
-
-class StyledItemAssignOp(val styledItem: StyledItem) extends AnyVal with StyledItemOp {
-  override def doApply(attrName: String, value: Set[String]): StyledItem = styledItem.modify(a => a := (attrName, value))
-}
-class StyledItemPlusOp(val styledItem: StyledItem) extends AnyVal with StyledItemOp {
-  override def doApply(attrName: String, value: Set[String]): StyledItem = styledItem.modify(a => a += (attrName, value))
-}
-class StyledItemMinusOp(val styledItem: StyledItem) extends AnyVal with StyledItemOp {
-  override def doApply(attrName: String, value: Set[String]): StyledItem = styledItem.modify(a => a -= (attrName, value))
-}
-class StyledItemTildeOp(val styledItem: StyledItem) extends AnyVal with StyledItemOp {
-  override def doApply(attrName: String, value: Set[String]): StyledItem = styledItem.modify(a => a ~= (attrName, value))
 }
 
 object StyledItem {
+
+  def apply(key: String): StyledItem = new StyledItem(key)
+
   /**
    * Implicit conversion that allows to use a styled item as an argument to the @Html method.
    *
@@ -93,6 +46,46 @@ object StyledItem {
    * @param style
    * @return
    */
-  implicit def toString(styledItem: StyledItem)(implicit style: Style): String = styledItem.attrs(style).toString
+  implicit def toString(styledItem: StyledItem)(implicit style: Style): String = styledItem.attrs(style)
+
+  implicit class StyledItemStyleDefs(val styledItem: StyledItem) extends StyleDefs[StyledItemT] {
+    override def noop: StyledItemT = StyledItemT(styledItem, Nil)
+    override def result(f: Attrs => Attrs): StyledItemT = StyledItemT(styledItem, f :: Nil)
+  }
 }
 
+/**
+ * A style transformer that transforms the attributes of a specific StyledItem.
+ *
+ * @param styledItem
+ * @param transformations
+ */
+class StyledItemT(val styledItem: StyledItem, val transformations: List[Attrs => Attrs]) extends StyleT {
+  override def apply(v1: Style): Style = v1 + (styledItem.key -> attrs(v1)) // new Style(v1.map + (styledItem.key -> attrs(v1)))
+  def attrs(v1: Style): Attrs =  transformations.foldRight(styledItem.attrs(v1))((t, attrs) => t(attrs))
+  def transform(f: Attrs => Attrs) = StyledItemT(styledItem, f :: transformations)
+}
+
+object StyledItemT {
+
+  def apply(styledItem: StyledItem, transformations: List[Attrs => Attrs]): StyledItemT = new StyledItemT(styledItem, transformations)
+
+  implicit class StyledItemTStyleDefs(val styledItemT: StyledItemT) extends StyleDefs[StyledItemT] {
+    override def noop: StyledItemT = styledItemT
+    override def result(f: Attrs => Attrs): StyledItemT = styledItemT.transform(f)
+  }
+
+  /**
+   * Implicit conversion that allows to use a styled item transformation as an argument to the @Html method.
+   *
+   * The conversion selects the corresponding attributes from an implicitly available style, transforms the attributes
+   * belonging to the corresponding StyledItem, and finally converts the resulting attributes into their Html
+   * representation.
+   *
+   * @param styledItemT
+   * @param style
+   * @return
+   */
+  implicit def toString(styledItemT: StyledItemT)(implicit style: Style): String = styledItemT.attrs(style)
+
+}

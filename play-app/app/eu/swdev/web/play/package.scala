@@ -20,6 +20,8 @@ package object play {
     implicit def lang: Lang
     def fieldState: FieldState[V, M, CS]
 
+    type ValueStyler = V => Style => Style
+    val defaultValueStyler: ValueStyler = _ => x => x
 
     def inputText: Html = {
       bootstrap3.input(fieldState, "text")
@@ -33,19 +35,28 @@ package object play {
       bootstrap3.checkBoxField(fieldState, checkBoxValueInfo)
     }
 
-    def checkBoxGroup(stackedNotInline: Boolean)(implicit ev: CS <:< CState { type EN = IsSet; type OC = ZeroOrMore } ): Html = {
-      buttonGroup((name, value, checked, label) => bootstrap3.checkBoxOrRadioButton("checkbox", name, value, checked, label, stackedNotInline))
+    def checkBoxGroup(stackedNotInline: Boolean = true, valueStyler: ValueStyler = defaultValueStyler)(implicit ev: CS <:< CState { type EN = IsSet; type OC = ZeroOrMore } ): Html = {
+      buttonGroup((name, value, checked, label) => {
+        val s: Style = valueStyler(value)(style)
+        bootstrap3.checkBoxOrRadioButton("checkbox", name, format(value), checked, label, stackedNotInline)(s)
+      })
     }
 
-    def radioButtonGroup(stackedNotInline: Boolean)(implicit ev: CS <:< CState { type EN = IsSet; type OC <: AtMostOne } ): Html = {
-      buttonGroup((name, value, checked, label) => bootstrap3.checkBoxOrRadioButton("radio", name, value, checked, label, stackedNotInline))
+    def radioButtonGroup(stackedNotInline: Boolean = true, valueStyler: ValueStyler = defaultValueStyler)(implicit ev: CS <:< CState { type EN = IsSet; type OC <: AtMostOne } ): Html = {
+      buttonGroup((name, value, checked, label) => {
+        val s: Style = valueStyler(value)(style)
+        bootstrap3.checkBoxOrRadioButton("radio", name, format(value), checked, label, stackedNotInline)(s)
+      })
     }
 
-    def submitButtonGroup(stackedNotInline: Boolean = true)(implicit ev: CS <:< CState { type EN = IsSet } ): Html = {
-      buttonGroup((name, value, checked, label) => bootstrap3.buttonCtrl("submit", label)((Bss.button += ("value", value) += ("name", name)).transform(style)))
+    def submitButtonGroup(stackedNotInline: Boolean = true, valueStyler: ValueStyler = defaultValueStyler)(implicit ev: CS <:< CState { type EN = IsSet } ): Html = {
+      buttonGroup((name, value, checked, label) => {
+        val s: Style = ((Bss.button ~= ("value", format(value)) ~= ("name", name) += ("class", "btn")) andThen valueStyler(value))(style)
+        bootstrap3.buttonCtrl("submit", label, stackedNotInline)(s)
+      })
     }
 
-    type ButtonCreator = (String, String, Boolean, String) => Html
+    type ButtonCreator = (String, V, Boolean, String) => Html
 
     def buttonGroup(creator: ButtonCreator): Html = {
       val checkBoxOrRadioButtons = for {
@@ -53,14 +64,16 @@ package object play {
       } yield {
         val strValue = fieldState.field.handler.simpleConverter.format(v)
         val checked = fieldState.view.contains(strValue)
-        creator(fieldState._name.toString, strValue, checked, strValue)
+        creator(fieldState._name.toString, v, checked, strValue)
       }
       bootstrap3.checkBoxOrRadioButtonGroup(fieldState, checkBoxOrRadioButtons)
     }
 
-    def inputRange(implicit ev1: CS <:< CState { type LB = IsSetIncl; type UB = IsSetIncl }, inputRangeStyle: InputRangeStyler[V]): Html = {
+    private def format(v: V): String = fieldState.field.handler.simpleConverter.format(v)
+
+    def inputRange(implicit ev1: CS <:< CState { type LB = IsSetIncl; type UB = IsSetIncl }, inputRangeStyler: InputRangeStyler[V]): Html = {
       val f = fieldState.field
-      bootstrap3.input(fieldState, "range")(Bss.input.modify(inputRangeStyle(f.lb.get.value, f.ub.get.value, f.handler.simpleConverter)).transform(style), lang)
+      bootstrap3.input(fieldState, "range")(Bss.input(inputRangeStyler(f.lb.get.value, f.ub.get.value, f.handler.simpleConverter)).apply(style), lang)
     }
 
   }
@@ -104,11 +117,11 @@ package object play {
     /**
      * Transforms a given style and returns a renderer that uses the transformed style.
      *
-     * @param styledItems
+     * @param styleT A sequence of style transformations
      * @return
      */
-    def withStyle(styledItems: StyledItem*): R = {
-      val transformedStyle = styledItems.foldLeft(style)((b, h) => h.transform(b))
+    def withStyle(styleT: (Style => Style)*): R = {
+      val transformedStyle = styleT.foldLeft(style)((b, h) => h.apply(b))
       renderer(transformedStyle)
     }
     protected[this] def style: Style
@@ -155,8 +168,8 @@ package object play {
 
   implicit class FieldAttrs[V, M, CS <: CState](val fieldState: FieldState[V, M, CS]) extends AnyVal {
     def placeholder(implicit lang: Lang): Option[Attr] = formUtil.findMessage(fieldState._name, "form.placeholder").map(Attr("placeholder", _))
-    def labelFor(implicit style: Style): String = Bss.input.attrs(style).map.getOrElse("id", Set()).headOption.getOrElse(fieldState._name.toString)
-    def nameForDefault(implicit style: Style): String = Bss.input.attrs(style).map.getOrElse("name", Set()).headOption.getOrElse(fieldState._name.toString) + ".default"
+    def labelFor(implicit style: Style): String = Bss.input.attrs(style).getOrElse("id", Set()).headOption.getOrElse(fieldState._name.toString)
+    def nameForDefault(implicit style: Style): String = Bss.input.attrs(style).getOrElse("name", Set()).headOption.getOrElse(fieldState._name.toString) + ".default"
     def name: String = fieldState._name.toString
   }
 
