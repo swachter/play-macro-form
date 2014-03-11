@@ -14,11 +14,11 @@ package object play {
   /**
    * Provides various methods for rendering fields.
    */
-  trait FieldRenderer[V, M, CS <: CState] {
+  trait FieldRenderer[V, M, F <: FieldFeatures] {
 
     implicit def style: Style
     implicit def lang: Lang
-    def fieldState: FieldState[V, M, CS]
+    def fieldState: FieldState[V, M, F]
 
     type ValueStyler = V => Style => Style
     val defaultValueStyler: ValueStyler = _ => x => x
@@ -31,50 +31,73 @@ package object play {
       bootstrap3.input(fieldState, "password")
     }
 
+    def inputRange(implicit ev1: F <:< FieldFeatures { type LB = IsSetIncl; type UB = IsSetIncl }, inputRangeStyler: InputRangeStyler[V]): Html = {
+      val f = fieldState.field
+      bootstrap3.input(fieldState, "range")(Bss.input(inputRangeStyler(f.lb.get.value, f.ub.get.value, f.handler.simpleConverter))(style), lang)
+    }
+
     def checkBox(implicit checkBoxValueInfo: CheckBoxValueInfo[V]): Html = {
       bootstrap3.checkBoxField(fieldState, checkBoxValueInfo)
     }
 
-    def checkBoxGroup(stackedNotInline: Boolean = true, valueStyler: ValueStyler = defaultValueStyler)(implicit ev: CS <:< CState { type EN = IsSet; type OC = ZeroOrMore } ): Html = {
-      buttonGroup((name, value, checked, label) => {
+    /**
+     * Renders a group of check boxes or radio buttons.
+     *
+     * The decision which kind of input mechanism is used is determined by the occurrence constraint of the field. If
+     * multiple values can be input then check boxes are used and radio buttons otherwise.
+     *
+     * @param stackedNotInline
+     * @param valueStyler
+     * @param ev
+     * @param oc
+     * @return
+     */
+    def selectionGroup(stackedNotInline: Boolean = true, valueStyler: ValueStyler = defaultValueStyler)(implicit ev: F <:< FieldFeatures { type EN = IsSet }, oc: OccurrenceEvidence[F#OC]): Html = {
+      val inputType = if (oc.isMultiple) "checkbox" else "radio"
+      bootstrap3.selectionGroup(fieldState, enumValues((name, value, checked, label) => {
         val s: Style = valueStyler(value)(style)
-        bootstrap3.checkBoxOrRadioButton("checkbox", name, format(value), checked, label, stackedNotInline)(s)
-      })
+        bootstrap3.checkBoxOrRadioButton(inputType, name, format(value), checked, label, stackedNotInline)(s)
+      }))
     }
 
-    def radioButtonGroup(stackedNotInline: Boolean = true, valueStyler: ValueStyler = defaultValueStyler)(implicit ev: CS <:< CState { type EN = IsSet; type OC <: AtMostOne } ): Html = {
-      buttonGroup((name, value, checked, label) => {
+    /**
+     * Renders a drop down box or a multi-selection list.
+     *
+     * The decision which kind of input mechanism is used is determined by the occurrence constraint of the field. If
+     * multiple values can be input then a multi-selection list is used and a drop down list otherwise.
+     *
+     * @param valueStyler
+     * @param ev
+     * @param oc
+     * @return
+     */
+    def selectionList(valueStyler: ValueStyler = defaultValueStyler)(implicit ev: F <:< FieldFeatures { type EN = IsSet }, oc: OccurrenceEvidence[F#OC]): Html = {
+      bootstrap3.select(fieldState, enumValues((name, value, checked, label) => {
         val s: Style = valueStyler(value)(style)
-        bootstrap3.checkBoxOrRadioButton("radio", name, format(value), checked, label, stackedNotInline)(s)
-      })
+        bootstrap3.option(format(value), checked, label)(s)
+      }), oc.isMultiple)
     }
 
-    def submitButtonGroup(stackedNotInline: Boolean = true, valueStyler: ValueStyler = defaultValueStyler)(implicit ev: CS <:< CState { type EN = IsSet } ): Html = {
-      buttonGroup((name, value, checked, label) => {
+    def submitButtonGroup(stackedNotInline: Boolean = true, valueStyler: ValueStyler = defaultValueStyler)(implicit ev: F <:< FieldFeatures { type EN = IsSet } ): Html = {
+      bootstrap3.selectionGroup(fieldState, enumValues((name, value, checked, label) => {
         val s: Style = ((Bss.button ~= ("value", format(value)) ~= ("name", name) += ("class", "btn")) andThen valueStyler(value))(style)
         bootstrap3.buttonCtrl("submit", label, stackedNotInline)(s)
-      })
+      }))
     }
 
-    type ButtonCreator = (String, V, Boolean, String) => Html
+    type EnumValueRenderer = (String, V, Boolean, String) => Html
 
-    def buttonGroup(creator: ButtonCreator): Html = {
-      val checkBoxOrRadioButtons = for {
+    private def enumValues(renderer: EnumValueRenderer): Seq[Html] = {
+      for {
         v <- fieldState.field.en.get.seq
       } yield {
         val strValue = fieldState.field.handler.simpleConverter.format(v)
         val checked = fieldState.view.contains(strValue)
-        creator(fieldState._name.toString, v, checked, strValue)
+        renderer(fieldState._name.toString, v, checked, strValue)
       }
-      bootstrap3.checkBoxOrRadioButtonGroup(fieldState, checkBoxOrRadioButtons)
     }
 
     private def format(v: V): String = fieldState.field.handler.simpleConverter.format(v)
-
-    def inputRange(implicit ev1: CS <:< CState { type LB = IsSetIncl; type UB = IsSetIncl }, inputRangeStyler: InputRangeStyler[V]): Html = {
-      val f = fieldState.field
-      bootstrap3.input(fieldState, "range")(Bss.input(inputRangeStyler(f.lb.get.value, f.ub.get.value, f.handler.simpleConverter)).apply(style), lang)
-    }
 
   }
 
@@ -100,7 +123,7 @@ package object play {
 
   }
 
-  implicit class FieldRendererImpl[V, M, CS <: CState](val fieldState: FieldState[V, M, CS])(implicit val style: Style, val lang: Lang) extends FieldRenderer[V, M, CS]
+  implicit class FieldRendererImpl[V, M, CS <: FieldFeatures](val fieldState: FieldState[V, M, CS])(implicit val style: Style, val lang: Lang) extends FieldRenderer[V, M, CS]
 
   implicit class FormRendererImpl[M](val formState: FormState[M])(implicit val style: Style, val lang: Lang) extends FormRenderer[M]
 
@@ -138,7 +161,7 @@ package object play {
    * @tparam M
    * @tparam CS
    */
-  implicit class FieldWithStyle[V, M, CS <: CState](val fieldStateArg: FieldState[V, M, CS])(implicit val style: Style, val langArg: Lang) extends WithStyle[FieldRenderer[V, M, CS]] {
+  implicit class FieldWithStyle[V, M, CS <: FieldFeatures](val fieldStateArg: FieldState[V, M, CS])(implicit val style: Style, val langArg: Lang) extends WithStyle[FieldRenderer[V, M, CS]] {
     def renderer(st: Style)= new FieldRenderer[V, M, CS] {
       override def fieldState = fieldStateArg
       override implicit def lang: Lang = langArg
@@ -166,7 +189,7 @@ package object play {
   //
   //
 
-  implicit class FieldAttrs[V, M, CS <: CState](val fieldState: FieldState[V, M, CS]) extends AnyVal {
+  implicit class FieldAttrs[V, M, CS <: FieldFeatures](val fieldState: FieldState[V, M, CS]) extends AnyVal {
     def placeholder(implicit lang: Lang): Option[Attr] = formUtil.findMessage(fieldState._name, "form.placeholder").map(Attr("placeholder", _))
     def labelFor(implicit style: Style): String = Bss.input.attrs(style).getOrElse("id", Set()).headOption.getOrElse(fieldState._name.toString)
     def nameForDefault(implicit style: Style): String = Bss.input.attrs(style).getOrElse("name", Set()).headOption.getOrElse(fieldState._name.toString) + ".default"
@@ -202,6 +225,14 @@ package object play {
       doFind(name)
     }
 
+  }
+
+  implicit def zeroOrMoreOccurrenceEvidence[O <: Occurrence](implicit ev: O <:< ZeroOrMore): OccurrenceEvidence[O] = new OccurrenceEvidence[O] {
+    override def isMultiple: Boolean = true
+  }
+
+  implicit def atMostOneOccurrenceEvidence[O <: Occurrence](implicit ev: O <:< AtMostOne): OccurrenceEvidence[O] = new OccurrenceEvidence[O] {
+    override def isMultiple: Boolean = false
   }
 
 }

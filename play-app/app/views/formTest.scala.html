@@ -4,12 +4,14 @@
   @formState.withStyle(Bss.form += ("action", routes.Application.processForm.toString)).form {
     @formState.f1.inputRange
     @formState.f2.checkBox
-    @formState.f3.checkBoxGroup(false)
-    @formState.f4.radioButtonGroup(true)
-    @formState.f5.radioButtonGroup(false)
+    @formState.f3.selectionGroup(false)
+    @formState.f4.selectionGroup(true)
+    @formState.f5.selectionGroup(false)
     @formState.f6.inputPassword
     @formState.f7.submitButtonGroup(false, valueStyler = v => Bss.button += ("class", "btn-" + v))
     @formState.f8.inputRange
+    @formState.f9.selectionList()
+    @formState.f10.selectionList()
     @formState.withStyle(Bss.button += ("class", "btn-primary")).submit
   }
 }

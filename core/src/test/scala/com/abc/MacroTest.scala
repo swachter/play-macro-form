@@ -1,6 +1,6 @@
 package com.abc
 
-import eu.swdev.web.form.{FieldState, CState, IsSet, IsSetIncl, Name, Error, Form}
+import eu.swdev.web.form.{FieldState, FieldFeatures, IsSet, IsSetIncl, Name, Error, Form}
 import org.scalatest.FunSuite
 
 /** Tests the Form macro annotation
@@ -85,9 +85,9 @@ class MacroTest extends FunSuite {
   test("constraint type tracking") {
     val fs = F.fill(F.FV(4, None, Seq(2)))
 
-    case class FieldTest[V, M, CS <: CState](val fs: FieldState[V, M, CS]) {
-      def mustHaveEnum(implicit ev: CS <:< CState { type EN = IsSet }): Unit = {}
-      def mustHaveLeGe(implicit ev: CS <:< CState { type LB = IsSetIncl; type UB = IsSetIncl }): Unit = {}
+    case class FieldTest[V, M, CS <: FieldFeatures](val fs: FieldState[V, M, CS]) {
+      def mustHaveEnum(implicit ev: CS <:< FieldFeatures { type EN = IsSet }): Unit = {}
+      def mustHaveLeGe(implicit ev: CS <:< FieldFeatures { type LB = IsSetIncl; type UB = IsSetIncl }): Unit = {}
     }
 
     FieldTest(fs.f1).mustHaveEnum

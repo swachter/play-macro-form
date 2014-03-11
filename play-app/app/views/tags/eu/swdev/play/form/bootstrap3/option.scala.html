@@ -1,0 +1,2 @@
+@(value: String, selected: Boolean, label: String)(implicit style: Style)
+<option @if(selected) {selected="selected"} value="@value">@label</option>

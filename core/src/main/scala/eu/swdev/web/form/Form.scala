@@ -56,7 +56,7 @@ object FormMacro {
     }
 
     abstract class FieldInfo(index: Int, memberName: TermName, objectName: TermName) extends SpliceInfo(index, memberName) {
-      val fsParam = q"val $memberName: FieldState[$objectName.$memberName.V, $objectName.$memberName.M, $objectName.$memberName.CS]"
+      val fsParam = q"val $memberName: FieldState[$objectName.$memberName.V, $objectName.$memberName.M, $objectName.$memberName.F]"
     }
 
     class SimpleFieldInfo(index: Int, memberName: TermName, valueType: Tree, objectName: TermName) extends FieldInfo(index, memberName, objectName) {

@@ -28,7 +28,7 @@ class StyledItem(val key: String) extends AnyVal {
 
   def attrs(style: Style): Attrs = style.attrs(this)
 
-  def apply(attrsT: AttrsT): StyledItemT = StyledItemT(this, attrsT :: Nil)
+  def apply(attrsT: AttrsT): StyledItemT = StyledItemT(this, attrsT)
 
 }
 
@@ -49,8 +49,8 @@ object StyledItem {
   implicit def toString(styledItem: StyledItem)(implicit style: Style): String = styledItem.attrs(style)
 
   implicit class StyledItemStyleDefs(val styledItem: StyledItem) extends StyleDefs[StyledItemT] {
-    override def noop: StyledItemT = StyledItemT(styledItem, Nil)
-    override def result(f: Attrs => Attrs): StyledItemT = StyledItemT(styledItem, f :: Nil)
+    override def noop: StyledItemT = StyledItemT(styledItem, identity)
+    override def result(f: AttrsT): StyledItemT = StyledItemT(styledItem, f)
   }
 }
 
@@ -58,17 +58,17 @@ object StyledItem {
  * A style transformer that transforms the attributes of a specific StyledItem.
  *
  * @param styledItem
- * @param transformations
+ * @param attrsT
  */
-class StyledItemT(val styledItem: StyledItem, val transformations: List[Attrs => Attrs]) extends StyleT {
-  override def apply(v1: Style): Style = v1 + (styledItem.key -> attrs(v1)) // new Style(v1.map + (styledItem.key -> attrs(v1)))
-  def attrs(v1: Style): Attrs =  transformations.foldRight(styledItem.attrs(v1))((t, attrs) => t(attrs))
-  def transform(f: Attrs => Attrs) = StyledItemT(styledItem, f :: transformations)
+class StyledItemT(val styledItem: StyledItem, val attrsT: AttrsT) extends StyleT {
+  override def apply(v1: Style): Style = v1 + (styledItem.key -> attrs(v1))
+  def attrs(v1: Style): Attrs =  attrsT(v1.attrs(styledItem))
+  def transform(f: AttrsT) = StyledItemT(styledItem, attrsT andThen f)
 }
 
 object StyledItemT {
 
-  def apply(styledItem: StyledItem, transformations: List[Attrs => Attrs]): StyledItemT = new StyledItemT(styledItem, transformations)
+  def apply(styledItem: StyledItem, attrsT: AttrsT): StyledItemT = new StyledItemT(styledItem, attrsT)
 
   implicit class StyledItemTStyleDefs(val styledItemT: StyledItemT) extends StyleDefs[StyledItemT] {
     override def noop: StyledItemT = styledItemT

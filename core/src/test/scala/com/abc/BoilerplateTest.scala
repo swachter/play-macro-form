@@ -70,10 +70,10 @@ class BoilerplateTest extends FunSuite {
     // that a form state is always validated.
     case class FS(
                   _name: Name,
-                  f1: FieldState[F.f1.V, F.f1.M, F.f1.CS],
-                  f2: FieldState[F.f2.V, F.f2.M, F.f2.CS],
-                  f3: FieldState[F.f3.V, F.f3.M, F.f3.CS],
-                  f4: FieldState[F.f4.V, F.f4.M, F.f4.CS]
+                  f1: FieldState[F.f1.V, F.f1.M, F.f1.F],
+                  f2: FieldState[F.f2.V, F.f2.M, F.f2.F],
+                  f3: FieldState[F.f3.V, F.f3.M, F.f3.F],
+                  f4: FieldState[F.f4.V, F.f4.M, F.f4.F]
                   ) extends FormState[FV] {
       def hasFormErrors: Boolean = !_errors.isEmpty || Seq[State[_]](f1, f2, f3).exists(_.hasFormErrors)
       def hasFieldErrors: Boolean = Seq[State[_]](f1, f2, f3).exists(_.hasFieldErrors)
@@ -131,7 +131,7 @@ class BoilerplateTest extends FunSuite {
             _name: Name,
             g1: State[F.FV],
             g2: State[F.FV],
-            g3: FieldState[G.g3.V, G.g3.M, G.g3.CS]
+            g3: FieldState[G.g3.V, G.g3.M, G.g3.F]
             ) extends FormState[FV] {
       def hasFormErrors: Boolean = !_errors.isEmpty || Seq(g1, g2, g3).exists(_.hasFormErrors)
       def hasFieldErrors: Boolean = Seq(g1, g2, g3).exists(_.hasFieldErrors)
@@ -153,12 +153,12 @@ class BoilerplateTest extends FunSuite {
 
     val fs = F.fill(F.FV(1, Some(2), 3, Seq(4, 5)))
 
-    import eu.swdev.web.form.{FieldState, CState, IsSet}
+    import eu.swdev.web.form.{FieldState, FieldFeatures, IsSet}
 
     val simpleRenderer: FieldState[_, _, _] => String =
         state => s"simple renderer - state: $state"
 
-    val enumRenderer: FieldState[_, _, CState { type EN = IsSet }] => String =
+    val enumRenderer: FieldState[_, _, FieldFeatures { type EN = IsSet }] => String =
         state => s"enum renderer - state: $state; enum: ${state.field.en.get}"
 
     val gs = G.fill(G.FV(fs._model, fs._model, 9))

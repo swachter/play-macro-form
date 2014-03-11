@@ -1,0 +1,4 @@
+@(fs: eu.swdev.web.form.FieldState[_, _, FieldFeatures], checkBoxesOrRadioButtons: Seq[Html])(implicit lang: Lang, style: Style)
+@formGroup(fs) {
+  @for(b <- checkBoxesOrRadioButtons) { @b }
+}

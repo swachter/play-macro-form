@@ -12,4 +12,6 @@ object F {
   val f6 = field[String]
   val f7 = field[String].enum(Seq("default", "primary", "success", "info", "warning", "danger", "link"))
   val f8 = field[Double].ge(0).le(1)
+  val f9 = field[String].enum(Seq("a", "b", "c"))
+  val f10 = field[Seq[String]].enum(Seq("a", "b", "c"))
 }

@@ -1,33 +1,49 @@
 package eu.swdev.web.form
 
-case class Field[VP, MP, +CSP <: CState](handler: FieldHandler[VP, MP], required: Option[Error], lb: Option[Bound[VP]], ub: Option[Bound[VP]], en: Option[Enum[VP]], sChecks: Seq[Check[String]], vChecks: Seq[Check[VP]], mChecks: Seq[Check[MP]]) {
+/**
+ * Describes an input field.
+ *
+ * @param handler
+ * @param required
+ * @param lb
+ * @param ub
+ * @param en
+ * @param sChecks
+ * @param vChecks
+ * @param mChecks
+ *
+ * @tparam VP
+ * @tparam MP
+ * @tparam FP Tracks field features by a type.
+ */
+case class Field[VP, MP, +FP <: FieldFeatures](handler: FieldHandler[VP, MP], required: Option[Error], lb: Option[Bound[VP]], ub: Option[Bound[VP]], en: Option[Enum[VP]], sChecks: Seq[Check[String]], vChecks: Seq[Check[VP]], mChecks: Seq[Check[MP]]) {
 
   type V = VP
   type M = MP
-  type CS = CSP
+  type F = FP
 
-  def req(error: Error = null) = copy[V, M, CS](required = Some(err(error, Error("required"))))
-  def le(v: VP, error: Error = null)(implicit ev: Ordering[VP]) = copy[V, M, CS { type UB = IsSetIncl }](ub = Some(Bound(v, err(error, Error("comp.le", v)), _ > 0)))
-  def lt(v: VP, error: Error = null)(implicit ev: Ordering[VP]) = copy[V, M, CS { type UB = IsSetExcl }](ub = Some(Bound(v, err(error, Error("comp.lt", v)), _ >= 0)))
-  def ge(v: VP, error: Error = null)(implicit ev: Ordering[VP]) = copy[V, M, CS { type LB = IsSetIncl }](lb = Some(Bound(v, err(error, Error("comp.ge", v)), _ < 0)))
-  def gt(v: VP, error: Error = null)(implicit ev: Ordering[VP]) = copy[V, M, CS { type LB = IsSetExcl }](lb = Some(Bound(v, err(error, Error("comp.gt", v)), _ <= 0)))
-  def enum(v: Seq[VP], error: Error = null) = copy[V, M, CS { type EN = IsSet }](en = Some(Enum(v, err(error, Error("enum", v)))))
+  def req(error: Error = null) = copy[V, M, F](required = Some(err(error, Error("required"))))
+  def le(v: VP, error: Error = null)(implicit ev: Ordering[VP]) = copy[V, M, F { type UB = IsSetIncl }](ub = Some(Bound(v, err(error, Error("comp.le", v)), _ > 0)))
+  def lt(v: VP, error: Error = null)(implicit ev: Ordering[VP]) = copy[V, M, F { type UB = IsSetExcl }](ub = Some(Bound(v, err(error, Error("comp.lt", v)), _ >= 0)))
+  def ge(v: VP, error: Error = null)(implicit ev: Ordering[VP]) = copy[V, M, F { type LB = IsSetIncl }](lb = Some(Bound(v, err(error, Error("comp.ge", v)), _ < 0)))
+  def gt(v: VP, error: Error = null)(implicit ev: Ordering[VP]) = copy[V, M, F { type LB = IsSetExcl }](lb = Some(Bound(v, err(error, Error("comp.gt", v)), _ <= 0)))
+  def enum(v: Seq[VP], error: Error = null) = copy[V, M, F { type EN = IsSet }](en = Some(Enum(v, err(error, Error("enum", v)))))
 
-  def addSCheck(check: Check[String]) = copy[V, M, CS](sChecks = check +: sChecks)
-  def addVCheck(check: Check[V]) = copy[V, M, CS](vChecks = check +: vChecks)
-  def addMCheck(check: Check[M]) = copy[V, M, CS](mChecks = check +: mChecks)
+  def addSCheck(check: Check[String]) = copy[V, M, F](sChecks = check +: sChecks)
+  def addVCheck(check: Check[V]) = copy[V, M, F](vChecks = check +: vChecks)
+  def addMCheck(check: Check[M]) = copy[V, M, F](mChecks = check +: mChecks)
 
-  def parse(map: Map[String, Seq[String]], validate: Boolean, name: Name): FieldState[VP, MP, CSP] = {
+  def parse(map: Map[String, Seq[String]], validate: Boolean, name: Name): FieldState[VP, MP, FP] = {
     val view = map.getOrElse(name.toString, map.getOrElse(name.toString + ".default", Seq()))
     handler.parse(view) match {
-      case Left(e) => FieldStateWithoutModel[VP, MP, CSP](name, view, this)(validate).addErrors(e)
-      case Right(m) => FieldStateWithModel[VP, MP, CSP](name, view, this, m)(validate)
+      case Left(e) => FieldStateWithoutModel[VP, MP, FP](name, view, this)(validate).addErrors(e)
+      case Right(m) => FieldStateWithModel[VP, MP, FP](name, view, this, m)(validate)
     }
   }
 
-  def fill(model: MP, validate: Boolean, name: Name): FieldState[VP, MP, CSP] = {
+  def fill(model: MP, validate: Boolean, name: Name): FieldState[VP, MP, FP] = {
     val view = handler.format(model)
-    FieldStateWithModel[VP, MP, CSP](name, view, this, model)(validate)
+    FieldStateWithModel[VP, MP, FP](name, view, this, model)(validate)
   }
 
   def check(model: M): Seq[Error] = {
@@ -47,7 +63,7 @@ case class Field[VP, MP, +CSP <: CState](handler: FieldHandler[VP, MP], required
 }
 
 object Field {
-  def apply[V, M, CS <: CState](handler: FieldHandler[V, M]): Field[V, M, CS] = Field[V, M, CS](handler, None, None, None, None, Nil, Nil, Nil)
+  def apply[V, M, CS <: FieldFeatures](handler: FieldHandler[V, M]): Field[V, M, CS] = Field[V, M, CS](handler, None, None, None, None, Nil, Nil, Nil)
 }
 
 case class Bound[V: Ordering](value: V, error: Error, chk: Int => Boolean) extends ((Seq[Error], V) => Seq[Error]) {

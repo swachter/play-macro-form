@@ -1,4 +1,4 @@
-@(fs: eu.swdev.web.form.FieldState[_, _, CState])(inner: Html)(implicit lang: Lang, style: Style)
+@(fs: eu.swdev.web.form.FieldState[_, _, FieldFeatures])(inner: Html)(implicit lang: Lang, style: Style)
 <div @Html(Bss.formGroup += (fs.hasFieldErrors, "class", "has-error"))>
   @label(fs)
   <div @Html(Bss.inputDiv)>

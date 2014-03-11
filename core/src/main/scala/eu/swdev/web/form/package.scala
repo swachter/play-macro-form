@@ -54,7 +54,7 @@ package object form {
 
   trait FieldCreator[M] {
     type V
-    type CS <: CState
+    type CS <: FieldFeatures
     def createField: Field[V, M, CS]
   }
 
@@ -64,7 +64,7 @@ package object form {
 
   implicit def simpleFieldCreator[VP](implicit simpleConverter: SimpleConverter[VP]) = new FieldCreator[VP] {
     type V = VP
-    type CS = CState {
+    type CS = FieldFeatures {
       type OC = ExactlyOne
     }
     def createField: Field[V, V, CS] = {
@@ -75,7 +75,7 @@ package object form {
 
   implicit def optionFieldCreator[VP](implicit simpleConverter: SimpleConverter[VP]) = new FieldCreator[Option[VP]] {
     type V = VP
-    type CS = CState {
+    type CS = FieldFeatures {
       type OC = ZeroOrOne
     }
     def createField: Field[V, Option[VP], CS] = {
@@ -86,7 +86,7 @@ package object form {
 
   implicit def seqFieldCreator[VP](implicit simpleConverter: SimpleConverter[VP]) = new FieldCreator[Seq[VP]] {
     type V = VP
-    type CS = CState {
+    type CS = FieldFeatures {
       type OC = ZeroOrMore
     }
     def createField: Field[V, Seq[VP], CS] = {

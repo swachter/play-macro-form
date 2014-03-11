@@ -1,2 +1,2 @@
-@(fs: FieldState[_, _, CState])(implicit lang: Lang, style: Style)
+@(fs: FieldState[_, _, FieldFeatures])(implicit lang: Lang, style: Style)
 <label @Html(Bss.label ~= ("for", fs.labelFor))>@formUtil.label(fs)</label>
