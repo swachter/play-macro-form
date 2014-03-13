@@ -1,17 +1,17 @@
 @* formTest Template File *@
 @(formState: com.abc.F.FS)(implicit lang: Lang, style: Style)
 @main("Form-Test") {
-  @formState.withStyle(Bss.form += ("action", routes.Application.processForm)).form {
-    @formState.f1.inputRange
+  @formState.withStyle(Bss.form ~= (action_@, routes.Application.processForm)).form {
+    @formState.f1.inputText
     @formState.f2.checkBox
     @formState.f3.selectionGroup(false)
     @formState.f4.selectionGroup(true)
     @formState.f5.selectionGroup(false)
-    @formState.f6.inputPassword
-    @formState.f7.submitButtonGroup(false, valueStyler = v => Bss.button += ("class", "btn-" + v))
+    @formState.f6.withStyle(Bss.input ~= (placeholder_@, "please enter your password")).inputPassword
+    @formState.f7.submitButtonGroup(false, valueStyler = v => Bss.button += (class_@, "btn-" + v))
     @formState.f8.inputRange
-    @formState.f9.selectionList()
+    @formState.f9.withStyle(Bss.input ~= (placeholder_@, "please select")).selectionList()
     @formState.f10.selectionList()
-    @formState.withStyle(Bss.button += ("class", "btn-primary")).submit
+    @formState.withStyle(Bss.button += (class_@, "btn-primary")).submit
   }
 }

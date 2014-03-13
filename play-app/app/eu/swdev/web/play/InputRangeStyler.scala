@@ -9,7 +9,7 @@ import eu.swdev.web.form.SimpleConverter
  * @tparam V
  */
 trait InputRangeStyler[V] {
-  def apply(lb: V, ub: V, sc: SimpleConverter[V]): AttrsT = Attrs ~= ("type", "range") ~= ("min", sc.format(lb)) ~= ("max", sc.format(ub)) ~= step(lb, ub, sc)
+  def apply(lb: V, ub: V, sc: SimpleConverter[V]): AttrsT = Attrs ~= (type_@, "range") ~= (min_@, sc.format(lb)) ~= (max_@, sc.format(ub)) ~= step(lb, ub, sc)
   protected def step(lb: V, ub: V, sc: SimpleConverter[V]): Option[Attr]
 }
 
@@ -20,6 +20,6 @@ object InputRangeStyler {
     override def step(lb: Int, ub: Int, sc: SimpleConverter[Int]): Option[Attr] = None
   }
   implicit val DoubleInputRangeStyler = new InputRangeStyler[Double] {
-    override def step(lb: Double, ub: Double, sc: SimpleConverter[Double]): Option[Attr] = Some(Attr("step", sc.format(((ub - lb) / 1000))))
+    override def step(lb: Double, ub: Double, sc: SimpleConverter[Double]): Option[Attr] = Some(Attr(step_@, sc.format(((ub - lb) / 1000))))
   }
 }

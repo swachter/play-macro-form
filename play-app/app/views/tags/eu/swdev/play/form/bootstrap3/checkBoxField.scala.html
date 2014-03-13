@@ -2,7 +2,7 @@
 @formGroup(fs) {
   <div class="checkbox">
     <label>
-      <input @Html(Bss.input ~= ("name", fs.name) ~= ("type", "checkbox") ~= ("id", fs.name) ~= ("value", checkBoxValueInfo.checkedValue) := (checkBoxValueInfo.isChecked(fs.view), "checked", "checked") += ("class", "form-control"))/>
+      <input @Html(Bss.input ~= (name_@, fs.name) ~= (type_@, "checkbox") ~= (id_@, fs.name) ~= (value_@, checkBoxValueInfo.checkedValue) := (checkBoxValueInfo.isChecked(fs.view), checked_@, "checked") += (class_@, "form-control"))/>
       <input name="@fs.nameForDefault" type="hidden" value="@checkBoxValueInfo.uncheckedValue" />
       @fs.name
     </label>

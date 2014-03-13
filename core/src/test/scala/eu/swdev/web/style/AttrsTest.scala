@@ -6,8 +6,11 @@ import org.scalatest.{Inside, FunSuite}
   */
 class AttrsTest extends FunSuite with Inside {
 
+  val name_@ = AttrDescMv("name")
+  val class_@ = AttrDescMv("class")
+
   test("attrs") {
-    val a1 = Attrs.empty += ("name", "value") += ("class", "c1", "c2")
+    val a1 = Attrs.empty += (name_@, "value") += (class_@, "c1", "c2")
     assert(a1("name") === Set("value"))
     assert(a1("class") === Set("c1", "c2"))
   }

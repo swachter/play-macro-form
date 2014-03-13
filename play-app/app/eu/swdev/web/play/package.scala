@@ -81,7 +81,7 @@ package object play {
 
     def submitButtonGroup(stackedNotInline: Boolean = true, valueStyler: ValueStyler = defaultValueStyler)(implicit ev: F <:< FieldFeatures { type EN = IsSet } ): Html = {
       bootstrap3.selectionGroup(fieldState, enumValues((name, value, checked, label) => {
-        val s: Style = ((Bss.button ~= ("value", format(value)) ~= ("name", name) += ("class", "btn")) andThen valueStyler(value))(style)
+        val s: Style = ((Bss.button ~= (value_@, format(value)) ~= (name_@, name) += (class_@, "btn")) andThen valueStyler(value))(style)
         bootstrap3.buttonCtrl("submit", label, stackedNotInline)(s)
       }))
     }
@@ -191,7 +191,7 @@ package object play {
   //
 
   implicit class FieldAttrs[V, M, CS <: FieldFeatures](val fieldState: FieldState[V, M, CS]) extends AnyVal {
-    def placeholder(implicit lang: Lang): Option[Attr] = formUtil.findMessage(fieldState._name, "form.placeholder").map(Attr("placeholder", _))
+    def placeholder(implicit lang: Lang): Option[Attr] = formUtil.findMessage(fieldState._name, "form.placeholder").map(Attr(placeholder_@, _))
     def labelFor(implicit style: Style): String = Bss.input.attrs(style).getOrElse("id", Set()).headOption.getOrElse(fieldState._name.toString)
     def nameForDefault(implicit style: Style): String = Bss.input.attrs(style).getOrElse("name", Set()).headOption.getOrElse(fieldState._name.toString) + ".default"
     def name: String = fieldState._name.toString
@@ -237,7 +237,25 @@ package object play {
   }
 
   implicit val callAttributeValue = new AttributeValue[Call] {
-    override def stringSet(value: Call): Set[String] = Set(value.toString())
+    override def asStringSet(value: Call): Set[String] = Set(value.toString())
+    override def asString(value: Call): String = value.toString()
   }
+
+  // attribute descriptions
+
+  val class_@ = AttrDescMv("class")
+  val type_@ = AttrDescSv("type")
+  val min_@ = AttrDescSv("min")
+  val max_@ = AttrDescSv("max")
+  val step_@ = AttrDescSv("step")
+  val name_@ = AttrDescSv("name")
+  val value_@ = AttrDescSv("value")
+  val id_@ = AttrDescSv("id")
+  val action_@ = AttrDescSv("action")
+  val placeholder_@ = AttrDescSv("placeholder")
+  val multiple_@ = AttrDescSv("multiple")
+  val for_@ = AttrDescSv("for")
+  val method_@ = AttrDescSv("method")
+  val checked_@ = AttrDescSv("checked")
 
 }

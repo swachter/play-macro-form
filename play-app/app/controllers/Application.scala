@@ -28,12 +28,12 @@ object Application extends Controller {
    * Create a style by applying style modifications to an empty style.
    */
   implicit val bootstrapStyle = Style(
-    Bss.form += ("class", "form-horizontal"), // form-horizontal
-    Bss.formGroup += ("class", "form-group"),
-    Bss.label += ("class", "control-label col-xs-3"),
-    Bss.inputDiv += ("class", "col-xs-9"),
-    Bss.input += ("class", "form-control"),
-    Bss.button += ("class", "btn") // btn-default
+    Bss.form += (class_@, "form-horizontal"), // form-horizontal
+    Bss.formGroup += (class_@, "form-group"),
+    Bss.label += (class_@, "control-label col-xs-3"),
+    Bss.inputDiv += (class_@, "col-xs-9"),
+    Bss.input += (class_@, "form-control"),
+    Bss.button += (class_@, "btn") // btn-default
   )
 
 }

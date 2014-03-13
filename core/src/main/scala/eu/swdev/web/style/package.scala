@@ -8,7 +8,8 @@ package object style {
 
   /** Represents a set of attributes.
     *
-    * The value of an attribute is a set of strings. The strings must not contain whitespace.
+    * The value of an attribute is a set of strings. The set representation was choosen because some attributes may
+    * have a set of values (e.g. the Html "class" attribute).
     */
   type Attrs = Map[String, Set[String]]
 

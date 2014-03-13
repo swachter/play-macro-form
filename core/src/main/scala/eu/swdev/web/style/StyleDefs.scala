@@ -62,12 +62,14 @@ trait StyleDefs[R] {
  */
 trait StyleDef[R] extends Any {
 
+  type AD <: AttrDesc
+
   // start duplicated block of apply methods
-  def apply[S: AttributeValue](attrName: String, value: Set[S]): R
+  def apply[S: AttributeValue](attrDesc: AD, value: Set[S]): R
 
-  def apply[S: AttributeValue](attrName: String, value: S*): R
+  def apply[S: AttributeValue](attrDesc: AD, value: S*): R
 
-  def apply[S: AttributeValue](check: Boolean, attrName: String, value: S*): R
+  def apply[S: AttributeValue](check: Boolean, attrDesc: AD, value: S*): R
 
   def apply(attr: Option[Attr]): R
   // end duplicated block of apply methods
@@ -75,15 +77,18 @@ trait StyleDef[R] extends Any {
 }
 
 class AssignDef[R](val styleOps: StyleDefs[R]) extends AnyVal with StyleDef[R] {
+
+  type AD = AttrDesc
+
   // start duplicated block of apply methods
-  def apply[S: AttributeValue](attrName: String, value: Set[S]): R = styleOps.result(mapper(attrName, value.flatMap((x: S) => implicitly[AttributeValue[S]].stringSet(x))))
+  def apply[S: AttributeValue](attrDesc: AD, value: Set[S]): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
 
-  def apply[S: AttributeValue](attrName: String, value: S*): R = styleOps.result(mapper(attrName, value.toSet.flatMap((x: S) => implicitly[AttributeValue[S]].stringSet(x))))
+  def apply[S: AttributeValue](attrDesc: AD, value: S*): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
 
-  def apply[S: AttributeValue](check: Boolean, attrName: String, value: S*): R = if (check) styleOps.result(mapper(attrName, value.toSet.flatMap((x: S) => implicitly[AttributeValue[S]].stringSet(x)))) else styleOps.noop
+  def apply[S: AttributeValue](check: Boolean, attrDesc: AD, value: S*): R = if (check) styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value))) else styleOps.noop
 
   def apply(attr: Option[Attr]): R = attr match {
-    case Some(a) => styleOps.result(mapper(a.attrName, a.attrValue))
+    case Some(a) => styleOps.result(mapper(a.name, a.value))
     case None => styleOps.noop
   }
   // end duplicated block of apply methods
@@ -91,15 +96,18 @@ class AssignDef[R](val styleOps: StyleDefs[R]) extends AnyVal with StyleDef[R] {
 }
 
 class PlusDef[R](val styleOps: StyleDefs[R]) extends AnyVal with StyleDef[R] {
+
+  type AD = AttrDescMv
+
   // start duplicated block of apply methods
-  def apply[S: AttributeValue](attrName: String, value: Set[S]): R = styleOps.result(mapper(attrName, value.flatMap((x: S) => implicitly[AttributeValue[S]].stringSet(x))))
+  def apply[S: AttributeValue](attrDesc: AD, value: Set[S]): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
 
-  def apply[S: AttributeValue](attrName: String, value: S*): R = styleOps.result(mapper(attrName, value.toSet.flatMap((x: S) => implicitly[AttributeValue[S]].stringSet(x))))
+  def apply[S: AttributeValue](attrDesc: AD, value: S*): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
 
-  def apply[S: AttributeValue](check: Boolean, attrName: String, value: S*): R = if (check) styleOps.result(mapper(attrName, value.toSet.flatMap((x: S) => implicitly[AttributeValue[S]].stringSet(x)))) else styleOps.noop
+  def apply[S: AttributeValue](check: Boolean, attrDesc: AD, value: S*): R = if (check) styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value))) else styleOps.noop
 
   def apply(attr: Option[Attr]): R = attr match {
-    case Some(a) => styleOps.result(mapper(a.attrName, a.attrValue))
+    case Some(a) => styleOps.result(mapper(a.name, a.value))
     case None => styleOps.noop
   }
   // end duplicated block of apply methods
@@ -107,15 +115,18 @@ class PlusDef[R](val styleOps: StyleDefs[R]) extends AnyVal with StyleDef[R] {
 }
 
 class MinusDef[R](val styleOps: StyleDefs[R]) extends AnyVal with StyleDef[R] {
+
+  type AD = AttrDescMv
+
   // start duplicated block of apply methods
-  def apply[S: AttributeValue](attrName: String, value: Set[S]): R = styleOps.result(mapper(attrName, value.flatMap((x: S) => implicitly[AttributeValue[S]].stringSet(x))))
+  def apply[S: AttributeValue](attrDesc: AD, value: Set[S]): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
 
-  def apply[S: AttributeValue](attrName: String, value: S*): R = styleOps.result(mapper(attrName, value.toSet.flatMap((x: S) => implicitly[AttributeValue[S]].stringSet(x))))
+  def apply[S: AttributeValue](attrDesc: AD, value: S*): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
 
-  def apply[S: AttributeValue](check: Boolean, attrName: String, value: S*): R = if (check) styleOps.result(mapper(attrName, value.toSet.flatMap((x: S) => implicitly[AttributeValue[S]].stringSet(x)))) else styleOps.noop
+  def apply[S: AttributeValue](check: Boolean, attrDesc: AD, value: S*): R = if (check) styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value))) else styleOps.noop
 
   def apply(attr: Option[Attr]): R = attr match {
-    case Some(a) => styleOps.result(mapper(a.attrName, a.attrValue))
+    case Some(a) => styleOps.result(mapper(a.name, a.value))
     case None => styleOps.noop
   }
   // end duplicated block of apply methods
@@ -123,15 +134,18 @@ class MinusDef[R](val styleOps: StyleDefs[R]) extends AnyVal with StyleDef[R] {
 }
 
 class TildeDef[R](val styleOps: StyleDefs[R]) extends AnyVal with StyleDef[R] {
+
+  type AD = AttrDesc
+
   // start duplicated block of apply methods
-  def apply[S: AttributeValue](attrName: String, value: Set[S]): R = styleOps.result(mapper(attrName, value.flatMap((x: S) => implicitly[AttributeValue[S]].stringSet(x))))
+  def apply[S: AttributeValue](attrDesc: AD, value: Set[S]): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
 
-  def apply[S: AttributeValue](attrName: String, value: S*): R = styleOps.result(mapper(attrName, value.toSet.flatMap((x: S) => implicitly[AttributeValue[S]].stringSet(x))))
+  def apply[S: AttributeValue](attrDesc: AD, value: S*): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
 
-  def apply[S: AttributeValue](check: Boolean, attrName: String, value: S*): R = if (check) styleOps.result(mapper(attrName, value.toSet.flatMap((x: S) => implicitly[AttributeValue[S]].stringSet(x)))) else styleOps.noop
+  def apply[S: AttributeValue](check: Boolean, attrDesc: AD, value: S*): R = if (check) styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value))) else styleOps.noop
 
   def apply(attr: Option[Attr]): R = attr match {
-    case Some(a) => styleOps.result(mapper(a.attrName, a.attrValue))
+    case Some(a) => styleOps.result(mapper(a.name, a.value))
     case None => styleOps.noop
   }
   // end duplicated block of apply methods
