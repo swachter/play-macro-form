@@ -101,6 +101,6 @@ package object form {
 
 
 
-  type Check[X] = (Seq[Error], X) => Seq[Error]
+  type Check[X] = X => Option[Error]
 
 }

@@ -13,17 +13,7 @@ trait State[+M] {
    */
   def _model: M
 
-  var _errors: Seq[Error] = Seq()
-
-  def addError(error: Error): this.type = {
-    _errors = error +: _errors
-    this
-  }
-
-  def addErrors(errs: Seq[Error]): this.type = {
-    _errors = errs ++ _errors
-    this
-  }
+  def _errors: Seq[Error]
 
   def hasErrors = hasFormErrors || hasFieldErrors
 
@@ -49,12 +39,12 @@ trait FieldState[V, M, +CS <: FieldFeatures] extends State[M] {
   override def collectFormErrors(accu: Seq[Error]): Seq[Error] = accu
 }
 
-case class FieldStateWithModel[V, M, CS <: FieldFeatures](_name: Name, view: Seq[String], field: Field[V, M, CS], _model: M)(validate: Boolean) extends FieldState[V, M, CS] {
-  _errors = if (validate) field.check(_model) else Seq()
+case class FieldStateWithModel[V, M, CS <: FieldFeatures](_name: Name, view: Seq[String], field: Field[V, M, CS], _model: M)(validation: Validation) extends FieldState[V, M, CS] {
+  val _errors = validation.validate(Nil, field.check(_model))
 }
 
-case class FieldStateWithoutModel[V, M, CS <: FieldFeatures](_name: Name, view: Seq[String], field: Field[V, M, CS])(validate: Boolean) extends FieldState[V, M, CS] {
-  _errors = if (validate && field.required.isDefined) field.required.get :: Nil else Nil
+case class FieldStateWithoutModel[V, M, CS <: FieldFeatures](_name: Name, view: Seq[String], field: Field[V, M, CS], parseErrors: Seq[Error])(validation: Validation) extends FieldState[V, M, CS] {
+  val _errors = validation.validate(parseErrors, Nil)
   def _model: M = throw new NoSuchElementException(s"field does not have a model value - it contains errors: ${_errors}")
 }
 

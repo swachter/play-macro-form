@@ -16,7 +16,7 @@ class RendererTest extends FunSuite {
 
     implicit val style = Style()
     implicit val lang = Lang
-    val fs = F.parse(Map.empty, false)
+    val fs = F.parse(Map.empty)
     fs.f1.inputRange
     fs.f3.selectionGroup(true)
     fs.f4.selectionList()

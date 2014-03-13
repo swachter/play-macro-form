@@ -49,8 +49,8 @@ object FormMacro {
       val strFieldName = memberName.toString()
       def fvParam: ValDef
       def fsParam: ValDef
-      def fillArg = q"$memberName.fill(model.$memberName, validateArg, name + $strFieldName)"
-      val parseArg = q"$memberName.parse(view, validateArg, name + $strFieldName)"
+      def fillArg = q"$memberName.fill(model.$memberName, validationArg, name + $strFieldName)"
+      val parseArg = q"$memberName.parse(view, validationArg, name + $strFieldName)"
       val modelArg = q"$memberName._model"
       val constraintTypeName: TypeName = newTypeName(s"C$index")
     }
@@ -93,7 +93,7 @@ object FormMacro {
 
             // collect calls to validation methods, i.e. methods with the signature FS[..] => Unit or WFS => Unit
             val validations: List[Tree] = body.collect {
-              case q"def $f(${_}: FS): Unit = ${_}" => q"$f(fs)"
+              case q"def $f(${_}: FS): Option[Error] = ${_}" => q"$f(this)"
             }
 
             val spliceInfos: List[SpliceInfo] = body.zipWithIndex.map(t => (t._1, objectName, t._2)).collect(processField.orElse(processForm)).asInstanceOf[List[SpliceInfo]]
@@ -115,20 +115,17 @@ object FormMacro {
 
                   import eu.swdev.web.form._
 
-                  def fill(model: FV, validateArg: Boolean = true, name: Name = Name($objectStrName)) = {
-                    val fs = FS(name, ..$fillArgs)
-                    if (validateArg && !fs.hasFieldErrors) { ..${validations} }
-                    fs
+                  def fill(model: FV, validationArg: Validation = WithValidation, name: Name = Name($objectStrName)) = {
+                    FS(name, ..$fillArgs)(validationArg)
                   }
-                  def parse(view: Map[String, Seq[String]], validateArg: Boolean = true, name: Name = Name($objectStrName)) = {
-                    val fs = FS(name, ..$parseArgs)
-                    if (validateArg && !fs.hasFieldErrors) { ..${validations} }
-                    fs
+                  def parse(view: Map[String, Seq[String]], validationArg: Validation = WithValidation, name: Name = Name($objectStrName)) = {
+                    FS(name, ..$parseArgs)(validationArg)
                   }
 
                   case class FV(..$fvParams)
 
-                  case class FS(_name: Name, ..$fsParams) extends FormState[FV] {
+                  case class FS(_name: Name, ..$fsParams)(val validationArg: Validation) extends FormState[FV] {
+                    val _errors = if (hasFieldErrors) Nil else validationArg.validate(Nil, Seq[Option[Error]](..${validations}).foldLeft(List.empty[Error])((a, o) => o.map(_ :: a).getOrElse(a)))
                     def hasFormErrors = !_errors.isEmpty || Seq[State[_]](..$memberNames).exists(_.hasFormErrors)
                     def collectFormErrors(accu: Seq[eu.swdev.web.form.Error]) = Seq(..$memberNames).foldLeft(if (_errors.isEmpty) accu else _errors ++ accu)((a, m) => m.collectFormErrors(a))
                     def hasFieldErrors = Seq[State[_]](..$memberNames).exists(_.hasFieldErrors)

@@ -25,18 +25,14 @@ class BoilerplateTest extends FunSuite {
      *             a page then different root names must be supplied.
      * @return The resulting form state
      */
-    def fill(model: FV, validateArg: Boolean = true, nameArg: Name = Name("F")) = {
-      val fs = FS(
+    def fill(model: FV, validationArg: Validation = WithValidation, nameArg: Name = Name("F")) = {
+      FS(
         nameArg,
-        f1.fill(model.f1, validateArg, nameArg + "f1"),
-        f2.fill(model.f2, validateArg, nameArg + "f2"),
-        f3.fill(model.f3, validateArg, nameArg + "f3"),
-        f4.fill(model.f4, validateArg, nameArg + "f3")
-      )
-      if (validateArg && !fs.hasFieldErrors) {
-        validate(fs)
-      }
-      fs
+        f1.fill(model.f1, validationArg, nameArg + "f1"),
+        f2.fill(model.f2, validationArg, nameArg + "f2"),
+        f3.fill(model.f3, validationArg, nameArg + "f3"),
+        f4.fill(model.f4, validationArg, nameArg + "f3")
+      )(validationArg)
     }
 
     /**
@@ -47,13 +43,13 @@ class BoilerplateTest extends FunSuite {
      *             a page then different root names must be supplied.
      * @return The resulting form state.
      */
-    def parse(view: Map[String, Seq[String]], validateArg: Boolean = true, nameArg: Name = Name("F")) = FS(
+    def parse(view: Map[String, Seq[String]], validationArg: Validation = WithValidation, nameArg: Name = Name("F")) = FS(
       nameArg,
-      f1.parse(view, validateArg, nameArg + "f1"),
-      f2.parse(view, validateArg, nameArg + "f2"),
-      f3.parse(view, validateArg, nameArg + "f3"),
-      f4.parse(view, validateArg, nameArg + "f4")
-    )
+      f1.parse(view, validationArg, nameArg + "f1"),
+      f2.parse(view, validationArg, nameArg + "f2"),
+      f3.parse(view, validationArg, nameArg + "f3"),
+      f4.parse(view, validationArg, nameArg + "f4")
+    )(validationArg)
 
     // Define the value class that holds the typed value of the form.
     case class FV(
@@ -74,7 +70,8 @@ class BoilerplateTest extends FunSuite {
                   f2: FieldState[F.f2.V, F.f2.M, F.f2.F],
                   f3: FieldState[F.f3.V, F.f3.M, F.f3.F],
                   f4: FieldState[F.f4.V, F.f4.M, F.f4.F]
-                  ) extends FormState[FV] {
+                  )(validationArg: Validation) extends FormState[FV] {
+      val _errors = if (hasFieldErrors) Nil else validationArg.validate(Nil, Seq(validate(this)).foldLeft(List.empty[Error])((a, o) => o.map(_ :: a).getOrElse(a)))
       def hasFormErrors: Boolean = !_errors.isEmpty || Seq[State[_]](f1, f2, f3).exists(_.hasFormErrors)
       def hasFieldErrors: Boolean = Seq[State[_]](f1, f2, f3).exists(_.hasFieldErrors)
       override def _model: FV = FV(f1._model, f2._model, f3._model, f4._model)
@@ -88,12 +85,10 @@ class BoilerplateTest extends FunSuite {
     val f1 = field[Int]
     val f2 = field[Option[Int]].lt(7)
     val f3 = field[Int].enum(Seq(3, 4, 5))
-    val f4 = field[Seq[Int]].addVCheck((errs, v) => if (v % 2 == 0) Error("must be odd") +: errs else errs)
+    val f4 = field[Seq[Int]].addVCheck(v => if (v % 2 == 0) Some(Error("must be odd")) else None)
 
-    def validate(fs: FS): Unit = {
-      if (fs.f1._model % 2 == 0) {
-        fs.f1.addError(Error("number must not be even"))
-      }
+    def validate(fs: FS): Option[Error] = {
+      if (fs.f1._model < fs.f3._model) Some(Error("f1 must be less than f3")) else None
     }
 
   }
@@ -107,19 +102,19 @@ class BoilerplateTest extends FunSuite {
 
     import eu.swdev.web.form._
 
-    def fill(model: FV, validateArg: Boolean = true, name: Name = Name("G")) = FS(
+    def fill(model: FV, validationArg: Validation = WithValidation, name: Name = Name("G")) = FS(
       name,
-      g1.fill(model.g1, validateArg, name + "g1"),
-      g2.fill(model.g2, validateArg, name + "g2"),
-      g3.fill(model.g3, validateArg, name + "g3")
-    )
+      g1.fill(model.g1, validationArg, name + "g1"),
+      g2.fill(model.g2, validationArg, name + "g2"),
+      g3.fill(model.g3, validationArg, name + "g3")
+    )(validationArg)
 
-    def parse(view: Map[String, Seq[String]], validateArg: Boolean = true, name: Name = Name("G")) = FS(
+    def parse(view: Map[String, Seq[String]], validationArg: Validation = WithValidation, name: Name = Name("G")) = FS(
       name,
-      g1.parse(view, validateArg, name + "g1"),
-      g2.parse(view, validateArg, name + "g2"),
-      g3.parse(view, validateArg, name + "g3")
-    )
+      g1.parse(view, validationArg, name + "g1"),
+      g2.parse(view, validationArg, name + "g2"),
+      g3.parse(view, validationArg, name + "g3")
+    )(validationArg)
 
     case class FV(
                    g1: F.FV,
@@ -132,7 +127,8 @@ class BoilerplateTest extends FunSuite {
             g1: State[F.FV],
             g2: State[F.FV],
             g3: FieldState[G.g3.V, G.g3.M, G.g3.F]
-            ) extends FormState[FV] {
+            )(validationArg: Validation) extends FormState[FV] {
+      val _errors = if (hasFieldErrors) Nil else validationArg.validate(Nil, Seq[Option[Error]]().foldLeft(List.empty[Error])((a, o) => o.map(_ :: a).getOrElse(a)))
       def hasFormErrors: Boolean = !_errors.isEmpty || Seq(g1, g2, g3).exists(_.hasFormErrors)
       def hasFieldErrors: Boolean = Seq(g1, g2, g3).exists(_.hasFieldErrors)
       override def _model: FV = FV(g1._model, g2._model, g3._model)

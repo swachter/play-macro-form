@@ -1,7 +1,9 @@
 package com.abc
 
-import eu.swdev.web.form.{FieldState, FieldFeatures, IsSet, IsSetIncl, Name, Error, Form}
+import eu.swdev.web.form._
 import org.scalatest.FunSuite
+import eu.swdev.web.form.Error
+import scala.Some
 
 /** Tests the Form macro annotation
   */
@@ -10,15 +12,8 @@ class MacroTest extends FunSuite {
   @Form
   object F {
     val f1 = field[Int].gt(1).lt(5).enum(Seq(2,3,4))
-    val f2 = field[Option[Int]]
+    val f2 = field[Option[Int]].addVCheck(v => if (v % 2 == 0) Some(Error("odd")) else None)
     val f3 = field[Seq[Int]].ge(1).le(9)
-
-    // method is called when a FormState is constructed
-    def test(fs: FS): Unit = {
-      if (fs.f1._model % 2 == 0) {
-        fs.f1.addError(Error("odd"))
-      }
-    }
   }
 
   @Form
@@ -27,10 +22,8 @@ class MacroTest extends FunSuite {
     val g2 = field[Int]
     val g3 = F
 
-    def validate(fs: FS): Unit = {
-      if (fs.g2._model % 2 == 1) {
-        fs.g2.addError(Error("even"))
-      }
+    def validate(fs: FS): Option[Error] = {
+      if (fs.g1.f1._model != fs.g3.f1._model) Some(Error("notEqual")) else None
     }
   }
 
@@ -44,16 +37,10 @@ class MacroTest extends FunSuite {
     val g = G.FV(f, 4, f)
 
     val fs = F.fill(f)
-    assert(fs.f1.hasFieldErrors === true)
-    val fsm = fs._model
-    assert(f === fsm)
+    assert(f === fs._model)
 
     val gs = G.fill(g)
-    assert(gs.g2.hasFieldErrors === false)
-
-    val gsm = gs._model
-    assert(g === gsm)
-
+    assert(g === gs._model)
 
     val fv = Map[String, Seq[String]](fs.f1._name -> fs.f1.view, fs.f2._name -> fs.f2.view, fs.f3._name -> fs.f3.view)
     val fp = F.parse(fv)
@@ -64,22 +51,34 @@ class MacroTest extends FunSuite {
   }
 
   test("field names") {
-    val f = F.FV(2, Some(4), Seq(1, 2))
-    val g = G.FV(f, 4, f)
-    val gs = G.fill(g)
+    val gs = G.parse(Map())
     assert(gs.g1.f1._name === Name("G") + "g1" + "f1")
     assert(gs.g2._name === Name("G") + "g2")
+    val gs2 = G.parse(Map(), name = Name.empty)
+    assert(gs2.g1.f1._name === Name("g1") + "f1")
+    assert(gs2.g2._name === Name("g2"))
   }
 
   test("field constraints") {
-    val fs = F.fill(F.FV(5, None, Seq()))
-    assert(fs.f1._errors.size == 2)
+    val fs = F.fill(F.FV(3, Some(1), Seq(1)))
+    assert(fs.f1._errors.size == 0)
+    assert(fs.f2._errors.size == 0)
+    assert(fs.f3._errors.size == 0)
+    val fs2 = F.fill(F.FV(5, Some(2), Seq(10)))
+    assert(fs2.f1._errors.size == 2)
+    assert(fs2.f2._errors.size == 1)
+    assert(fs2.f2._errors.head == Error("odd"))
+    assert(fs2.f3._errors.size == 1)
   }
 
   test("form constraints") {
-    val fs = F.fill(F.FV(4, None, Seq()))
-    assert(fs.f1._errors.size == 1)
-    assert(fs.f1._errors.head == Error("odd"))
+    val fv1 = F.FV(4, None, Seq())
+    val fv2 = F.FV(3, None, Seq())
+    val gs1 = G.fill(G.FV(fv1, 0, fv1))
+    assert(gs1._errors.size == 0)
+    val gs2 = G.fill(G.FV(fv1, 0, fv2))
+    assert(gs2._errors.size == 1)
+    assert(gs2._errors.head == Error("notEqual"))
   }
 
   test("constraint type tracking") {
@@ -96,5 +95,11 @@ class MacroTest extends FunSuite {
     assertTypeError("FieldTest(fs.f1).mustHaveLeGe")
     assertTypeError("FieldTest(fs.f2).mustHaveLeGe")
 
+  }
+
+  test("parse without validation") {
+    val fs = F.parse(Map(), WithoutValidation)
+    assert(fs.hasFieldErrors === false)
+    assert(fs.hasFormErrors === false)
   }
 }
