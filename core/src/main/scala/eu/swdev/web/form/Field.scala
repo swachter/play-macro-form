@@ -34,15 +34,18 @@ case class Field[VP, MP, +FP <: FieldFeatures](handler: FieldHandler[VP, MP], lb
   def parse(map: Map[String, Seq[String]], validation: Validation, name: Name): FieldState[VP, MP, FP] = {
     val view = map.getOrElse(name.toString, map.getOrElse(name.toString + ".default", Seq()))
     handler.parse(view) match {
-      case Left(e) => FieldStateWithoutModel[VP, MP, FP](name, view, this, e)(validation)
-      case Right(m) => FieldStateWithModel[VP, MP, FP](name, view, this, m)(validation)
+      case Left(e) => FieldStateWithoutModel[VP, MP, FP](name, view, this, validation.validate(e, Nil))
+      case Right(m) => fieldStateWithModel(name, view, m, validation)
     }
   }
 
   def fill(model: MP, validation: Validation, name: Name): FieldState[VP, MP, FP] = {
     val view = handler.format(model)
-    FieldStateWithModel[VP, MP, FP](name, view, this, model)(validation)
+    fieldStateWithModel(name, view, model, validation)
   }
+
+  def fieldStateWithModel(name: Name, view: Seq[String], model: MP, validation: Validation): FieldState[VP, MP, FP] =
+    FieldStateWithModel[VP, MP, FP](name, view, this, model, validation.validate(Nil, check(model)))
 
   def check(mValue: M): Seq[Error] = {
     val mff = foldFunction(mValue)
