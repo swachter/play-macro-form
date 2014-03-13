@@ -37,8 +37,9 @@ package object play {
       bootstrap3.input(fieldState, "range")(Bss.input(inputRangeStyler(f.lb.get.value, f.ub.get.value, f.handler.simpleConverter))(style), lang)
     }
 
-    def checkBox(implicit checkBoxValueInfo: CheckBoxValueInfo[V]): Html = {
-      bootstrap3.checkBoxField(fieldState, checkBoxValueInfo)
+    def checkBox(implicit ev1: F#BiV <:< True, ev2: V =:= M): Html = {
+      val checkedValue = fieldState.field.handler.checkedValue
+      bootstrap3.checkBox(fieldState, format(checkedValue) , fieldState.equalsModel(checkedValue))
     }
 
     /**

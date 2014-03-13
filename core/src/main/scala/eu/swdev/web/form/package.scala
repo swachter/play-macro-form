@@ -19,12 +19,12 @@ package object form {
   //
   //
 
-  implicit val StringConverter = new SimpleConverter[String] {
+  implicit val StringConverter = new SimpleConverterWithoutBiStateSupport[String] {
     def format(t: String): String = t
     def parse(s: String): Either[Error, String] = Right(s)
   }
 
-  implicit val IntConverter = new SimpleConverter[Int] {
+  implicit val IntConverter = new SimpleConverterWithoutBiStateSupport[Int] {
     def format(t: Int): String = t.toString
     def parse(s: String): Either[Error, Int] = Try(s.toInt) match {
       case Success(i) => Right(i)
@@ -32,7 +32,7 @@ package object form {
     }
   }
 
-  implicit val DoubleConverter = new SimpleConverter[Double] {
+  implicit val DoubleConverter = new SimpleConverterWithoutBiStateSupport[Double] {
     def format(t: Double): String = t.toString
     def parse(s: String): Either[Error, Double] = Try(s.toDouble) match {
       case Success(i) => Right(i)
@@ -40,12 +40,14 @@ package object form {
     }
   }
 
-  implicit val BooleanConverter = new SimpleConverter[Boolean] {
+  implicit val BooleanConverter = new SimpleConverterWithBiStateSupport[Boolean] {
     def format(t: Boolean): String = t.toString
     def parse(s: String): Either[Error, Boolean] = Try(java.lang.Boolean.parseBoolean(s)) match {
       case Success(i) => Right(i)
       case Failure(e) => Left(Error("exception", e.getClass.getName, e.getMessage))
     }
+    def checkedValue = true
+    def uncheckedValue = false
   }
 
   //
@@ -66,9 +68,10 @@ package object form {
     type V = VP
     type CS = FieldFeatures {
       type OC = ExactlyOne
+      type BiV = simpleConverter.BiV
     }
     def createField: Field[V, V, CS] = {
-      val handler = SimpleFieldHandler(simpleConverter)
+      val handler = simpleConverter.createSimpleFieldHandler
       Field[V, V, CS](handler)
     }
   }
@@ -77,6 +80,7 @@ package object form {
     type V = VP
     type CS = FieldFeatures {
       type OC = ZeroOrOne
+      type BiV = False
     }
     def createField: Field[V, Option[VP], CS] = {
       val handler = OptionFieldHandler(simpleConverter)
@@ -88,6 +92,7 @@ package object form {
     type V = VP
     type CS = FieldFeatures {
       type OC = ZeroOrMore
+      type BiV = False
     }
     def createField: Field[V, Seq[VP], CS] = {
       val handler = SeqFieldHandler(simpleConverter)

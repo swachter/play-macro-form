@@ -81,12 +81,21 @@ class MacroTest extends FunSuite {
     assert(gs2._errors.head == Error("notEqual"))
   }
 
+  @Form
+  object CheckBoxForm {
+    val f1 = field[Boolean]
+    val f2 = field[Option[Boolean]]
+    val f3 = field[Seq[Boolean]]
+    val f4 = field[Int]
+  }
+
   test("constraint type tracking") {
     val fs = F.fill(F.FV(4, None, Seq(2)))
 
     case class FieldTest[V, M, CS <: FieldFeatures](val fs: FieldState[V, M, CS]) {
       def mustHaveEnum(implicit ev: CS <:< FieldFeatures { type EN = IsSet }): Unit = {}
       def mustHaveLeGe(implicit ev: CS <:< FieldFeatures { type LB = IsSetIncl; type UB = IsSetIncl }): Unit = {}
+      def mustBeBiValued(implicit ev: CS <:< FieldFeatures { type BiV = True; type OC = ExactlyOne }, ev2: V =:= M): Unit = {}
     }
 
     FieldTest(fs.f1).mustHaveEnum
@@ -94,6 +103,13 @@ class MacroTest extends FunSuite {
     FieldTest(fs.f3).mustHaveLeGe
     assertTypeError("FieldTest(fs.f1).mustHaveLeGe")
     assertTypeError("FieldTest(fs.f2).mustHaveLeGe")
+
+    val cbf = CheckBoxForm.parse(Map())
+
+    FieldTest(cbf.f1).mustBeBiValued
+    assertTypeError("FieldTest(cbf.f2).mustBeBiValued")
+    assertTypeError("FieldTest(cbf.f3).mustBeBiValued")
+    assertTypeError("FieldTest(cbf.f4).mustBeBiValued")
 
   }
 

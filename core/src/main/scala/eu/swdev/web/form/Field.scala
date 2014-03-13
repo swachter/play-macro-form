@@ -32,7 +32,7 @@ case class Field[VP, MP, +FP <: FieldFeatures](handler: FieldHandler[VP, MP], lb
   def addMCheck(check: Check[M]) = copy[V, M, F](mChecks = check +: mChecks)
 
   def parse(map: Map[String, Seq[String]], validation: Validation, name: Name): FieldState[VP, MP, FP] = {
-    val view = map.getOrElse(name.toString, map.getOrElse(name.toString + ".default", Seq()))
+    val view = map.getOrElse(name.toString, Seq())
     handler.parse(view) match {
       case Left(e) => FieldStateWithoutModel[VP, MP, FP](name, view, this, validation.validate(e, Nil))
       case Right(m) => fieldStateWithModel(name, view, m, validation)

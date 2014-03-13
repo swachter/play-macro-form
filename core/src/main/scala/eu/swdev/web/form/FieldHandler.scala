@@ -15,13 +15,14 @@ trait FieldFolder[V, M] {
   */
 trait FieldHandler[V, M] extends FieldConverter[V, M] with FieldFolder[V, M] {
   def simpleConverter: SimpleConverter[V]
+  def checkedValue: V
 }
 
-case class SimpleFieldHandler[V](simpleConverter: SimpleConverter[V]) extends FieldHandler[V, V] {
+trait SimpleFieldHandler[V] extends FieldHandler[V, V] {
 
   def parse(view: Seq[String]): Either[Seq[Error], V] = {
     if (view.isEmpty) {
-      Left(Seq(Error("missing")))
+      onMissing
     } else if (!view.tail.isEmpty) {
       Left(Seq(Error("ambiguous")))
     } else {
@@ -37,6 +38,25 @@ case class SimpleFieldHandler[V](simpleConverter: SimpleConverter[V]) extends Fi
   def foldField[A](m: V): (A) => ((A, V) => A) => A = {
     a => f => f(a, m)
   }
+
+  protected def onMissing: Either[Seq[Error], V]
+
+}
+
+case class SimpleFieldHandlerWithBiStateSupport[V](simpleConverter: SimpleConverter[V], checkedValueArg: V, uncheckedValue: V) extends SimpleFieldHandler[V] {
+
+  protected def onMissing: Either[Seq[Error], V] = Right(uncheckedValue)
+
+  def checkedValue = checkedValueArg
+
+}
+
+case class SimpleFieldHandlerWithoutBiStateSupport[V](simpleConverter: SimpleConverter[V]) extends SimpleFieldHandler[V] {
+
+  protected def onMissing: Either[Seq[Error], V] = Left(Seq(Error("missing")))
+
+  def checkedValue = throw new NoSuchElementException
+
 }
 
 case class OptionFieldHandler[V](simpleConverter: SimpleConverter[V]) extends FieldHandler[V, Option[V]] {
@@ -59,6 +79,9 @@ case class OptionFieldHandler[V](simpleConverter: SimpleConverter[V]) extends Fi
   def foldField[A](m: Option[V]): (A) => ((A, V) => A) => A = {
     a => m.foldLeft(a)
   }
+
+  def checkedValue = throw new NoSuchElementException
+
 }
 
 case class SeqFieldHandler[V](simpleConverter: SimpleConverter[V]) extends FieldHandler[V, Seq[V]] {
@@ -78,5 +101,8 @@ case class SeqFieldHandler[V](simpleConverter: SimpleConverter[V]) extends Field
   def foldField[A](m: Seq[V]): (A) => ((A, V) => A) => A = {
     a => m.foldLeft(a)
   }
+
+  def checkedValue = throw new NoSuchElementException
+
 }
 

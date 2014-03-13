@@ -37,11 +37,15 @@ trait FieldState[V, M, +CS <: FieldFeatures] extends State[M] {
   def view: Seq[String]
   def field: Field[V, M, CS]
   override def collectFormErrors(accu: Seq[Error]): Seq[Error] = accu
+  def equalsModel(m: M): Boolean
 }
 
-case class FieldStateWithModel[V, M, CS <: FieldFeatures](_name: Name, view: Seq[String], field: Field[V, M, CS], _model: M, _errors: Seq[Error]) extends FieldState[V, M, CS]
+case class FieldStateWithModel[V, M, CS <: FieldFeatures](_name: Name, view: Seq[String], field: Field[V, M, CS], _model: M, _errors: Seq[Error]) extends FieldState[V, M, CS] {
+  def equalsModel(m: M) = m == _model
+}
 
 case class FieldStateWithoutModel[V, M, CS <: FieldFeatures](_name: Name, view: Seq[String], field: Field[V, M, CS], _errors: Seq[Error]) extends FieldState[V, M, CS] {
+  def equalsModel(m: M) = false
   def _model: M = throw new NoSuchElementException(s"field does not have a model value - it contains errors: ${_errors}")
 }
 

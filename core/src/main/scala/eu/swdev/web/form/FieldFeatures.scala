@@ -12,6 +12,7 @@ trait FieldFeatures {
   type UB <: Unset
   type EN <: Unset
   type OC <: Occurrence
+  type BiV <: Bool
 }
 
 trait Unset
@@ -36,3 +37,9 @@ sealed trait ExactlyOne extends AtMostOne
 trait OccurrenceEvidence[O <: Occurrence] {
   def isMultiple: Boolean
 }
+
+sealed trait Bool
+
+sealed trait True extends Bool
+
+sealed trait False extends Bool

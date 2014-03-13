@@ -1,0 +1,9 @@
+@(fs: eu.swdev.web.form.FieldState[_, _, FieldFeatures], value: String, checked: Boolean)(implicit lang: Lang, style: Style)
+@formGroup(fs) {
+  <div class="checkbox">
+    <label>
+      <input @Html(Bss.input ~= (name_@, fs.name) ~= (type_@, "checkbox") ~= (id_@, fs.name) ~= (value_@, value) := (checked, checked_@, "checked") += (class_@, "form-control"))/>
+      @fs.name
+    </label>
+  </div>
+}
