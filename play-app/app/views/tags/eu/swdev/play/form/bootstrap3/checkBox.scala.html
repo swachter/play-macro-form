@@ -2,7 +2,7 @@
 @formGroup(fs) {
   <div class="checkbox">
     <label>
-      <input @Html(Bss.input ~= (name_@, fs.name) ~= (type_@, "checkbox") ~= (id_@, fs.name) ~= (value_@, value) := (checked, checked_@, "checked") += (class_@, "form-control"))/>
+      <input @Html(Bs.input ~= (name_@, fs.name) ~= (type_@, "checkbox") ~= (id_@, fs.name) ~= (value_@, value) := (checked, checked_@, "checked") += (class_@, "form-control"))/>
       @valueLabel
     </label>
   </div>

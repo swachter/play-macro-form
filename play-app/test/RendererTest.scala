@@ -2,7 +2,7 @@ import com.abc.F
 import eu.swdev.web.style.Style
 import org.scalatest.FunSuite
 
-import eu.swdev.web.play._
+import eu.swdev.play.form.bootstrap3._
 import play.api.i18n.Lang
 
 /**

@@ -1,16 +1,17 @@
-package eu.swdev.web
+package eu.swdev.play.form
 
-import _root_.play.api.i18n.{Messages, Lang}
-import _root_.play.api.mvc.Call
-import _root_.play.api.templates.Html
+import play.api.i18n.{Messages, Lang}
+import play.api.mvc.Call
+import play.api.templates.Html
 import eu.swdev.web.form._
 import eu.swdev.web.style._
 import scala.language.implicitConversions
-import views.html.tags.eu.swdev.play.form.bootstrap3
+
+import views.html.tags.eu.swdev.play.form.{ bootstrap3 => bs3 }
 
 /**
   */
-package object play {
+package object bootstrap3 {
 
   /**
    * Provides various methods for rendering fields.
@@ -25,16 +26,16 @@ package object play {
     val defaultValueStyler: ValueStyler = _ => x => x
 
     def inputText: Html = {
-      bootstrap3.input(fieldState, "text")
+      bs3.input(fieldState, "text")
     }
 
     def inputPassword: Html = {
-      bootstrap3.input(fieldState, "password")
+      bs3.input(fieldState, "password")
     }
 
     def inputRange(implicit ev1: F <:< FieldFeatures { type LB = IsSetIncl; type UB = IsSetIncl }, inputRangeStyler: InputRangeStyler[V]): Html = {
       val f = fieldState.field
-      bootstrap3.input(fieldState, "range")(Bss.input(inputRangeStyler(f.lb.get.value, f.ub.get.value, f.handler.simpleConverter))(style), lang)
+      bs3.input(fieldState, "range")(Bs.input(inputRangeStyler(f.lb.get.value, f.ub.get.value, f.handler.simpleConverter))(style), lang)
     }
 
     /**
@@ -48,7 +49,7 @@ package object play {
     def checkBox(implicit ev1: F#BiV <:< True, ev2: V =:= M): Html = {
       val checkedValue = fieldState.field.handler.checkedValue
       val strValue = format(checkedValue)
-      bootstrap3.checkBox(fieldState, strValue, fieldState.equalsModel(checkedValue), formUtil.optValueLabel(fieldState, strValue))
+      bs3.checkBox(fieldState, strValue, fieldState.equalsModel(checkedValue), formUtil.optValueLabel(fieldState, strValue))
     }
 
     /**
@@ -65,9 +66,9 @@ package object play {
      */
     def selectionGroup(stackedNotInline: Boolean = true, valueStyler: ValueStyler = defaultValueStyler)(implicit ev: F <:< FieldFeatures { type EN = IsSet }, oc: OccurrenceEvidence[F#OC]): Html = {
       val inputType = if (oc.isMultiple) "checkbox" else "radio"
-      bootstrap3.selectionGroup(fieldState, enumValues((name, value, checked, label) => {
+      bs3.selectionGroup(fieldState, enumValues((name, value, checked, label) => {
         val s: Style = valueStyler(value)(style)
-        bootstrap3.checkBoxOrRadioButton(inputType, name, format(value), checked, label, stackedNotInline)(s)
+        bs3.checkBoxOrRadioButton(inputType, name, format(value), checked, label, stackedNotInline)(s)
       }))
     }
 
@@ -83,16 +84,16 @@ package object play {
      * @return
      */
     def selectionList(valueStyler: ValueStyler = defaultValueStyler)(implicit ev: F <:< FieldFeatures { type EN = IsSet }, oc: OccurrenceEvidence[F#OC]): Html = {
-      bootstrap3.select(fieldState, enumValues((name, value, checked, label) => {
+      bs3.select(fieldState, enumValues((name, value, checked, label) => {
         val s: Style = valueStyler(value)(style)
-        bootstrap3.option(format(value), checked, label)(s)
+        bs3.option(format(value), checked, label)(s)
       }), oc.isMultiple)
     }
 
     def submitButtonGroup(stackedNotInline: Boolean = true, valueStyler: ValueStyler = defaultValueStyler)(implicit ev: F <:< FieldFeatures { type EN = IsSet } ): Html = {
-      bootstrap3.selectionGroup(fieldState, enumValues((name, value, checked, label) => {
-        val s: Style = ((Bss.button ~= (value_@, format(value)) ~= (name_@, name) += (class_@, "btn")) andThen valueStyler(value))(style)
-        bootstrap3.buttonCtrl("submit", label, stackedNotInline)(s)
+      bs3.selectionGroup(fieldState, enumValues((name, value, checked, label) => {
+        val s: Style = ((Bs.button ~= (value_@, format(value)) ~= (name_@, name) += (class_@, "btn")) andThen valueStyler(value))(style)
+        bs3.buttonCtrl("submit", label, stackedNotInline)(s)
       }))
     }
 
@@ -127,10 +128,10 @@ package object play {
 
     def button(tpe: String = "submit"): Html = {
       val label = formUtil.lookupMsg(formState._name + "submit", "form.button").getOrElse(s"${formState._name}.submit")
-      bootstrap3.button("submit", label)
+      bs3.button("submit", label)
     }
 
-    def form(content: Html): Html = bootstrap3.form(formState)(content)
+    def form(content: Html): Html = bs3.form(formState)(content)
 
   }
 
@@ -202,8 +203,8 @@ package object play {
 
   implicit class FieldAttrs[V, M, CS <: FieldFeatures](val fieldState: FieldState[V, M, CS]) extends AnyVal {
     def placeholder(implicit lang: Lang): Option[Attr] = formUtil.lookupMsg(fieldState._name, "form.placeholder").map(Attr(placeholder_@, _))
-    def labelFor(implicit style: Style): String = Bss.input.attrs(style).getOrElse("id", Set()).headOption.getOrElse(fieldState._name.toString)
-    def nameForDefault(implicit style: Style): String = Bss.input.attrs(style).getOrElse("name", Set()).headOption.getOrElse(fieldState._name.toString) + ".default"
+    def labelFor(implicit style: Style): String = Bs.input.attrs(style).getOrElse("id", Set()).headOption.getOrElse(fieldState._name.toString)
+    def nameForDefault(implicit style: Style): String = Bs.input.attrs(style).getOrElse("name", Set()).headOption.getOrElse(fieldState._name.toString) + ".default"
     def name: String = fieldState._name.toString
   }
 

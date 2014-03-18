@@ -2,10 +2,10 @@ package controllers
 
 import play.api.mvc._
 import com.abc.F
-import eu.swdev.web.play._
 import eu.swdev.web.form._
 import eu.swdev.web.style.Style
 import eu.swdev.web.form.Error
+import eu.swdev.play.form.bootstrap3._
 
 object Application extends Controller {
 
@@ -28,12 +28,12 @@ object Application extends Controller {
    * Create a style by applying style modifications to an empty style.
    */
   implicit val bootstrapStyle = Style(
-    Bss.form += (class_@, "form-horizontal"), // form-horizontal
-    Bss.formGroup += (class_@, "form-group"),
-    Bss.label += (class_@, "control-label col-xs-3"),
-    Bss.inputDiv += (class_@, "col-xs-9"),
-    Bss.input += (class_@, "form-control"),
-    Bss.button += (class_@, "btn") // btn-default
+    Bs.form += (class_@, "form-horizontal"), // form-horizontal
+    Bs.formGroup += (class_@, "form-group"),
+    Bs.label += (class_@, "control-label col-xs-3"),
+    Bs.inputDiv += (class_@, "col-xs-9"),
+    Bs.input += (class_@, "form-control"),
+    Bs.button += (class_@, "btn") // btn-default
   )
 
 }
