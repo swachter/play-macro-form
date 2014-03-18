@@ -37,6 +37,14 @@ package object play {
       bootstrap3.input(fieldState, "range")(Bss.input(inputRangeStyler(f.lb.get.value, f.ub.get.value, f.handler.simpleConverter))(style), lang)
     }
 
+    /**
+     * Render a check box in order to input a bi-valued field. This kind of input is only possible for bi-valued fields
+     * because a single check box can distinguish only two kinds of input, namely: checked or unchecked.
+     *
+     * @param ev1
+     * @param ev2
+     * @return
+     */
     def checkBox(implicit ev1: F#BiV <:< True, ev2: V =:= M): Html = {
       val checkedValue = fieldState.field.handler.checkedValue
       bootstrap3.checkBox(fieldState, format(checkedValue) , fieldState.equalsModel(checkedValue))

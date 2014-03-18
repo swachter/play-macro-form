@@ -12,6 +12,12 @@ trait FieldFeatures {
   type UB <: Unset
   type EN <: Unset
   type OC <: Occurrence
+
+  /**
+   * Indicates if the value type of the field is bi-valued, i.e. that it can have exactly two different values.
+   *
+   * If a type is bi-valued then it can be input by a single check box.
+   */
   type BiV <: Bool
 }
 

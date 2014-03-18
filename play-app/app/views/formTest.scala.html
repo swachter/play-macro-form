@@ -10,7 +10,7 @@
     @formState.f6.withStyle(Bss.input ~= (placeholder_@, "please enter your password")).inputPassword
     @formState.f7.submitButtonGroup(false, valueStyler = v => Bss.button += (class_@, "btn-" + v))
     @formState.f8.inputRange
-    @formState.f9.withStyle(Bss.input ~= (placeholder_@, "please select")).selectionList()
+    @formState.f9.withStyle.selectionList()
     @formState.f10.selectionList()
     @formState.withStyle(Bss.button += (class_@, "btn-primary")).submit
   }
