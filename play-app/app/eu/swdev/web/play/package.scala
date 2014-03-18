@@ -47,7 +47,8 @@ package object play {
      */
     def checkBox(implicit ev1: F#BiV <:< True, ev2: V =:= M): Html = {
       val checkedValue = fieldState.field.handler.checkedValue
-      bootstrap3.checkBox(fieldState, format(checkedValue) , fieldState.equalsModel(checkedValue))
+      val strValue = format(checkedValue)
+      bootstrap3.checkBox(fieldState, strValue, fieldState.equalsModel(checkedValue), formUtil.optValueLabel(fieldState, strValue))
     }
 
     /**
@@ -103,7 +104,7 @@ package object play {
       } yield {
         val strValue = fieldState.field.handler.simpleConverter.format(v)
         val checked = fieldState.view.contains(strValue)
-        renderer(fieldState._name.toString, v, checked, strValue)
+        renderer(fieldState._name.toString, v, checked, formUtil.valueLabel(fieldState, strValue))
       }
     }
 
@@ -125,7 +126,7 @@ package object play {
     def submit: Html = button("submit")
 
     def button(tpe: String = "submit"): Html = {
-      val label = formUtil.findMessage(formState._name + "submit", "form.button").getOrElse(s"${formState._name}.submit")
+      val label = formUtil.lookupMsg(formState._name + "submit", "form.button").getOrElse(s"${formState._name}.submit")
       bootstrap3.button("submit", label)
     }
 
@@ -200,7 +201,7 @@ package object play {
   //
 
   implicit class FieldAttrs[V, M, CS <: FieldFeatures](val fieldState: FieldState[V, M, CS]) extends AnyVal {
-    def placeholder(implicit lang: Lang): Option[Attr] = formUtil.findMessage(fieldState._name, "form.placeholder").map(Attr(placeholder_@, _))
+    def placeholder(implicit lang: Lang): Option[Attr] = formUtil.lookupMsg(fieldState._name, "form.placeholder").map(Attr(placeholder_@, _))
     def labelFor(implicit style: Style): String = Bss.input.attrs(style).getOrElse("id", Set()).headOption.getOrElse(fieldState._name.toString)
     def nameForDefault(implicit style: Style): String = Bss.input.attrs(style).getOrElse("name", Set()).headOption.getOrElse(fieldState._name.toString) + ".default"
     def name: String = fieldState._name.toString
@@ -210,29 +211,47 @@ package object play {
   object formUtil {
 
     def label(fieldState: FieldState[_, _, _])(implicit lang: Lang): String = {
-      def findLabel(name: Name): Option[String] = findMessage(name, "form.label")
-      findLabel(fieldState._name).getOrElse(fieldState._name.toString)
+      lookupMsg(fieldState._name, "form.label").getOrElse(fieldState._name.toString)
+    }
+
+    def valueLabel(fieldState: FieldState[_, _, _], strValue: String)(implicit lang: Lang): String = {
+      optValueLabel(fieldState, strValue).getOrElse(strValue)
+    }
+
+    def optValueLabel(fieldState: FieldState[_, _, _], strValue: String)(implicit lang: Lang): Option[String] = {
+      lookupMsg(fieldState._name + strValue, "form.value")
     }
 
     def errors(formState: FormState[_])(implicit lang: Lang): Html = {
-      Html(formState.collectFormErrors(Nil).map(e => findMessage(formState._name + e.key, "form.error", e.args: _*).getOrElse(e.key)).mkString("<br>"))
+      Html(formState.collectFormErrors(Nil).map(e => lookupMsg(formState._name + e.key, "form.error", e.args: _*).getOrElse(e.key)).mkString("<br>"))
     }
     def errors(fieldState: FieldState[_, _, _])(implicit lang: Lang): Html = {
-      Html(fieldState._errors.map(e => findMessage(fieldState._name + e.key, "form.error", e.args: _*).getOrElse(e.key)).mkString("<br>"))
+      Html(fieldState._errors.map(e => lookupMsg(fieldState._name + e.key, "form.error", e.args: _*).getOrElse(e.key)).mkString("<br>"))
     }
 
-    def findMessage(name: Name, keyPrefix: String, args: Any*)(implicit lang: Lang): Option[String] = {
-      def doFind(n: Name): Option[String] = {
+    /**
+     * Lookup a message. The specified keyPrefix and name are joined in order to form  message key.
+     * If no message is defined for that key and the name has a tail then the lookup is repeated with the tail of the
+     * name.
+     *
+     * @param name
+     * @param keyPrefix
+     * @param args
+     * @param lang
+     * @return
+     */
+    def lookupMsg(name: Name, keyPrefix: String, args: Any*)(implicit lang: Lang): Option[String] = {
+      def doLookup(n: Name): Option[String] = {
         val key = s"$keyPrefix.${n.toString}"
         if (Messages.isDefinedAt(key)) {
           Some(Messages(key, args: _*))
         } else if (n.hasTail) {
-          doFind(n.tail)
+          doLookup(n.tail)
         } else {
           None
         }
       }
-      doFind(name)
+      doLookup(name)
     }
 
   }

@@ -9,3 +9,14 @@ form.placeholder.f1 = Bitte geben Sie eine Zahl ein
 form.button.submit = Daten absenden
 
 form.error.lt = Wert muss kleiner als {0} sein
+form.error.missing = Fehlende Eingabe
+form.error.f1.exception = fehlerhafte Eingabe
+
+form.value.1 = Eins
+form.value.2 = Zwei
+form.value.3 = Drei
+form.value.a = A
+form.value.b = B
+form.value.c = C
+form.value.f2.true = aktiviert
+
