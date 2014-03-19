@@ -1,0 +1,24 @@
+form.label.f1 = Field 1
+form.label.f2 = Field 2
+form.label.f3 = Field 3
+form.label.f4 = Field 4
+form.label.f5 = Field 5
+
+form.placeholder.f1 = please enter a number
+
+form.button.submit = Submit
+
+form.error.exception = {0} - {1}
+form.error.lt = Value must be less than {0}
+form.error.missing = Missing input
+form.error.f1.exception = Illegal input
+
+form.value.1 = One
+form.value.2 = Two
+form.value.3 = Three
+form.value.a = A
+form.value.b = B
+form.value.c = C
+form.value.f2.true = active
+
+pleaseCorrect = Please correct the indicated errors
