@@ -5,6 +5,11 @@ package demo
 import scala.tools.nsc.{ Global, Phase }
 import scala.tools.nsc.plugins.{ Plugin, PluginComponent }
 
+/**
+ * Credits to Jason Zaugg.
+ *
+ * @param global
+ */
 class BoxingDetectorPlugin(val global: Global) extends Plugin {
   import global._
 

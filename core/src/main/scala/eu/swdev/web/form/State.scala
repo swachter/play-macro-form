@@ -50,5 +50,5 @@ case class FieldStateWithoutModel[V, M, CS <: FieldFeatures](_name: Name, view: 
 }
 
 trait FormState[M] extends State[M] {
-
+  def fold[R](onError: this.type => R, onSuccess: M => R): R = if (hasFormErrors || hasFieldErrors) onError(this) else onSuccess(_model)
 }

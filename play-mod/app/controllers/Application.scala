@@ -4,8 +4,8 @@ import play.api.mvc._
 import com.abc.F
 import eu.swdev.web.form._
 import eu.swdev.web.style.Style
-import eu.swdev.web.form.Error
 import eu.swdev.play.form.bootstrap3._
+import scala.language.existentials
 
 object Application extends Controller {
 
@@ -15,13 +15,12 @@ object Application extends Controller {
   
   def test = Action { implicit request =>
     val formState = F.parse(Map.empty, WithoutValidation)
-    Ok(views.html.formTest(formState))
+    Ok(views.html.formTest(formState, false))
   }
 
   def processForm = Action { implicit request =>
-    val formState = F.parse(request.queryString)
-    Ok(views.html.formTest(formState))
-
+    val formState = F.bindFromRequest
+    formState.fold(fs => Ok(views.html.formTest(formState, true)), fv => Ok(views.html.formTest(F.fill(fv), false)))
   }
 
   /**
@@ -36,4 +35,7 @@ object Application extends Controller {
     Bs.button += (class_@, "btn") // btn-default
   )
 
+  implicit class RichForm[BF <: BaseForm](val baseForm: BF) extends AnyVal {
+    def bindFromRequest(implicit request: Request[_]): baseForm.FS = baseForm.parse(request.queryString)
+  }
 }

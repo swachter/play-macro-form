@@ -111,7 +111,7 @@ object FormMacro {
 
             // output the modified object
             q"""
-            object $objectName {
+            object $objectName extends eu.swdev.web.form.BaseForm {
 
                   import eu.swdev.web.form._
 

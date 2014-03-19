@@ -1,5 +1,5 @@
 @* formTest Template File *@
-@(formState: com.abc.F.FS)(implicit lang: Lang, style: Style)
+@(formState: com.abc.F.FS, hasErrors: Boolean)(implicit lang: Lang, style: Style)
 @main("Form-Test") {
   @formState.withStyle(Bs.form ~= (action_@, routes.Application.processForm)).form {
     @formState.f1.inputText
@@ -13,5 +13,8 @@
     @formState.f9.selectionList()
     @formState.f10.selectionList()
     @formState.withStyle(Bs.button += (class_@, "btn-primary")).submit
+  }
+  @if(hasErrors) {
+    <p class="text-danger">@Messages("pleaseCorrect")</p>
   }
 }
