@@ -6,7 +6,7 @@ package eu.swdev.web.form
 trait BaseForm {
 
   /**
-   * The type of the value that can be extracted from a form statee if it has no errors.
+   * The type of the value that can be extracted from a form state if it has no errors.
    */
   type FV
 

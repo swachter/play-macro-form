@@ -7,7 +7,7 @@ trait State[+M] {
   def _name: Name
 
   /**
-   * Gets the typed value of a field or form. This method must only be called of hasFieldErrors returns false.
+   * Gets the typed value of a field or form. This method must only be called if hasErrors returns false.
    *
    * @return The typed value of a field or form
    */
@@ -50,5 +50,5 @@ case class FieldStateWithoutModel[V, M, CS <: FieldFeatures](_name: Name, view: 
 }
 
 trait FormState[M] extends State[M] {
-  def fold[R](onError: this.type => R, onSuccess: M => R): R = if (hasFormErrors || hasFieldErrors) onError(this) else onSuccess(_model)
+  def fold[R](onError: this.type => R, onSuccess: M => R): R = if (hasErrors) onError(this) else onSuccess(_model)
 }
