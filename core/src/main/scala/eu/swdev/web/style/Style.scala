@@ -1,5 +1,7 @@
 package eu.swdev.web.style
 
+import scala.language.implicitConversions
+
 object Style {
   
   val empty = Map[String, Attrs]() //new Style(Map[String, Attrs]())

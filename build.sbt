@@ -26,7 +26,7 @@ lazy val core = project.settings(
     }
   )
 
-lazy val playApp = Project("playApp", file("play-app")).dependsOn(core).settings(
+lazy val playMod = Project("play-mod", file("play-mod")).dependsOn(core).settings(
     name := "play-form-example-app",
     version := "1.0-SNAPSHOT",
     resolvers += Resolver.sonatypeRepo("snapshots"),
@@ -50,4 +50,4 @@ lazy val playApp = Project("playApp", file("play-app")).dependsOn(core).settings
   )
 
 
-lazy val root = project.in(file(".")).aggregate(core, playApp)
+lazy val root = project.in(file(".")).aggregate(core, playMod)

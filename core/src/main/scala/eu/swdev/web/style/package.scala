@@ -1,5 +1,7 @@
 package eu.swdev.web
 
+import scala.language.implicitConversions
+
 /**
  * The key abstractions for styling namely Attrs and Style are realized by type aliases in order to avoid boxing
  * overhead.

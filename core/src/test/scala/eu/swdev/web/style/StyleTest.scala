@@ -29,11 +29,4 @@ class StyleTest extends FunSuite {
     assert(as("1") === Set("a", "b"))
   }
 
-  test ("x") {
-    val type_@ = AttrDescSv("type")
-    val min_@ = AttrDescSv("min")
-    val max_@ = AttrDescSv("max")
-    val step_@ = AttrDescSv("step")
-    val at = Attrs ~= (type_@, "range") ~= (min_@, "1") ~= (max_@, "2") //~= step(lb, ub, sc)
-  }
 }

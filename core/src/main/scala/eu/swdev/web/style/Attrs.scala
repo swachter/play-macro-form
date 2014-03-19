@@ -78,7 +78,9 @@ object Attr {
 }
 
 /**
- * Typeclass that describes how values are transformed strings or set of strings.
+ * Typeclass that allows to use values of different types as attribute values. The typeclass defines how values are
+ * transformed into strings or set of strings. The transformation method used depends on the attribute kind. Some
+ * attributes have a single value whereas other attributes can have a set of values (cf. AttrDesc).
  *
  * @tparam S
  */

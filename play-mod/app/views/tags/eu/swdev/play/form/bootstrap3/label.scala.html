@@ -1,0 +1,2 @@
+@(fs: FieldState[_, _, FieldFeatures])(implicit lang: Lang, style: Style)
+<label @Html(Bs.label ~= (for_@, fs.labelFor))>@MsgLookup.fieldLabel(fs)</label>

@@ -54,16 +54,6 @@ package object form {
   //
   //
 
-  trait FieldCreator[M] {
-    type V
-    type CS <: FieldFeatures
-    def createField: Field[V, M, CS]
-  }
-
-  //
-  //
-  //
-
   implicit def simpleFieldCreator[VP](implicit simpleConverter: SimpleConverter[VP]) = new FieldCreator[VP] {
     type V = VP
     type CS = FieldFeatures {
@@ -104,7 +94,13 @@ package object form {
   //
   //
 
+  implicit def zeroOrMoreOccurrenceEvidence[O <: Occurrence](implicit ev: O <:< ZeroOrMore): OccurrenceEvidence[O] = new OccurrenceEvidence[O] {
+    override def isMultiple: Boolean = true
+  }
 
+  implicit def atMostOneOccurrenceEvidence[O <: Occurrence](implicit ev: O <:< AtMostOne): OccurrenceEvidence[O] = new OccurrenceEvidence[O] {
+    override def isMultiple: Boolean = false
+  }
 
   type Check[X] = X => Option[Error]
 
