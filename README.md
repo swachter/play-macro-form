@@ -1,6 +1,13 @@
 # play-ext
 
-This project contains some extensions for Play.
+This project contains some extensions for Play. The project contains the following subprojects:
+
+1. **core**: a library that contains the "Form Definition" and "Styling" extensions.
+2. **play-mod**: a Play module that can be included in Play applications in order to use the "Form
+Rendering" extension.
+3. **play-app**: an example play application
+
+(The **plugin** subproject is used during the built only in order to check the instantiation of value classes.)
 
 ## Improved Form Handling
 
@@ -10,22 +17,24 @@ system. For example the multiplicity of a field value (exactly one, zero or one,
 This allows to ensure that the a field can be input only by a suitable input mechanism (e.g. a drop down list
 is suitable only if the maximum occurrence of a value is one).
 
-During form processing string values are parsed into a so called *FormState*. The form state of a form is a case class
+During form processing string values are parsed into a so called **FormState**. The form state of a form is a case class
 that has members that correspond to the members of the form definition. Two cases can be distinguished:
 
-* For each field the form state member is a so called *FieldState* that contains the string representation of its value,
+* For each field the form state member is a so called **FieldState** that contains the string representation of its value,
 any parse or validation errors, and the so called field value (if the parse was successful). The field value has the
 type that is specified in the field definition.
-* For each nested form the form state member is the corresponding *FormState*.
+* For each nested form the form state member is the corresponding **FormState**.
 
 If a form state contains no errors then it allows to access the so called form value. The form value is a case class
 with members that correspond to the fields and nested forms of the form. Again, these members are strongly typed in
 order to allow type safe form processing.
 
-### Form Definitions
+### Form Definition
+
+*Note: In order to use the "Form Definition" extension the macro paradise plugin must be used.*
 
 Forms can easily be defined by using the @Form annotation on objects that contain field definitions. The @Form annotation
-is a macro annotation the enriches the annotated object in the following ways:
+is a macro annotation that enriches the annotated object in the following ways:
 
 * A case class FS that represents the form state
 * A case class FV that represents the form value
@@ -60,24 +69,24 @@ In order to ease the adaption of the HTML output of templates functionality is p
 sets of attributes. This functionality replaces difficult to write and maintain logic inside templates that would be
 necessary in order to allow specifying default values for attributes or augmenting the value of attributes.
 
-The key concept is the *attribute set* which is represented by the *Attrs* type. The Attrs type simply is
+The key concept is the *attribute set* which is represented by the **Attrs** type. The Attrs type simply is
 an alias for a `Map[String, Set[String]]`. An attribute set maps attribute names into a set of values. A set is
 used for the value because some attributes (most prominently the `class` attribute) can have a set of values. Most attributes
-however have a set with a single entry as their value. On top of that a *Style* is defined to be a `Map[String, Attrs]`,
+however have a set with a single entry as their value. On top of that a **Style** is defined to be a `Map[String, Attrs]`,
 i.e. a style contains several attribute sets that are identified by string valued keys.
 
 In order to adapt the HTML output of a certain realm (e.g. the output of HTML forms) several attribute sets may be
 necessary. For example there may be an attribute set that is used for the `<form>` element containing values for the `class`, `method` and
 `action` attributes and another attribute set that is used for the `<input>` element containing values for the `class` and `value`
-attributes. In order to identify these attribute sets the concept of a *StyledItem* is introduced. A styled item allows
+attributes. In order to identify these attribute sets the concept of a **StyledItem** is introduced. A styled item allows
 to access a specific attribute set from a style and supports tweaking its attribute set by an internal DSL.
 
-Attributes are described by *AttrDesc* instances. An attribute description contains the name of the attribute and describes
+Attributes are described by **AttrDesc** instances. An attribute description contains the name of the attribute and describes
 if an attribute has a single value or if it can have a set of values. A number of attribute description is provided for
 common HTML attributes like the `class` or `name` attribute. The identifier for these attribute descriptions have a
 `_@` suffix in order to avoid name clashes and to remind of attributes.
 
-If a template has an implicit style parameter and `input` is a *StyledItem* then the following code outputs an `<input>` element
+If a template has an implicit style parameter and `input` is a **StyledItem** then the following code outputs an `<input>` element
 with all its attributes:
 
     <input @Html(input)/>
