@@ -29,10 +29,10 @@ val commonSettings = Seq(
     }
   ) ++ bintraySettings ++ Seq(
     licenses += ("MIT", url("http://opensource.org/licenses/MIT")),
+    publishMavenStyle := true,
     bintray.Keys.repository in bintray.Keys.bintray := "generic",
     bintray.Keys.bintrayOrganization in bintray.Keys.bintray := None,
-    bintray.Keys.packageLabels in bintray.Keys.bintray := Seq("Scala", "Play"),
-    publishMavenStyle := true
+    bintray.Keys.packageLabels in bintray.Keys.bintray := Seq("Scala", "Play")
   )
 
 val commonPlaySettings = commonSettings ++ play.Project.playScalaSettings ++ Seq(
