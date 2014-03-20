@@ -11,7 +11,7 @@ lazy val plugin = project.settings(
 )
 
 val commonSettings = Seq(
-    organization := "eu.swdev.play-ext",
+    organization := "eu.swdev.playext",
     version := "0.1-SNAPSHOT",
     resolvers += Resolver.sonatypeRepo("snapshots"),
     resolvers += Resolver.sonatypeRepo("releases"),
@@ -27,6 +27,12 @@ val commonSettings = Seq(
       val dummy = "-Jdummy=" + jar.lastModified
       Seq(addPlugin, dummy)
     }
+  ) ++ bintraySettings ++ Seq(
+    licenses += ("MIT", url("http://opensource.org/licenses/MIT")),
+    bintray.Keys.repository in bintray.Keys.bintray := "generic",
+    bintray.Keys.bintrayOrganization in bintray.Keys.bintray := None,
+    bintray.Keys.packageLabels in bintray.Keys.bintray := Seq("Scala", "Play"),
+    publishMavenStyle := true
   )
 
 val commonPlaySettings = commonSettings ++ play.Project.playScalaSettings ++ Seq(
