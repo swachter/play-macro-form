@@ -4,6 +4,7 @@ import eu.swdev.web.form._
 import org.scalatest.FunSuite
 import eu.swdev.web.form.Error
 import scala.Some
+import eu.swdev.web.EntryPoint
 
 /** Tests the Form macro annotation
   */

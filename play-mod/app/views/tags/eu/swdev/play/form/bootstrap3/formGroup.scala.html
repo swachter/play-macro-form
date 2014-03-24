@@ -1,7 +1,7 @@
 @(fs: eu.swdev.web.form.FieldState[_, _, FieldFeatures])(inner: Html)(implicit lang: Lang, style: Style)
-<div @Html(Bs.formGroup += (fs.hasFieldErrors, class_@, "has-error"))>
+<div @Html(StyledItems.formGroup += (fs.hasFieldErrors, class_@, "has-error"))>
   @label(fs)
-  <div @Html(Bs.inputDiv)>
+  <div @Html(StyledItems.inputDiv)>
     @inner
     @if(fs.hasFieldErrors) {
       <small class="help-block">

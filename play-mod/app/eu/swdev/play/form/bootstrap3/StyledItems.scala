@@ -5,7 +5,7 @@ import eu.swdev.web.style.StyledItem
 /**
  * Styled items for outputting Bootstrap forms.
  */
-object Bs {
+object StyledItems {
   val form = StyledItem("form")
   val formGroup = StyledItem("formGroup")
   val label = StyledItem("label")

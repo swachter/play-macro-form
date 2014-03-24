@@ -1,6 +1,6 @@
 @(fs: eu.swdev.web.form.FieldState[_, _, FieldFeatures], options: Seq[Html], isMultiple: Boolean)(implicit lang: Lang, style: Style)
 @formGroup(fs) {
-  <select @Html(Bs.input ~= (name_@, fs.name) ~= (id_@, fs.name) ~= (isMultiple, multiple_@, "multiple"))>
+  <select @Html(StyledItems.input ~= (name_@, fs.name) ~= (id_@, fs.name) ~= (isMultiple, multiple_@, "multiple"))>
     @for(o <- options) { @o }
   </select>
 }

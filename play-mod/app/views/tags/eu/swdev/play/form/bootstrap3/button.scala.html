@@ -1,7 +1,7 @@
 @(tpe: String, label: String)(implicit style: Style)
-<div @Html(Bs.formGroup)>
-  <div @Html(Bs.label)></div>
-  <div @Html(Bs.inputDiv)>
+<div @Html(StyledItems.formGroup)>
+  <div @Html(StyledItems.label)></div>
+  <div @Html(StyledItems.inputDiv)>
     @buttonCtrl(tpe, label, false)
   </div>
 </div>

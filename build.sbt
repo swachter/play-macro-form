@@ -35,11 +35,7 @@ val commonSettings = Seq(
     bintray.Keys.packageLabels in bintray.Keys.bintray := Seq("Scala", "Play")
   )
 
-val commonPlaySettings = commonSettings ++ play.Project.playScalaSettings ++ Seq(
-    templatesImport += "eu.swdev.web.form._",
-    templatesImport += "eu.swdev.web.style._",
-    templatesImport += "eu.swdev.play.form.bootstrap3._"
-  )
+val commonPlaySettings = commonSettings ++ play.Project.playScalaSettings
 
 lazy val core = project.settings(commonSettings: _*).settings(
     libraryDependencies += "org.scalamacros" % "quasiquotes" % scalaMacroVersion cross CrossVersion.full
@@ -47,11 +43,19 @@ lazy val core = project.settings(commonSettings: _*).settings(
 
 lazy val playMod = Project("play-mod", file("play-mod")).dependsOn(core).settings(
     name := "play-mod"
-  ).settings(commonPlaySettings: _*)
+  ).settings(commonPlaySettings: _*).settings(
+    templatesImport += "eu.swdev.web.form._",
+    templatesImport += "eu.swdev.web.style._",
+    templatesImport += "eu.swdev.web.style.AttrDescs._",
+    templatesImport += "eu.swdev.play.form.MsgLookup",
+    templatesImport += "eu.swdev.play.form.bootstrap3._"
+  )
 
 lazy val playApp = Project("play-app", file("play-app")).dependsOn(core, playMod).settings(
     name := "play-app"
-  ).settings(commonPlaySettings: _*)
+  ).settings(commonPlaySettings: _*).settings(
+    templatesImport += "eu.swdev.play.form.bootstrap3.Import._"
+  )
 
 
 lazy val root = project.in(file(".")).aggregate(core, playMod, playApp)

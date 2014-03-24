@@ -65,11 +65,11 @@ trait StyleDef[R] extends Any {
   type AD <: AttrDesc
 
   // start duplicated block of apply methods
-  def apply[S: AttributeValue](attrDesc: AD, value: Set[S]): R
+  def apply[S: AsAttrValue](attrDesc: AD, value: Set[S]): R
 
-  def apply[S: AttributeValue](attrDesc: AD, value: S*): R
+  def apply[S: AsAttrValue](attrDesc: AD, value: S*): R
 
-  def apply[S: AttributeValue](check: Boolean, attrDesc: AD, value: S*): R
+  def apply[S: AsAttrValue](check: Boolean, attrDesc: AD, value: S*): R
 
   def apply(attr: Option[Attr]): R
   // end duplicated block of apply methods
@@ -81,11 +81,11 @@ class AssignDef[R](val styleOps: StyleDefs[R]) extends AnyVal with StyleDef[R] {
   type AD = AttrDesc
 
   // start duplicated block of apply methods
-  def apply[S: AttributeValue](attrDesc: AD, value: Set[S]): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
+  def apply[S: AsAttrValue](attrDesc: AD, value: Set[S]): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
 
-  def apply[S: AttributeValue](attrDesc: AD, value: S*): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
+  def apply[S: AsAttrValue](attrDesc: AD, value: S*): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
 
-  def apply[S: AttributeValue](check: Boolean, attrDesc: AD, value: S*): R = if (check) styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value))) else styleOps.noop
+  def apply[S: AsAttrValue](check: Boolean, attrDesc: AD, value: S*): R = if (check) styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value))) else styleOps.noop
 
   def apply(attr: Option[Attr]): R = attr match {
     case Some(a) => styleOps.result(mapper(a.name, a.value))
@@ -100,11 +100,11 @@ class PlusDef[R](val styleOps: StyleDefs[R]) extends AnyVal with StyleDef[R] {
   type AD = AttrDescMv
 
   // start duplicated block of apply methods
-  def apply[S: AttributeValue](attrDesc: AD, value: Set[S]): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
+  def apply[S: AsAttrValue](attrDesc: AD, value: Set[S]): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
 
-  def apply[S: AttributeValue](attrDesc: AD, value: S*): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
+  def apply[S: AsAttrValue](attrDesc: AD, value: S*): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
 
-  def apply[S: AttributeValue](check: Boolean, attrDesc: AD, value: S*): R = if (check) styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value))) else styleOps.noop
+  def apply[S: AsAttrValue](check: Boolean, attrDesc: AD, value: S*): R = if (check) styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value))) else styleOps.noop
 
   def apply(attr: Option[Attr]): R = attr match {
     case Some(a) => styleOps.result(mapper(a.name, a.value))
@@ -119,11 +119,11 @@ class MinusDef[R](val styleOps: StyleDefs[R]) extends AnyVal with StyleDef[R] {
   type AD = AttrDescMv
 
   // start duplicated block of apply methods
-  def apply[S: AttributeValue](attrDesc: AD, value: Set[S]): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
+  def apply[S: AsAttrValue](attrDesc: AD, value: Set[S]): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
 
-  def apply[S: AttributeValue](attrDesc: AD, value: S*): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
+  def apply[S: AsAttrValue](attrDesc: AD, value: S*): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
 
-  def apply[S: AttributeValue](check: Boolean, attrDesc: AD, value: S*): R = if (check) styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value))) else styleOps.noop
+  def apply[S: AsAttrValue](check: Boolean, attrDesc: AD, value: S*): R = if (check) styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value))) else styleOps.noop
 
   def apply(attr: Option[Attr]): R = attr match {
     case Some(a) => styleOps.result(mapper(a.name, a.value))
@@ -138,11 +138,11 @@ class TildeDef[R](val styleOps: StyleDefs[R]) extends AnyVal with StyleDef[R] {
   type AD = AttrDesc
 
   // start duplicated block of apply methods
-  def apply[S: AttributeValue](attrDesc: AD, value: Set[S]): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
+  def apply[S: AsAttrValue](attrDesc: AD, value: Set[S]): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
 
-  def apply[S: AttributeValue](attrDesc: AD, value: S*): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
+  def apply[S: AsAttrValue](attrDesc: AD, value: S*): R = styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value)))
 
-  def apply[S: AttributeValue](check: Boolean, attrDesc: AD, value: S*): R = if (check) styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value))) else styleOps.noop
+  def apply[S: AsAttrValue](check: Boolean, attrDesc: AD, value: S*): R = if (check) styleOps.result(mapper(attrDesc.attrName, attrDesc.toStringSet(value))) else styleOps.noop
 
   def apply(attr: Option[Attr]): R = attr match {
     case Some(a) => styleOps.result(mapper(a.name, a.value))

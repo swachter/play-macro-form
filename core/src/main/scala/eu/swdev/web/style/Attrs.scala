@@ -27,7 +27,7 @@ object Attrs extends StyleDefs[AttrsT] {
    * @param value
    * @return
    */
-  def apply[S: AttributeValue](attrName: String, value: S*): Attrs = Map(attrName -> value.toSet.map((x: S) => implicitly[AttributeValue[S]].asString(x)))
+  def apply[S: AsAttrValue](attrName: String, value: S*): Attrs = Map(attrName -> value.toSet.map((x: S) => implicitly[AsAttrValue[S]].asString(x)))
 
   /**
    * String interpolator that allows to create a set of attributes from an Html fragment.
@@ -73,8 +73,8 @@ trait Attr {
 }
 
 object Attr {
-  class AttrImpl[S: AttributeValue](val name: String, val value: Set[String]) extends Attr
-  def apply[S: AttributeValue](attrDesc: AttrDesc, value: S*): Attr = new AttrImpl(attrDesc.attrName, attrDesc.toStringSet(value))
+  class AttrImpl[S: AsAttrValue](val name: String, val value: Set[String]) extends Attr
+  def apply[S: AsAttrValue](attrDesc: AttrDesc, value: S*): Attr = new AttrImpl(attrDesc.attrName, attrDesc.toStringSet(value))
 }
 
 /**
@@ -84,13 +84,13 @@ object Attr {
  *
  * @tparam S
  */
-trait AttributeValue[S] {
+trait AsAttrValue[S] {
   def asStringSet(value: S): Set[String]
   def asString(value: S): String
 }
 
-object AttributeValue {
-  implicit val stringAttributeValue = new AttributeValue[String] {
+object AsAttrValue {
+  implicit val stringAttributeValue = new AsAttrValue[String] {
     override def asStringSet(value: String): Set[String] = {
       val b = Set.newBuilder[String]
       value.split("\\s+").foreach(b += _)
@@ -120,7 +120,7 @@ trait AttrDesc {
    * @tparam S
    * @return
    */
-  def toStringSet[S: AttributeValue](s: Iterable[S]): Set[String]
+  def toStringSet[S: AsAttrValue](s: Iterable[S]): Set[String]
 }
 
 /**
@@ -129,8 +129,8 @@ trait AttrDesc {
  * @param attrName
  */
 case class AttrDescMv(attrName: String) extends AttrDesc {
-  def toStringSet[S: AttributeValue](s: Iterable[S]): Set[String] = {
-    s.toSet.flatMap((x: S) => implicitly[AttributeValue[S]].asStringSet(x))
+  def toStringSet[S: AsAttrValue](s: Iterable[S]): Set[String] = {
+    s.toSet.flatMap((x: S) => implicitly[AsAttrValue[S]].asStringSet(x))
   }
 }
 
@@ -140,7 +140,29 @@ case class AttrDescMv(attrName: String) extends AttrDesc {
  * @param attrName
  */
 case class AttrDescSv(attrName: String) extends AttrDesc {
-  def toStringSet[S: AttributeValue](s: Iterable[S]): Set[String] = {
-    Set(s.map((x: S) => implicitly[AttributeValue[S]].asString(x)).mkString(" "))
+  def toStringSet[S: AsAttrValue](s: Iterable[S]): Set[String] = {
+    Set(s.map((x: S) => implicitly[AsAttrValue[S]].asString(x)).mkString(" "))
   }
+}
+
+/**
+ * Defines a number of attribute descriptions for some well known attributes.
+ */
+object AttrDescs {
+
+  val class_@ = AttrDescMv("class")
+  val type_@ = AttrDescSv("type")
+  val min_@ = AttrDescSv("min")
+  val max_@ = AttrDescSv("max")
+  val step_@ = AttrDescSv("step")
+  val name_@ = AttrDescSv("name")
+  val value_@ = AttrDescSv("value")
+  val id_@ = AttrDescSv("id")
+  val action_@ = AttrDescSv("action")
+  val placeholder_@ = AttrDescSv("placeholder")
+  val multiple_@ = AttrDescSv("multiple")
+  val for_@ = AttrDescSv("for")
+  val method_@ = AttrDescSv("method")
+  val checked_@ = AttrDescSv("checked")
+
 }

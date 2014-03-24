@@ -5,16 +5,18 @@ import play.api.i18n.Lang
 import eu.swdev.web.form.FormState
 import play.api.templates.Html
 import views.html.tags.eu.swdev.play.form.{bootstrap3 => bs3}
+import eu.swdev.play.form.{MsgLookup, FormRenderer}
 
 /**
  * Provides methods for rendering form related things.
  *
  * @tparam M
  */
-trait FormRenderer[M] {
+trait BsFormRenderer[M] extends FormRenderer {
 
   implicit def style: Style
   implicit def lang: Lang
+
   def formState: FormState[M]
 
   def submit: Html = button("submit")

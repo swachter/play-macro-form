@@ -1,6 +1,6 @@
 @(tpe: String, name: String, value: String, checked: Boolean, label: String, stackedNotInline: Boolean)(implicit style: Style)
 @inp = {
-<input name="@name" type="@tpe" class="form-control" value="@value" @if(checked) { checked="checked" } />
+<input name="@name" type="@tpe" value="@value" @if(checked) { checked="checked" } />
 @label
 }
 @if(stackedNotInline) {

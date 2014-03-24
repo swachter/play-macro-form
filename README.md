@@ -52,16 +52,19 @@ Example of a simple form definition:
 
 ### Form Rendering
 
-If a template has form state `fs` as its parameter then HTML form fields can easily be rendered by selecting the form
-member and invoking a suitable rendering method. For example if a form state for the form above is used the following
-code renders three HTML form input fields:
+HTML form fields can easily be rendered by invoking suitable rendering methods on field state members. For example if
+the form given above is used and a template has a corresponding form state `fs` as its parameter then HTML form fields
+for all three fields can be rendered by the following code:
 
     fs.f1.selectList
     fs.f2.inputText
     fs.f3.selectList
 
-Note that the first and the third line uses the same rendering method `selectList`. In the first line a drop down list
-is rendered (allowing a single input) whereas in the third line a selection list is rendered (allowing multipe inputs).
+Note that the first and the third line use the same rendering method `selectList`. In the first line a drop down list
+is rendered (allowing a single input) whereas in the third line a selection list is rendered (allowing multiple inputs).
+
+At the moment form rendering supports to output forms with a structure and CSS style classes that are aligned to Bootstrap 3.
+Yet, it would be possible to support different outputs
 
 ## Styling (HTML Output Adaption)
 

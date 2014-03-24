@@ -1,4 +1,4 @@
 @(fs: FieldState[_, _, FieldFeatures], inputType: String)(implicit style: Style, lang: Lang)
 @formGroup(fs) {
-  <input @Html(Bs.input ~= (name_@, fs.name) ~= (type_@, inputType) ~= (id_@, fs.name) ~= (value_@, fs.view: _*) ~= (fs.placeholder) += (class_@, "form-control"))/>
+  <input @Html(StyledItems.input ~= (name_@, fs.name) ~= (type_@, inputType) ~= (id_@, fs.name) ~= (value_@, fs.view: _*) ~= (fs.placeholder) += (class_@, "form-control"))/>
 }

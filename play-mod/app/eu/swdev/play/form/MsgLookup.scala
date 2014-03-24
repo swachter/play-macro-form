@@ -1,4 +1,4 @@
-package eu.swdev.play.form.bootstrap3
+package eu.swdev.play.form
 
 import eu.swdev.web.form.{Name, FormState, FieldState}
 import play.api.i18n.{Messages, Lang}
