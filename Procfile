@@ -1,0 +1,1 @@
+web: play-app/target/universal/stage/bin/play-app -DapplyEvolutions.default=true  -Dhttp.port=${PORT}
