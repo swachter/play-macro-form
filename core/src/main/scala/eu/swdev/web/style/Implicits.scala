@@ -4,6 +4,7 @@ import scala.language.implicitConversions
 import eu.swdev.web.EntryPoint
 
 /**
+ * Contains style-related implicit conversions.
  */
 trait Implicits {
 
@@ -15,6 +16,12 @@ trait Implicits {
 
   implicit def `eu.swdev.web.style.Attrs->String`(attrs: Attrs) = attrsToString(attrs)
 
+  /**
+   * Allows to access the members of the AttrDescs object via the entry point object.
+   *
+   * @param entryPoint
+   * @return
+   */
   implicit def `eu.swdev.web.EntryPoint->eu.swdev.web.style.AttrDescs`(entryPoint: EntryPoint.type) = AttrDescs
 }
 

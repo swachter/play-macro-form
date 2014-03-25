@@ -60,8 +60,19 @@ package object style {
     (for {
       me <- attrs
     } yield {
-      s"""${me._1}="${me._2.filter(!_.isEmpty).mkString(" ")}""""
+      s"""${me._1}="${me._2.filter(!_.isEmpty).iterator.map(encodeAsHtml(_)).mkString(" ")}""""
     }).mkString(" ")
   }
 
+  def encodeAsHtml(str: String): String = {
+    if (str.exists(mustBeEscaped.contains(_))) {
+      val b = new StringBuilder
+      str.foreach(c => if (mustBeEscaped.contains(c)) b.append(mustBeEscaped(c)) else b.append(c))
+      b.toString
+    } else {
+      str
+    }
+  }
+
+  val mustBeEscaped = Map('\'' -> "&apos;", '"' -> "&quot;", '&' -> "&amp;", '<' -> "&lt;")
 }

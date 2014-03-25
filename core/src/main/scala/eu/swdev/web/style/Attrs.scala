@@ -90,7 +90,7 @@ trait AsAttrValue[S] {
 }
 
 object AsAttrValue {
-  implicit val stringAttributeValue = new AsAttrValue[String] {
+  implicit val stringAsAttrValue = new AsAttrValue[String] {
     override def asStringSet(value: String): Set[String] = {
       val b = Set.newBuilder[String]
       value.split("\\s+").foreach(b += _)
