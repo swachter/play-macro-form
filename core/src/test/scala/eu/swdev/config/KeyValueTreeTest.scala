@@ -10,6 +10,9 @@ import org.scalatest.prop.Checkers
  */
 class KeyValueTreeTest extends FunSuite with Checkers {
 
+  /**
+   * A module for key-value-trees that have string valued keys and values.
+   */
   val kvtm = new StringKeyValueTreeModule {
     type Value = String
   }
