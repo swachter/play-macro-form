@@ -1,6 +1,5 @@
 package eu.swdev.play.form.bootstrap3
 
-import eu.swdev.web.style.{AttrDescs, StyledItem}
 import eu.swdev.web.EntryPoint
 
 /**
@@ -9,7 +8,6 @@ import eu.swdev.web.EntryPoint
  */
 object Import extends Implicits with eu.swdev.play.Implicits with eu.swdev.web.style.Implicits {
 
-  //type FormState[M] = eu.swdev.web.form.FormState[M]
   type Style = eu.swdev.web.style.Style
 
   /**
