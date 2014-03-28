@@ -61,7 +61,7 @@ trait KeyValueTreeModule {
       def doGetValue(steps: List[Step], matchStates: Seq[MatchState]): Option[Value] = {
         steps match {
           case step :: tail => doGetValue(tail, matchStates.flatMap(_.step(step)))
-          case _ => matchStates.flatMap(_.expand).foldLeft[(Int, Option[Value])]((-1, None))((accu, matchState) => {
+          case _ => matchStates.foldLeft[(Int, Option[Value])]((-1, None))((accu, matchState) => {
             if (matchState.value.isDefined && matchState.weight > accu._1) {
               (matchState.weight, matchState.value)
             } else {
@@ -71,7 +71,7 @@ trait KeyValueTreeModule {
         }
       }
 
-      doGetValue(splitKey(key), Seq(TreeMatchState(0, this)))
+      doGetValue(splitKey(key), matchStates(0))
     }
 
     /**
@@ -95,6 +95,13 @@ trait KeyValueTreeModule {
       doUpdate(this, splitKey(key))
     }
 
+    def matchStates(weight: Int): Seq[MatchState] = {
+      val b = Seq.newBuilder[MatchState]
+      b += TreeMatchState(weight, this)
+      asterisk.foreach(_.matchStates(weight).foreach(b += _))
+      b.result()
+    }
+
   }
 
   object KeyValueTree {
@@ -109,24 +116,20 @@ trait KeyValueTreeModule {
       def weight: Int
       def value: Option[Value]
       def step(step: Step): Seq[MatchState]
-      def expand: Seq[MatchState]
     }
 
     case class TreeMatchState(weight: Int, tree: KeyValueTree) extends MatchState {
       def step(step: Step): Seq[MatchState] = {
         val b = Seq.newBuilder[MatchState]
-        tree.asterisk.foreach(AsteriskMatchState(weight, _).step(step).foreach(b += _))
-        tree.questionMark.foreach(b += TreeMatchState(weight + 1, _))
-        tree.map.get(step).foreach(b += TreeMatchState(weight + 10, _))
+        tree.asterisk.foreach { t =>
+          b += AsteriskMatchState(weight, t)
+          t.matchStates(weight).foreach(b += _)
+        }
+        tree.questionMark.foreach(_.matchStates(weight + 1).foreach(b += _))
+        tree.map.get(step).foreach(_.matchStates(weight + 10).foreach(b += _))
         b.result()
       }
       def value = tree.value
-      def expand: Seq[MatchState] = {
-        val b = Seq.newBuilder[MatchState]
-        b += this
-        tree.asterisk.foreach(AsteriskMatchState(weight, _).expand.foreach(b += _))
-        b.result
-      }
     }
 
     case class AsteriskMatchState(weight: Int, tree: KeyValueTree) extends MatchState {
@@ -134,14 +137,8 @@ trait KeyValueTreeModule {
       def step(step: Step): Seq[MatchState] = {
         val b = Seq.newBuilder[MatchState]
         b += this
-        TreeMatchState(weight, tree).step(step).foreach(b += _)
+        tree.matchStates(weight).foreach(b += _)
         b.result()
-      }
-      def expand: Seq[MatchState] = {
-        val b = Seq.newBuilder[MatchState]
-        b += this
-        TreeMatchState(weight, tree).expand.foreach(b += _)
-        b.result
       }
     }
 

@@ -125,6 +125,21 @@ class KeyValueTreeTest extends FunSuite with Checkers {
     assert(tree.getValue("b.a.b") === None)
   }
 
+  test("?.* - a.a") {
+    val tree = kvtm.KeyValueTree(Seq(("?.*", "x")))
+    assert(tree.getValue("a.a") === Some("x"))
+  }
+
+  test("* - a.b.a") {
+    val tree = kvtm.KeyValueTree(Seq(("*", "x")))
+    assert(tree.getValue("a.b.a") === Some("x"))
+  }
+
+  test("*.* - a.b.a") {
+    val tree = kvtm.KeyValueTree(Seq(("*.*", "x")))
+    assert(tree.getValue("a.b.a") === Some("x"))
+  }
+
   test("scala-check") {
 
     check(forAll(defKeysGen) { defKeys =>
