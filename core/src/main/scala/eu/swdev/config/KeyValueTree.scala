@@ -27,17 +27,17 @@ import java.util.regex.Pattern
  * </code>
  *
  * The first line defines an ordinary key-value mapping. The second line defines a key-value mapping for any keys that
- * start with an 'a' followed by zero or more steps. Note that the retrieval key 'a' would match the definition key
+ * start with an 'a' followed by zero or more steps. Note that the retrieval key 'a' matches the definition key
  * of line 1 and line 2. The third line defines a value for any keys that start with an
  * arbitrary step followed by an 'a'-step. Finally the last line defines a value for all keys starting with an arbitrary
  * key followed by an 'a'-step and another arbitrary step.
  *
  * If a retrieval key matches several definition keys then the matches are scored and the match with the maximum score
  * is selected. The score of a match is equal to the sum of the scores of the matching steps. Each normal step is counted
- * as 10, each single wildcardstep is counted as 1, and each multi-wildcard step is counted as 0. The scoring function
- * prefers more specific definition keys. Additionally, if several definition keys have the same score then the definition
- * key that ends with a normal step is preferred. If there is still an ambiguity then it is undefined which definition
- * key is matched, i.e. which value is selected.
+ * as 10, each single wildcardstep is counted as 1, and each multi-wildcard step is counted as 0. This means that the
+ * scoring function prefers more specific definition keys. If several definition keys have the same score then the shorter
+ * definition key is preferred. If there is still an ambiguity then it is undefined which definition key is matched,
+ * i.e. which value is selected.
  */
 trait KeyValueTreeModule {
 
@@ -54,20 +54,21 @@ trait KeyValueTreeModule {
   /**
    *
    */
-  case class KeyValueTree(asterisk: Option[KeyValueTree], questionMark: Option[KeyValueTree], map: Map[Step, KeyValueTree], value: Option[Value]) {
+  case class KeyValueTree(asterisk: Option[KeyValueTree], questionMark: Option[KeyValueTree], map: Map[Step, KeyValueTree], value: Option[Value], depth: Int) {
 
     def getValue(key: Key): Option[Value] = {
 
       def doGetValue(steps: List[Step], matchStates: Seq[MatchState]): Option[Value] = {
         steps match {
           case step :: tail => doGetValue(tail, matchStates.flatMap(_.step(step)))
-          case _ => matchStates.foldLeft[(Int, Option[Value])]((-1, None))((accu, matchState) => {
-            if (matchState.value.isDefined && matchState.weight > accu._1) {
-              (matchState.weight, matchState.value)
+          case _ => {
+            val matchStatesWithValues = matchStates.collect{ case m@TreeMatchState(_, tree) if (tree.value.isDefined) => m}
+            if (matchStatesWithValues.isEmpty) {
+              None
             } else {
-              accu
+              matchStatesWithValues.reduce((m1, m2) => if (m1.weight > m2.weight || m1.weight == m2.weight && m1.depth < m2.depth) m1 else m2).value
             }
-          })._2
+          }
         }
       }
 
@@ -84,11 +85,11 @@ trait KeyValueTreeModule {
     def update(key: Key, value: Value): KeyValueTree = {
       def doUpdate(oldTree: KeyValueTree, steps: List[Step]): KeyValueTree = steps match {
         case step :: tail => if (isAsteriskStep(step)) {
-          oldTree.copy(asterisk = Some(doUpdate(oldTree.asterisk.getOrElse(empty), tail)))
+          oldTree.copy(asterisk = Some(doUpdate(oldTree.asterisk.getOrElse(newChild), tail)))
         } else if (isQuestionMarkStep(step)) {
-          oldTree.copy(questionMark = Some(doUpdate(oldTree.questionMark.getOrElse(empty), tail)))
+          oldTree.copy(questionMark = Some(doUpdate(oldTree.questionMark.getOrElse(newChild), tail)))
         } else {
-          oldTree.copy(map = oldTree.map + (step -> doUpdate(oldTree.map.getOrElse(step, empty), tail)))
+          oldTree.copy(map = oldTree.map + (step -> doUpdate(oldTree.map.getOrElse(step, newChild), tail)))
         }
         case _ => oldTree.copy(value = Some(value))
       }
@@ -102,11 +103,13 @@ trait KeyValueTreeModule {
       b.result()
     }
 
+    private def newChild = KeyValueTree(None, None, Map.empty, None, depth + 1)
+
   }
 
   object KeyValueTree {
 
-    val empty = KeyValueTree(None, None, Map.empty, None)
+    val empty = KeyValueTree(None, None, Map.empty, None, 0)
 
     def apply(keyValues: Seq[(Key, Value)]): KeyValueTree = {
       keyValues.foldLeft(empty)((tree, keyValue) => tree(keyValue._1) = keyValue._2)
@@ -130,6 +133,7 @@ trait KeyValueTreeModule {
         b.result()
       }
       def value = tree.value
+      def depth = tree.depth
     }
 
     case class AsteriskMatchState(weight: Int, tree: KeyValueTree) extends MatchState {
