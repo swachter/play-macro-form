@@ -3,18 +3,18 @@ package eu.swdev.config
 import java.util.regex.Pattern
 
 /**
- * Provides a key-value store that uses hierarchically structured keys and supports wildcard entries. This kind of store
- * is called a KeyValueTree.
+ * Provides a key-value store that uses hierarchically structured keys and is called a key-value tree. Wildcard entries
+ * are supported for the definition of key-value trees.
  *
- * A key is represented by a possibly empty sequence of steps. Two types of keys must be distinguished:
+ * A key is represented by a possibly empty sequence of steps. Two types of keys are distinguished:
  *
  * 1. definition keys, i.e. keys that are used when a KeyValueTree is defined
  * 2. retrieval key, i.e. keys that are used when a value is retrieved from the KeyValueTree
  *
  * Retrieval keys can contain normal steps only. A normal step is a step that has a specific step value. Definitions keys
- * can contain normal steps and wildcard steps. There are two kinds of wildcard steps: single wildcard steps that match
+ * can contain normal steps and so called wildcard steps. There are two kinds of wildcard steps: single wildcard steps that match
  * a single arbitrary step value and multi wildcard steps that match an arbitrary number (0 included!) of arbitrary step
- * values. A definition key can contain many wildcard steps.
+ * values. A definition key can contain several wildcard steps.
  *
  * In the following example single wildcard steps are identified by a '?' character and multi-wildcard steps are identified
  * by a '*' character:
@@ -34,10 +34,10 @@ import java.util.regex.Pattern
  *
  * If a retrieval key matches several definition keys then the matches are scored and the match with the maximum score
  * is selected. The score of a match is equal to the sum of the scores of the matching steps. Each normal step is counted
- * as 10, each single wildcardstep is counted as 1, and each multi-wildcard step is counted as 0. This means that the
- * scoring function prefers more specific definition keys. If several definition keys have the same score then the shorter
- * definition key is preferred. If there is still an ambiguity then it is undefined which definition key is matched,
- * i.e. which value is selected.
+ * as 10, each single wildcard step is counted as 1, and each multi-wildcard step is counted as 0. This means that the
+ * scoring function prefers more specific definition keys over unspecific ones. If several definition keys have the same
+ * score then the shorter definition key is preferred. If there is still an ambiguity then it is undefined which
+ * definition key is matched i.e. which value is selected.
  */
 trait KeyValueTreeModule {
 
@@ -46,15 +46,15 @@ trait KeyValueTreeModule {
   type Value
 
   def splitKey(key: Key): List[Step]
-  def isAsteriskStep(step: Step): Boolean
-  def isQuestionMarkStep(step: Step): Boolean
+  def isMultiWildcardStep(step: Step): Boolean
+  def isSingleWildcardStep(step: Step): Boolean
 
   import KeyValueTree._
 
   /**
    *
    */
-  case class KeyValueTree(asterisk: Option[KeyValueTree], questionMark: Option[KeyValueTree], map: Map[Step, KeyValueTree], value: Option[Value], depth: Int) {
+  case class KeyValueTree(multiWildcard: Option[KeyValueTree], singleWildcard: Option[KeyValueTree], map: Map[Step, KeyValueTree], value: Option[Value], depth: Int) {
 
     def getValue(key: Key): Option[Value] = {
 
@@ -84,12 +84,12 @@ trait KeyValueTreeModule {
      */
     def update(key: Key, value: Value): KeyValueTree = {
       def doUpdate(oldTree: KeyValueTree, steps: List[Step]): KeyValueTree = steps match {
-        case step :: tail => if (isAsteriskStep(step)) {
-          oldTree.copy(asterisk = Some(doUpdate(oldTree.asterisk.getOrElse(newChild), tail)))
-        } else if (isQuestionMarkStep(step)) {
-          oldTree.copy(questionMark = Some(doUpdate(oldTree.questionMark.getOrElse(newChild), tail)))
+        case step :: tail => if (isMultiWildcardStep(step)) {
+          oldTree.copy(multiWildcard = Some(doUpdate(oldTree.multiWildcard.getOrElse(oldTree.newChild), tail)))
+        } else if (isSingleWildcardStep(step)) {
+          oldTree.copy(singleWildcard = Some(doUpdate(oldTree.singleWildcard.getOrElse(oldTree.newChild), tail)))
         } else {
-          oldTree.copy(map = oldTree.map + (step -> doUpdate(oldTree.map.getOrElse(step, newChild), tail)))
+          oldTree.copy(map = oldTree.map + (step -> doUpdate(oldTree.map.getOrElse(step, oldTree.newChild), tail)))
         }
         case _ => oldTree.copy(value = Some(value))
       }
@@ -99,7 +99,7 @@ trait KeyValueTreeModule {
     def matchStates(weight: Int): Seq[MatchState] = {
       val b = Seq.newBuilder[MatchState]
       b += TreeMatchState(weight, this)
-      asterisk.foreach(_.matchStates(weight).foreach(b += _))
+      multiWildcard.foreach(_.matchStates(weight).foreach(b += _))
       b.result()
     }
 
@@ -115,6 +115,10 @@ trait KeyValueTreeModule {
       keyValues.foldLeft(empty)((tree, keyValue) => tree(keyValue._1) = keyValue._2)
     }
 
+    val standardStepWeight = 10
+    val singleWildcardStepWeight = 1
+    val multiWildcardStepWeight = 0
+
     trait MatchState {
       def weight: Int
       def value: Option[Value]
@@ -124,19 +128,16 @@ trait KeyValueTreeModule {
     case class TreeMatchState(weight: Int, tree: KeyValueTree) extends MatchState {
       def step(step: Step): Seq[MatchState] = {
         val b = Seq.newBuilder[MatchState]
-        tree.asterisk.foreach { t =>
-          b += AsteriskMatchState(weight, t)
-          t.matchStates(weight).foreach(b += _)
-        }
-        tree.questionMark.foreach(_.matchStates(weight + 1).foreach(b += _))
-        tree.map.get(step).foreach(_.matchStates(weight + 10).foreach(b += _))
+        tree.multiWildcard.foreach(MultiWildcardMatchState(weight + multiWildcardStepWeight, _).step(step).foreach(b += _))
+        tree.singleWildcard.foreach(_.matchStates(weight + singleWildcardStepWeight).foreach(b += _))
+        tree.map.get(step).foreach(_.matchStates(weight + standardStepWeight).foreach(b += _))
         b.result()
       }
       def value = tree.value
       def depth = tree.depth
     }
 
-    case class AsteriskMatchState(weight: Int, tree: KeyValueTree) extends MatchState {
+    case class MultiWildcardMatchState(weight: Int, tree: KeyValueTree) extends MatchState {
       def value = None
       def step(step: Step): Seq[MatchState] = {
         val b = Seq.newBuilder[MatchState]
@@ -149,6 +150,10 @@ trait KeyValueTreeModule {
   }
 }
 
+/**
+ * Provides a key-value tree that uses keys that are a dot-separated strings. Single wildcard steps are denoted by a '?'
+ * character and multi-wildcard steps by a '*' character.
+ */
 trait StringKeyValueTreeModule extends KeyValueTreeModule {
 
   type Key = String
@@ -156,13 +161,22 @@ trait StringKeyValueTreeModule extends KeyValueTreeModule {
 
   val dotPattern = Pattern.compile("\\.")
 
-  override def isQuestionMarkStep(step: StringKeyValueTreeModule#Step): Boolean = step == "?"
+  override def isSingleWildcardStep(step: StringKeyValueTreeModule#Step): Boolean = step == "?"
 
-  override def isAsteriskStep(step: StringKeyValueTreeModule#Step): Boolean = step == "*"
+  override def isMultiWildcardStep(step: StringKeyValueTreeModule#Step): Boolean = step == "*"
 
+  /**
+   * Splits a string valued key at the dot character into a list of steps.
+   *
+   * A key may start with a dot, end with a dot and may contain consecutive dots. In these case the corresponding steps
+   * have an empty string as their step value. A key that is the empty string is transformed into an empty list of steps.
+   *
+   * @param key
+   * @return
+   */
   override def splitKey(key: StringKeyValueTreeModule#Key): List[StringKeyValueTreeModule#Step] = {
     // if the key starts with a dot or ends with a dot then an empty string is returned as the first or as the last
     // element of the returned split array, respectively.
-    dotPattern.split(key, -1).toList
+    if (key.isEmpty) Nil else dotPattern.split(key, -1).toList
   }
 }
