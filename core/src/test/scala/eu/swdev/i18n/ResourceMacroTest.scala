@@ -5,12 +5,14 @@ import java.util.Locale
 
 /**
   */
-class ResourceTest extends FunSuite {
+class ResourceMacroTest extends FunSuite {
 
   @Resource(resourcePath = "com/abc/resource")
   object R {
 
   }
+
+  case class Wrapped(string: String)
 
   implicit val markupVal = new Markup {
 
@@ -21,15 +23,15 @@ class ResourceTest extends FunSuite {
       '"' -> ((b: StringBuilder) => b.append("&quot;")),
       '\'' -> ((b: StringBuilder) => b.append("&apos;")))
 
-    override type M = String
+    override type M = Wrapped
 
-    override def rawMsg(string: String): String = {
+    override def rawMsg(string: String): Wrapped = {
       val sb = new StringBuilder
       string.foreach(c => escapes.getOrElse(c, (sb: StringBuilder) => sb.append(c))(sb))
-      sb.toString
+      Wrapped(sb.toString)
     }
 
-    override def markupMsg(string: String): String = string
+    override def markupMsg(string: String): Wrapped = Wrapped(string)
   }
 
   implicit val locale = new Locale("de", "DE")
@@ -38,9 +40,17 @@ class ResourceTest extends FunSuite {
     assert(R.simpleMsgs != null)
     assert(R.lookupMsgs != null)
     assert(R.a === "")
+    assert(R.b("x") === Wrapped("<b>x</b>"))
     assert(R.o === "x")
 
   }
+
+  test("lookup") {
+    assert(R.t("")(null, null, null) === Some("1"))
+    assert(R.t("a")("x", "y", "z") === Some("z"))
+    assert(R.t("a.b")(null, null, null) === Some("3"))
+  }
+
 }
 
 //Apply(

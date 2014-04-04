@@ -13,10 +13,10 @@ object ResourcesLoader {
     val both = resources.mapValues(_.entries.foldLeft(zero)((a, e) => {
       e.key match {
         case SimpleEntryKey(id) => {
-          (a._1 + (id -> MsgFormat(e.msg, e.isHtml)), a._2)
+          (a._1 + (id -> MsgFormat(e.msg, e.isMarkup)), a._2)
         }
         case LookupEntryKey(id, path) => {
-          (a._1, a._2 + (id -> (a._2.getOrElse(id, MsgLookup.KeyValueTree.empty)(path) = MsgFormat(e.msg, e.isHtml))))
+          (a._1, a._2 + (id -> (a._2.getOrElse(id, MsgLookup.KeyValueTree.empty)(path) = MsgFormat(e.msg, e.isMarkup))))
         }
       }
 

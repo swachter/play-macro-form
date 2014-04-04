@@ -29,7 +29,7 @@ case class LookupEntryKey(id: String, path: String) extends EntryKey {
 /**
  *
  */
-case class ResourceEntry(key: EntryKey, msg: MessageFormat, isHtml: Boolean)
+case class ResourceEntry(key: EntryKey, msg: MessageFormat, isMarkup: Boolean)
 
 /**
  *

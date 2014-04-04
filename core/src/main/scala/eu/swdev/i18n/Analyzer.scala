@@ -31,19 +31,14 @@ object Analyzer {
       val l = e.msg.getFormatsByArgumentIndex.length
       e.key match {
         case SimpleEntryKey(id) => {
-          val old = b1.get(id)
-          if (old.map(_.args >= l).getOrElse(false)) {
-            b1
-          } else {
-            b1 + (id -> old.map(_.copy(args = l)).getOrElse(MsgSignature(l, false)))
-          }
+          b1 + (id -> MsgSignature(l, e.isMarkup))
         }
         case LookupEntryKey(id, path) => {
           val old = b1.get(id)
           if (old.map(s => s.args >= l && s.isMarkup).getOrElse(false)) {
             b1
           } else {
-            b1 + (id -> old.map(s => MsgSignature(s.args.max(l), true)).getOrElse(MsgSignature(l, true)))
+            b1 + (id -> old.map(s => MsgSignature(s.args.max(l), s.isMarkup || e.isMarkup)).getOrElse(MsgSignature(l, e.isMarkup)))
           }
 
         }
