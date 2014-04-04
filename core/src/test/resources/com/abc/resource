@@ -1,0 +1,22 @@
+# an entry without arguments
+a=
+
+# an entry with one argument that contains markup
+b @ <b>{0}</b>
+
+# an entry with two arguments
+c=<{0} {1}>
+
+# an entry that uses the third argument only
+d={2}
+
+# the first o entry is overwritten by the second o entry
+o={0}
+o=x
+
+# a lookup tree with entries of varying number of arguments
+t[]=1
+t[a]={2}
+t[a.b]=3
+
+

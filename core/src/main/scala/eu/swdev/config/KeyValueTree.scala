@@ -19,12 +19,12 @@ import java.util.regex.Pattern
  * In the following example single wildcard steps are identified by a '?' character and multi-wildcard steps are identified
  * by a '*' character:
  *
- * <code>
+ * {{{
  * a=1
  * a.*=2
  * ?.a=3
  * ?.a.?=4
- * </code>
+ * }}}
  *
  * The first line defines an ordinary key-value mapping. The second line defines a key-value mapping for any keys that
  * start with an 'a' followed by zero or more steps. Note that the retrieval key 'a' matches the definition key
