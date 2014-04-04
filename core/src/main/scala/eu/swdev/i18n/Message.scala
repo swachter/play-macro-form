@@ -71,8 +71,8 @@ trait Markup {
 }
 
 /**
- * A module for key-value trees that contains message formats.
+ * A module for key-value trees that contain message formats.
  */
-object MessageLookup extends StringKeyValueTreeModule {
+object MsgLookup extends StringKeyValueTreeModule {
   type Value = MsgFormat
 }

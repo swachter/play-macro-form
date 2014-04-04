@@ -26,7 +26,7 @@ class AnalyzerTest extends FunSuite with Inside {
     val result = analyze(getClass.getClassLoader, "com/abc/resource", de_DE)
     val s = Set("a")
     inside(result) {
-      case AnalyzeResult(SetE("a", "b", "c", "d", "o"), SetE("t"), MapE(("a", 0), ("b", 1), ("c", 2), ("d", 3), ("o", 0), ("t", 3)), MapE((de_DE, SetE())), SetE()) => true
+      case AnalyzeResult(SetE("a", "b", "c", "d", "o"), SetE("t"), MapE(("a", MsgSignature(0, false)), ("b", MsgSignature(1, true)), ("c", MsgSignature(2, false)), ("d", MsgSignature(3, false)), ("o", MsgSignature(0, false)), ("t", MsgSignature(3, false))), MapE((de_DE, SetE())), SetE()) => true
     }
   }
 }

@@ -15,7 +15,9 @@ object Analyzer {
     analyzeKeys(resources)
   }
 
-  case class AnalyzeResult(simpleKeys: Set[String], lookupKeys: Set[String], args: Map[String, Int], missingKeys: Map[Locale, Set[String]], ambiguouslyUsedKey: Set[String])
+  case class MsgSignature(args: Int, isMarkup: Boolean)
+
+  case class AnalyzeResult(simpleKeys: Set[String], lookupKeys: Set[String], signatures: Map[String, MsgSignature], missingKeys: Map[Locale, Set[String]], ambiguouslyUsedKey: Set[String])
 
   def analyzeKeys(aggregated: Map[Locale, ResourceEntries]): AnalyzeResult = {
     val (allKeyIds1, missingKeyIds1) = analyzeKeys(aggregated, true)
@@ -25,17 +27,32 @@ object Analyzer {
     val ambiguouslyUsedKeys: Set[String] = allKeyIds1.intersect(allKeyIds2)
 
     // maps key ids to the maximum number of arguments
-    val args: Map[String,Int] = aggregated.values.foldLeft(Map.empty[String, Int])((b, r) => r.entries.foldLeft(b)((b1, e) => {
-      val id = e.key.id
+    val signatures: Map[String, MsgSignature] = aggregated.values.foldLeft(Map.empty[String, MsgSignature])((b, r) => r.entries.foldLeft(b)((b1, e) => {
       val l = e.msg.getFormatsByArgumentIndex.length
-      if (b1.contains(id) && b1(id) >= l) {
-        b1
-      } else {
-        b1 + (id -> l)
+      e.key match {
+        case SimpleEntryKey(id) => {
+          val old = b1.get(id)
+          if (old.map(_.args >= l).getOrElse(false)) {
+            b1
+          } else {
+            b1 + (id -> old.map(_.copy(args = l)).getOrElse(MsgSignature(l, false)))
+          }
+        }
+        case LookupEntryKey(id, path) => {
+          val old = b1.get(id)
+          if (old.map(s => s.args >= l && s.isMarkup).getOrElse(false)) {
+            b1
+          } else {
+            b1 + (id -> old.map(s => MsgSignature(s.args.max(l), true)).getOrElse(MsgSignature(l, true)))
+          }
+
+        }
       }
+
+
     }))
 
-    AnalyzeResult(allKeyIds1, allKeyIds2, args, missingKeyIds, ambiguouslyUsedKeys)
+    AnalyzeResult(allKeyIds1, allKeyIds2, signatures, missingKeyIds, ambiguouslyUsedKeys)
   }
 
   def analyzeKeys(aggregated: Map[Locale, ResourceEntries], simpleNotLookup: Boolean): (Set[String], Map[Locale, Set[String]]) = {

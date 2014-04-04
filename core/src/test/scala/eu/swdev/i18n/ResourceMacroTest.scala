@@ -1,16 +1,46 @@
 package eu.swdev.i18n
 
 import org.scalatest.FunSuite
+import java.util.Locale
 
 /**
   */
 class ResourceTest extends FunSuite {
 
-  @Resource(resourcePath = "abc")
-  object Msg {
+  @Resource(resourcePath = "com/abc/resource")
+  object R {
 
   }
 
+  implicit val markupVal = new Markup {
+
+    val escapes: Map[Char, StringBuilder => StringBuilder] = Map(
+      '<' -> ((b: StringBuilder) => b.append("&lt;")),
+      '>' -> ((b: StringBuilder) => b.append("&gt;")),
+      '&' -> ((b: StringBuilder) => b.append("&amp;")),
+      '"' -> ((b: StringBuilder) => b.append("&quot;")),
+      '\'' -> ((b: StringBuilder) => b.append("&apos;")))
+
+    override type M = String
+
+    override def rawMsg(string: String): String = {
+      val sb = new StringBuilder
+      string.foreach(c => escapes.getOrElse(c, (sb: StringBuilder) => sb.append(c))(sb))
+      sb.toString
+    }
+
+    override def markupMsg(string: String): String = string
+  }
+
+  implicit val locale = new Locale("de", "DE")
+
+  test("simple") {
+    assert(R.simpleMsgs != null)
+    assert(R.lookupMsgs != null)
+    assert(R.a === "")
+    assert(R.o === "x")
+
+  }
 }
 
 //Apply(

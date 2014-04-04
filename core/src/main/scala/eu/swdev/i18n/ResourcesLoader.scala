@@ -7,16 +7,16 @@ import java.util.Locale
   */
 object ResourcesLoader {
 
-  def buildMaps(classLoader: ClassLoader, resourcePath: String, locales: Locale*): (Map[Locale, Map[String, MsgFormat]], Map[Locale, Map[String, MessageLookup.KeyValueTree]]) = {
+  def buildMaps(classLoader: ClassLoader, resourcePath: String, locales: Locale*): (Map[Locale, Map[String, MsgFormat]], Map[Locale, Map[String, MsgLookup.KeyValueTree]]) = {
     val resources = loadResources(classLoader, resourcePath, locales: _*)
-    val zero = (Map.empty[String, MsgFormat], Map.empty[String, MessageLookup.KeyValueTree])
+    val zero = (Map.empty[String, MsgFormat], Map.empty[String, MsgLookup.KeyValueTree])
     val both = resources.mapValues(_.entries.foldLeft(zero)((a, e) => {
       e.key match {
         case SimpleEntryKey(id) => {
           (a._1 + (id -> MsgFormat(e.msg, e.isHtml)), a._2)
         }
         case LookupEntryKey(id, path) => {
-          (a._1, a._2 + (id -> (a._2.getOrElse(id, MessageLookup.KeyValueTree.empty)(path) = MsgFormat(e.msg, e.isHtml))))
+          (a._1, a._2 + (id -> (a._2.getOrElse(id, MsgLookup.KeyValueTree.empty)(path) = MsgFormat(e.msg, e.isHtml))))
         }
       }
 
