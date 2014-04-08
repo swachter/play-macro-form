@@ -8,9 +8,7 @@ import java.util.Locale
 class ResourceMacroTest extends FunSuite {
 
   @Resource(resourcePath = "com/abc/resource")
-  object R {
-
-  }
+  object R
 
   case class Wrapped(string: String)
 
