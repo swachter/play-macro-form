@@ -11,23 +11,38 @@ import scala.collection.GenTraversable
 
 
 /**
+ * Represent a key for an entry in a resource file.
  *
+ * The key represents everything that is left to the assignment operator in a resource entry line.
  */
 sealed trait EntryKey {
   def id: String
-  def string: String
-}
-
-case class SimpleEntryKey(id: String) extends EntryKey {
-  def string = id
-}
-
-case class LookupEntryKey(id: String, path: String) extends EntryKey {
-  def string = s"$id[$path]"
 }
 
 /**
  *
+ * @param id identifies a message format
+ */
+case class SimpleEntryKey(id: String) extends EntryKey
+
+/**
+ * Represents a key for a lookup entry.
+ *
+ * There might be several lookup entries with the same id but different paths. All lookup entries with the same id
+ * are used together to define a single key-value tree (cf. [[eu.swdev.config.KeyValueTreeModule]]). That tree in turn
+ * can later be used to lookup messages using a hierarchical criterion (e.g. a path).
+ *
+ * @param id identifies a key-value tree of message formats
+ * @param path addresses a part of the key-value tree
+ */
+case class LookupEntryKey(id: String, path: String) extends EntryKey
+
+/**
+ * Represent a resource entry in a resource file.
+ *
+ * @param key the key of the entry;
+ * @param msg
+ * @param isMarkup
  */
 case class ResourceEntry(key: EntryKey, msg: MessageFormat, isMarkup: Boolean)
 

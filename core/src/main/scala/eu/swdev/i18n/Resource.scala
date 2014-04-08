@@ -7,12 +7,17 @@ import java.util.Locale
 import eu.swdev.i18n.Analyzer.MsgSignature
 
 /**
-  */
+ *
+ */
 class Resource(val resourcePath: String) extends StaticAnnotation {
   def macroTransform(annottees: Any*) = macro ResourceMacro.impl
 }
 
 object ResourceMacro {
+
+  case class MacroParams(resourcePath: Option[String], locales: Option[List[Locale]]) {
+
+  }
   def impl(c: Context)(annottees: c.Expr[Any]*): c.Expr[Any] = {
 
     import c.universe._
@@ -21,10 +26,10 @@ object ResourceMacro {
       val idName = c.universe.newTermName(id)
       val methodName = c.universe.newTermName(if (signature.isMarkup) "markupMsg" else "rawMsg")
       signature.args match {
-        case 0 => q"""def $idName(implicit locale: Locale, markup: Markup) = simpleMsgs(locale)($id).$methodName(null)"""
-        case 1 => q"""def $idName(arg0: AnyRef)(implicit locale: Locale, markup: Markup) = simpleMsgs(locale)($id).$methodName(Array(arg0))"""
-        case 2 => q"""def $idName(arg0: AnyRef, arg1: AnyRef)(implicit locale: Locale, markup: Markup) = simpleMsgs(locale)($id).$methodName(Array(arg0, arg1))"""
-        case 3 => q"""def $idName(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale, markup: Markup) = simpleMsgs(locale)($id).$methodName(Array(arg0, arg1, arg2))"""
+        case 0 => q"""def $idName(implicit locale: Locale, markup: MsgMarkup) = simpleMsgs(locale)($id).$methodName(null)"""
+        case 1 => q"""def $idName(arg0: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = simpleMsgs(locale)($id).$methodName(Array(arg0))"""
+        case 2 => q"""def $idName(arg0: AnyRef, arg1: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = simpleMsgs(locale)($id).$methodName(Array(arg0, arg1))"""
+        case 3 => q"""def $idName(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = simpleMsgs(locale)($id).$methodName(Array(arg0, arg1, arg2))"""
       }
     }
 
@@ -32,10 +37,10 @@ object ResourceMacro {
       val idName = c.universe.newTermName(id)
       val methodName = c.universe.newTermName(if (signature.isMarkup) "markupMsg" else "rawMsg")
       signature.args match {
-        case 0 => q"""def $idName(path: String)(implicit locale: Locale, markup: Markup) = lookupMsgs(locale)($id).getValue(path).map(_.$methodName(null))"""
-        case 1 => q"""def $idName(path: String)(arg0: AnyRef)(implicit locale: Locale, markup: Markup) = lookupMsgs(locale)($id).getValue(path).map(_.$methodName(Array(arg0)))"""
-        case 2 => q"""def $idName(path: String)(arg0: AnyRef, arg1: AnyRef)(implicit locale: Locale, markup: Markup) = lookupMsgs(locale)($id).getValue(path).map(_.$methodName(Array(arg0, arg1)))"""
-        case 3 => q"""def $idName(path: String)(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale, markup: Markup) = lookupMsgs(locale)($id).getValue(path).map(_.$methodName(Array(arg0, arg1, arg2)))"""
+        case 0 => q"""def $idName(path: String)(implicit locale: Locale, markup: MsgMarkup) = lookupMsgs(locale)($id).getValue(path).map(_.$methodName(null))"""
+        case 1 => q"""def $idName(path: String)(arg0: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = lookupMsgs(locale)($id).getValue(path).map(_.$methodName(Array(arg0)))"""
+        case 2 => q"""def $idName(path: String)(arg0: AnyRef, arg1: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = lookupMsgs(locale)($id).getValue(path).map(_.$methodName(Array(arg0, arg1)))"""
+        case 3 => q"""def $idName(path: String)(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = lookupMsgs(locale)($id).getValue(path).map(_.$methodName(Array(arg0, arg1, arg2)))"""
       }
     }
 
@@ -83,7 +88,9 @@ object ResourceMacro {
             // output the modified object
             q"""
             object $objectName {
-              val (simpleMsgs, lookupMsgs) = eu.swdev.i18n.ResourcesLoader.buildMaps(getClass.getClassLoader, $resourcePath, new java.util.Locale("de", "DE"))
+              import eu.swdev.i18n.MsgMarkup
+              import java.util.Locale
+              val (simpleMsgs, lookupMsgs) = eu.swdev.i18n.ResourcesLoader.buildMaps(getClass.getClassLoader, $resourcePath, new Locale("de", "DE"))
               ..$simpleMsgDefs
               ..$lookupMsgDefs
               ..$tbody

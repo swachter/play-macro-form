@@ -11,7 +11,7 @@ object R {
 
   def a(implicit locale: Locale) = simpleMsgs(locale)("a").rawMsg(null)
 
-  def b(arg0: AnyRef)(implicit locale: Locale, markup: Markup) = simpleMsgs(locale)("b").markupMsg(Array(arg0))
+  def b(arg0: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = simpleMsgs(locale)("b").markupMsg(Array(arg0))
 
   def c(arg0: AnyRef, arg1: AnyRef)(implicit locale: Locale) = simpleMsgs(locale)("c").rawMsg(Array(arg0, arg1))
 
@@ -28,7 +28,7 @@ class ResourceBoilerplateTest extends FunSuite {
 
   case class Wrapped(string: String)
 
-  implicit val markupVal = new Markup {
+  implicit val markupVal = new MsgMarkup {
 
     val escapes: Map[Char, StringBuilder => StringBuilder] = Map(
       '<' -> ((b: StringBuilder) => b.append("&lt;")),

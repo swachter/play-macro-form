@@ -14,7 +14,7 @@ class ResourceMacroTest extends FunSuite {
 
   case class Wrapped(string: String)
 
-  implicit val markupVal = new Markup {
+  implicit val markupVal = new MsgMarkup {
 
     val escapes: Map[Char, StringBuilder => StringBuilder] = Map(
       '<' -> ((b: StringBuilder) => b.append("&lt;")),

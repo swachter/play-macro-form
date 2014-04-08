@@ -28,7 +28,7 @@ case class MsgFormat(format: MessageFormat, isMarkup: Boolean) {
    * @param markup
    * @return
    */
-  def markupMsg(args: Array[Object])(implicit markup: Markup): markup.M = {
+  def markupMsg(args: Array[Object])(implicit markup: MsgMarkup): markup.M = {
     val s = format.format(args)
     if (isMarkup) markup.markupMsg(s) else markup.rawMsg(s)
   }
@@ -41,14 +41,14 @@ case class MsgFormat(format: MessageFormat, isMarkup: Boolean) {
  * Messages that contain markup must be transformed using the markupMsg method whereas messages that contain no
  * markup must be transformed using the rawMsg method.
  */
-trait Markup {
+trait MsgMarkup {
 
   /**
    * Result type of the transformation.
    *
    * In some situations M may simply be `String`. In other situations M can be a wrapper for strings containing
-   * markup. In this situation the wrapper can indicate to a template engine that its content is already markup and
-   * needs not to be escaped.
+   * markup. Such a wrapper might be used to indicate to template engines that some output is already markup and
+   * needs no escaping.
    */
   type M
 
