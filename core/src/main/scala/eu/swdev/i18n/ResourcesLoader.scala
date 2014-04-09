@@ -22,7 +22,7 @@ object ResourcesLoader {
           re.key match {
             case SimpleEntryKey(_) => b1 + (entryName -> resValue)
             case TreeEntryKey(_, path) => {
-              val treeValue = b1.getOrElse(entryName, TreeResValue(ResTrees.KeyValueTree.empty)).asTree
+              val treeValue = b1.getOrElse(entryName, TreeResValue(ResTrees.KeyValueTree.empty)).asInstanceOf[TreeResValue]
               b1 + (entryName -> TreeResValue(treeValue.tree(path) = resValue))
             }
           }

@@ -88,8 +88,41 @@ object MsgResType {
 //
 
 sealed trait ResValue {
-  def asMsg: MsgResValue
-  def asTree: TreeResValue
+
+  def isMsg: Boolean
+  def isTree: Boolean
+
+  /**
+   * Format the message and return the raw message text.
+   *
+   * This method must be called only if this ResValue is a MsgResValue.
+   *
+   * @param args
+   * @return
+   */
+  def outputRaw(args: Array[Object]): String
+
+  /**
+   * Format the message and return it as markup.
+   *
+   * This method must be called only if this ResValue is a MsgResValue.
+   *
+   * @param args
+   * @param markup
+   * @return
+   */
+  def outputMarkup(args: Array[Object])(implicit markup: MsgMarkup): markup.M
+
+  /**
+   * Lookup a resource value using the specified key.
+   *
+   * This method must be called only if this ResValue is a TreeResValue.
+   *
+   * @param key
+   * @return
+   */
+  def lookup(key: String): Option[ResValue]
+
 }
 
 /**
@@ -98,27 +131,15 @@ sealed trait ResValue {
  * @param isMarkup indicates if the format contains markup or not
  */
 case class MsgResValue(format: MessageFormat, isMarkup: Boolean) extends ResValue {
-  override def asTree: TreeResValue = throw new UnsupportedOperationException
-  override def asMsg: MsgResValue = this
+  override def isTree = false
+  override def isMsg = true
+  override def lookup(key: String): Option[ResValue] = throw new UnsupportedOperationException
 
-  /**
-   * Format the message and return the raw message text.
-   *
-   * @param args
-   * @return
-   */
-  def rawMsg(args: Array[Object]): String = {
+  override def outputRaw(args: Array[Object]): String = {
     format.format(args)
   }
 
-  /**
-   * Format the message and return it as markup.
-   *
-   * @param args
-   * @param markup
-   * @return
-   */
-  def markupMsg(args: Array[Object])(implicit markup: MsgMarkup): markup.M = {
+  override def outputMarkup(args: Array[Object])(implicit markup: MsgMarkup): markup.M = {
     val s = format.format(args)
     if (isMarkup) markup.markupMsg(s) else markup.rawMsg(s)
   }
@@ -126,9 +147,11 @@ case class MsgResValue(format: MessageFormat, isMarkup: Boolean) extends ResValu
 }
 
 case class TreeResValue(tree: ResTrees.KeyValueTree) extends ResValue {
-  def getValue(path: String): Option[ResValue] = tree.getValue(path)
-  override def asTree: TreeResValue = this
-  override def asMsg: MsgResValue = throw new UnsupportedOperationException
+  override def isTree = true
+  override def isMsg = false
+  override def lookup(key: String): Option[ResValue] = tree.getValue(key)
+  override def outputRaw(args: Array[Object]): String = throw new UnsupportedOperationException
+  override def outputMarkup(args: Array[Object])(implicit markup: MsgMarkup): markup.M = throw new UnsupportedOperationException
 }
 
 /**

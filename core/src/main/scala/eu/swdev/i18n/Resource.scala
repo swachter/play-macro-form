@@ -82,7 +82,7 @@ object ResourceMacro {
     }
 
     /**
-     * Creates a tree for the argument array that is passed into the message format.
+     * Creates a tree for the argument array that is passed into the output methods.
      *
      * {{{
      *   Array()
@@ -93,7 +93,7 @@ object ResourceMacro {
      * @param args
      * @return
      */
-    def createArgArray(args: Int): Tree = {
+    def createArgsArray(args: Int): Tree = {
       val argList = (for {
         i <- 0 until args
       } yield {
@@ -121,64 +121,65 @@ object ResourceMacro {
     }
 
     /**
-     * Applies the asMsg method followed by a format method.
+     * Calls the appropriate output method.
      *
+     * The output method is determined by the isMarkup property of the specified ResType.
      *
      * {{{
-     *   $x.asMsg.<format method>(<args>)
+     *   $x.<output method>(<args>)
      * }}}
      *
      * @param x
      * @param tpe
      * @return
      */
-    def applyAsMsgAndFormat(x: Tree, tpe: ResType): Tree = {
-      val methodName = c.universe.newTermName(if (tpe.isMarkup) "markupMsg" else "rawMsg")
-      val argsArray = createArgArray(tpe.args)
-      q"$x.asMsg.$methodName($argsArray)"
+    def callOutputMethod(x: Tree, tpe: ResType): Tree = {
+      val methodName = c.universe.newTermName(if (tpe.isMarkup) "outputMarkup" else "outputRaw")
+      val argsArray = createArgsArray(tpe.args)
+      q"$x.$methodName($argsArray)"
     }
 
     /**
-     * Maps the asMsg method followed by a format method.
+     * Maps the appropriate output method.
      *
      * {{{
-     *   $x.map(_.asMsg.<format>(<args>))
+     *   $x.map(_.<output method>(<args>))
      * }}}
      *
      * @param x
      * @param tpe
      * @return
      */
-    def mapAsMsgAndFormat(x: Tree, tpe: ResType): Tree = {
-      val methodName = c.universe.newTermName(if (tpe.isMarkup) "markupMsg" else "rawMsg")
-      val argsArray = createArgArray(tpe.args)
-      q"$x.map(_.asMsg.$methodName($argsArray))"
+    def mapOutputMethod(x: Tree, tpe: ResType): Tree = {
+      val methodName = c.universe.newTermName(if (tpe.isMarkup) "outputMarkup" else "outputRaw")
+      val argsArray = createArgsArray(tpe.args)
+      q"$x.map(_.$methodName($argsArray))"
     }
 
     /**
-     * Recursively applies flatMap calls.
+     * Recursively applies flatMap(_.lookup(key)) calls.
      *
      * {{{
      *   $x
-     *   $x.flatMap(_.asTree.getValue(step1))
-     *   $x.flatMap(_.asTree.getValue(step1)).flatMap(_.asTree.getValue(step2))
+     *   $x.flatMap(_.lookup(key1))
+     *   $x.flatMap(_.lookup(key1)).flatMap(_.lookup(key2))
      * }}}
      * @param x
-     * @param step
+     * @param key
      * @return
      */
-    def flatMapAsTreeAndGetValue(x: Tree, step: Int): Tree = {
-      if (step == 0) {
+    def flatMapLookup(x: Tree, key: Int): Tree = {
+      if (key == 0) {
         x
       } else {
-        val tmp = flatMapAsTreeAndGetValue(x, step - 1)
-        q"$tmp.flatMap(_.asTree.getValue(${newTermName(s"step$step")}))"
+        val tmp = flatMapLookup(x, key - 1)
+        q"$tmp.flatMap(_.lookup(${newTermName(s"key$key")}))"
       }
     }
 
     def simpleMsgDef(id: String, tpe: MsgResType): Tree = {
       val idName = c.universe.newTermName(id)
-      val lhs = applyAsMsgAndFormat(q"resMap(locale)($id)", tpe)
+      val lhs = callOutputMethod(q"resMap(locale)($id)", tpe)
       if (tpe.args == 0) {
         q"""def $idName(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
       } else {
@@ -191,26 +192,26 @@ object ResourceMacro {
       val idName = c.universe.newTermName(id)
       val methodName = c.universe.newTermName(if (tpe.isMarkup) "markupMsg" else "rawMsg")
 
-      def calcSteps(t: ResType): Int = t match {
-        case TreeResType(nested) => 1 + calcSteps(nested)
+      def calcNbKeys(t: ResType): Int = t match {
+        case TreeResType(nested) => 1 + calcNbKeys(nested)
         case _: MsgResType => 0
       }
 
-      val steps = calcSteps(tpe)
+      val nbKeys = calcNbKeys(tpe)
 
-      val stepParams = createParams("step", steps)
+      val keyParams = createParams("key", nbKeys)
 
-      val start = q"resMap(locale)($id).asTree.getValue(step0)"
+      val start = q"resMap(locale)($id).lookup(key0)"
 
-      val flat = flatMapAsTreeAndGetValue(start, steps - 1)
+      val flat = flatMapLookup(start, nbKeys - 1)
 
-      val lhs = mapAsMsgAndFormat(flat, tpe)
+      val lhs = mapOutputMethod(flat, tpe)
 
       if (tpe.args == 0) {
-        q"""def $idName(..$stepParams)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
+        q"""def $idName(..$keyParams)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
       } else {
         val args = createParams("arg", tpe.args)
-        q"""def $idName(..$stepParams)(..$args)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
+        q"""def $idName(..$keyParams)(..$args)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
       }
     }
 

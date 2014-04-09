@@ -9,17 +9,17 @@ object R {
 
   val resMap = ResourcesLoader.load(getClass.getClassLoader, "com/abc/resource", new Locale("de", "DE"))
 
-  def a(implicit locale: Locale) = resMap(locale)("a").asMsg.rawMsg(null)
+  def a(implicit locale: Locale) = resMap(locale)("a").outputRaw(null)
 
-  def b(arg0: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)("b").asMsg.markupMsg(Array(arg0))
+  def b(arg0: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)("b").outputMarkup(Array(arg0))
 
-  def c(arg0: AnyRef, arg1: AnyRef)(implicit locale: Locale) = resMap(locale)("c").asMsg.rawMsg(Array(arg0, arg1))
+  def c(arg0: AnyRef, arg1: AnyRef)(implicit locale: Locale) = resMap(locale)("c").outputRaw(Array(arg0, arg1))
 
-  def d(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale) = resMap(locale)("d").asMsg.rawMsg(Array(arg0, arg1, arg2))
+  def d(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale) = resMap(locale)("d").outputRaw(Array(arg0, arg1, arg2))
 
-  def o(implicit locale: Locale) = resMap(locale)("o").asMsg.rawMsg(null)
+  def o(implicit locale: Locale) = resMap(locale)("o").outputRaw(null)
 
-  def t(path: String)(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale) = resMap(locale)("t").asTree.getValue(path).map(_.asMsg.rawMsg(Array(arg0, arg1, arg2)))
+  def t(key0: String)(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale) = resMap(locale)("t").lookup(key0).map(_.outputRaw(Array(arg0, arg1, arg2)))
 
 
 }
