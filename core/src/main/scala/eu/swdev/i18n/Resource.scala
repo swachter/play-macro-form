@@ -4,7 +4,6 @@ import scala.annotation.StaticAnnotation
 import scala.reflect.macros.Context
 import scala.language.experimental.macros
 import java.util.Locale
-import eu.swdev.i18n.Analyzer.MsgSignature
 import scala.io.Source
 
 /**
@@ -82,25 +81,25 @@ object ResourceMacro {
       }
     }
 
-    def simpleMsgDef(id: String, signature: MsgSignature): Tree = {
+    def simpleMsgDef(id: String, tpe: MsgResType): Tree = {
       val idName = c.universe.newTermName(id)
-      val methodName = c.universe.newTermName(if (signature.isMarkup) "markupMsg" else "rawMsg")
-      signature.args match {
-        case 0 => q"""def $idName(implicit locale: Locale, markup: MsgMarkup) = simpleMsgs(locale)($id).$methodName(null)"""
-        case 1 => q"""def $idName(arg0: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = simpleMsgs(locale)($id).$methodName(Array(arg0))"""
-        case 2 => q"""def $idName(arg0: AnyRef, arg1: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = simpleMsgs(locale)($id).$methodName(Array(arg0, arg1))"""
-        case 3 => q"""def $idName(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = simpleMsgs(locale)($id).$methodName(Array(arg0, arg1, arg2))"""
+      val methodName = c.universe.newTermName(if (tpe.isMarkup) "markupMsg" else "rawMsg")
+      tpe.args match {
+        case 0 => q"""def $idName(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asMsg.$methodName(null)"""
+        case 1 => q"""def $idName(arg0: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asMsg.$methodName(Array(arg0))"""
+        case 2 => q"""def $idName(arg0: AnyRef, arg1: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asMsg.$methodName(Array(arg0, arg1))"""
+        case 3 => q"""def $idName(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asMsg.$methodName(Array(arg0, arg1, arg2))"""
       }
     }
 
-    def lookupMsgDef(id: String, signature: MsgSignature): Tree = {
+    def lookupMsgDef(id: String, tpe: TreeResType): Tree = {
       val idName = c.universe.newTermName(id)
-      val methodName = c.universe.newTermName(if (signature.isMarkup) "markupMsg" else "rawMsg")
-      signature.args match {
-        case 0 => q"""def $idName(path: String)(implicit locale: Locale, markup: MsgMarkup) = lookupMsgs(locale)($id).getValue(path).map(_.$methodName(null))"""
-        case 1 => q"""def $idName(path: String)(arg0: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = lookupMsgs(locale)($id).getValue(path).map(_.$methodName(Array(arg0)))"""
-        case 2 => q"""def $idName(path: String)(arg0: AnyRef, arg1: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = lookupMsgs(locale)($id).getValue(path).map(_.$methodName(Array(arg0, arg1)))"""
-        case 3 => q"""def $idName(path: String)(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = lookupMsgs(locale)($id).getValue(path).map(_.$methodName(Array(arg0, arg1, arg2)))"""
+      val methodName = c.universe.newTermName(if (tpe.isMarkup) "markupMsg" else "rawMsg")
+      tpe.args match {
+        case 0 => q"""def $idName(path: String)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asTree.getValue(path).map(_.asMsg.$methodName(null))"""
+        case 1 => q"""def $idName(path: String)(arg0: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asTree.getValue(path).map(_.asMsg.$methodName(Array(arg0)))"""
+        case 2 => q"""def $idName(path: String)(arg0: AnyRef, arg1: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asTree.getValue(path).map(_.asMsg.$methodName(Array(arg0, arg1)))"""
+        case 3 => q"""def $idName(path: String)(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asTree.getValue(path).map(_.asMsg.$methodName(Array(arg0, arg1, arg2)))"""
       }
     }
 
@@ -121,24 +120,30 @@ object ResourceMacro {
 
             val result = Analyzer.analyze(this.getClass.getClassLoader, resourcePath, locales: _*)
 
-            if (result.missingKeys.values.exists(!_.isEmpty)) {
-              val info = result.missingKeys.filterKeys(!result.missingKeys(_).isEmpty).map(t => s"  [${t._1} -> ${t._2}]").mkString("\n")
+            if (result.unresolved.values.exists(!_.isEmpty)) {
+              c.abort(c.enclosingPosition, s"""some resource entries could not be resolved - ${result.unresolved}""")
+            }
+            if (result.missing.values.exists(!_.isEmpty)) {
+              val info = result.missing.filterKeys(!result.missing(_).isEmpty).map(t => s"  [${t._1} -> ${t._2}]").mkString("\n")
               c.abort(c.enclosingPosition, s"""missing resource entries -\n$info""")
             }
-            if (!result.ambiguouslyUsedKeys.isEmpty) {
-              c.abort(c.enclosingPosition, s"""some resource entries that are defined as simple resource and as lookup resources - ${result.ambiguouslyUsedKeys}""")
+            if (!result.conflicting.isEmpty) {
+              c.abort(c.enclosingPosition, s"""some resource entries have conflicting types - ${result.conflicting}""")
             }
 
+            println(s"result: ${result}")
+            println(s"result.types: ${result.types}")
+
             val simpleMsgDefs = (for {
-              id <- result.simpleKeys
+              x <- result.types.collect{ case (n, t@MsgResType(_, _)) => (n, t) }
             } yield {
-              simpleMsgDef(id, result.signatures(id))
+              simpleMsgDef(x._1, x._2)
             }).toList
 
             val lookupMsgDefs = (for {
-              id <- result.lookupKeys
+              x <- result.types.collect{ case (n, t@TreeResType(_)) => (n, t) }
             } yield {
-              lookupMsgDef(id, result.signatures(id))
+              lookupMsgDef(x._1, x._2)
             }).toList
 
 
@@ -156,7 +161,7 @@ object ResourceMacro {
             object $objectName {
               import eu.swdev.i18n.MsgMarkup
               import java.util.Locale
-              val (simpleMsgs, lookupMsgs) = eu.swdev.i18n.ResourcesLoader.buildMaps(getClass.getClassLoader, $resourcePath, new Locale("de", "DE"))
+              val resMap = eu.swdev.i18n.ResourcesLoader.load(getClass.getClassLoader, $resourcePath, new Locale("de", "DE"))
               ..$simpleMsgDefs
               ..$lookupMsgDefs
               ..$tbody

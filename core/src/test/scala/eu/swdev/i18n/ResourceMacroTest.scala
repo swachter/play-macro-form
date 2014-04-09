@@ -7,7 +7,7 @@ import java.util.Locale
   */
 class ResourceMacroTest extends FunSuite {
 
-  @Resource(resourcePath = "com/abc/resource")
+  @Resource(resourcePath = "com/abc/resource", locales = List("de_DE"))
   object R
 
   case class Wrapped(string: String)
@@ -35,12 +35,10 @@ class ResourceMacroTest extends FunSuite {
   implicit val locale = new Locale("de", "DE")
 
   test("simple") {
-    assert(R.simpleMsgs != null)
-    assert(R.lookupMsgs != null)
+    assert(R.resMap != null)
     assert(R.a === "")
     assert(R.b("x") === Wrapped("<b>x</b>"))
     assert(R.o === "x")
-
   }
 
   test("lookup") {

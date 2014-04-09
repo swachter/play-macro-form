@@ -7,19 +7,19 @@ import org.scalatest.FunSuite
   */
 object R {
 
-  val (simpleMsgs, lookupMsgs) = ResourcesLoader.buildMaps(getClass.getClassLoader, "com/abc/resource", new Locale("de", "DE"))
+  val resMap = ResourcesLoader.load(getClass.getClassLoader, "com/abc/resource", new Locale("de", "DE"))
 
-  def a(implicit locale: Locale) = simpleMsgs(locale)("a").rawMsg(null)
+  def a(implicit locale: Locale) = resMap(locale)("a").asMsg.rawMsg(null)
 
-  def b(arg0: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = simpleMsgs(locale)("b").markupMsg(Array(arg0))
+  def b(arg0: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)("b").asMsg.markupMsg(Array(arg0))
 
-  def c(arg0: AnyRef, arg1: AnyRef)(implicit locale: Locale) = simpleMsgs(locale)("c").rawMsg(Array(arg0, arg1))
+  def c(arg0: AnyRef, arg1: AnyRef)(implicit locale: Locale) = resMap(locale)("c").asMsg.rawMsg(Array(arg0, arg1))
 
-  def d(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale) = simpleMsgs(locale)("d").rawMsg(Array(arg0, arg1, arg2))
+  def d(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale) = resMap(locale)("d").asMsg.rawMsg(Array(arg0, arg1, arg2))
 
-  def o(implicit locale: Locale) = simpleMsgs(locale)("o").rawMsg(null)
+  def o(implicit locale: Locale) = resMap(locale)("o").asMsg.rawMsg(null)
 
-  def t(path: String)(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale) = lookupMsgs(locale)("t").getValue(path).map(_.rawMsg(Array(arg0, arg1, arg2)))
+  def t(path: String)(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale) = resMap(locale)("t").asTree.getValue(path).map(_.asMsg.rawMsg(Array(arg0, arg1, arg2)))
 
 
 }

@@ -16,35 +16,120 @@ import scala.collection.GenTraversable
  * The key represents everything that is left to the assignment operator in a resource entry line.
  */
 sealed trait EntryKey {
-  def id: String
+  /**
+   * The name of a resource entry. In case of tree-valued or map-valued resource entries the same name is shared by
+   * all resource entries belonging to the same tree or map.
+   *
+   * @return
+   */
+  def name: EntryName
 }
 
 /**
  *
- * @param id identifies a message format
+ * @param name identifies a message format
  */
-case class SimpleEntryKey(id: String) extends EntryKey
+case class SimpleEntryKey(name: EntryName) extends EntryKey
 
 /**
- * Represents a key for a lookup entry.
+ * Represents a key for a tree-valued resource entry.
  *
- * There might be several lookup entries with the same id but different paths. All lookup entries with the same id
+ * There might be several tree entries with the same name but different paths. All tree entries with the same name
  * are used together to define a single key-value tree (cf. [[eu.swdev.config.KeyValueTreeModule]]). That tree in turn
  * can later be used to lookup messages using a hierarchical criterion (e.g. a path).
  *
- * @param id identifies a key-value tree of message formats
+ * @param name identifies a key-value tree of message formats
  * @param path addresses a part of the key-value tree
  */
-case class LookupEntryKey(id: String, path: String) extends EntryKey
+case class TreeEntryKey(name: EntryName, path: String) extends EntryKey
+
+//case class MapEntryKey(name: EntryName, key: String) extends EntryKey
+
+sealed trait EntryValue
+
+case class MsgEntryValue(format: MessageFormat, isMarkup: Boolean) extends EntryValue
+
+case class LinkEntryValue(name: EntryName) extends EntryValue
 
 /**
- * Represent a resource entry in a resource file.
+ * Represents an entry in a resource file.
+ * 
+ * An entry typically consists of a single line
  *
  * @param key the key of the entry;
- * @param msg
- * @param isMarkup
+ * @param value
  */
-case class ResourceEntry(key: EntryKey, msg: MessageFormat, isMarkup: Boolean)
+case class Entry(key: EntryKey, value: EntryValue)
+
+sealed trait ResType {
+  def args: Int
+  def isMarkup: Boolean
+}
+
+/**
+ * Describes an entry that corresponds to one or more message formats.
+ * 
+ * @param args the maximum number of arguments a message has
+ * @param isMarkup indicates if the message contains markup or not
+ */
+case class MsgResType(args: Int, isMarkup: Boolean) extends ResType
+
+case class TreeResType(nested: ResType) extends ResType {
+  def args: Int = nested.args
+  def isMarkup: Boolean = nested.isMarkup
+}
+
+object MsgResType {
+  def apply(format: MessageFormat, isMarkup: Boolean): MsgResType = MsgResType(format.getFormatsByArgumentIndex.length, isMarkup)
+}
+
+//
+//
+//
+
+sealed trait ResValue {
+  def asMsg: MsgResValue
+  def asTree: TreeResValue
+}
+
+/**
+ *
+ * @param format
+ * @param isMarkup indicates if the format contains markup or not
+ */
+case class MsgResValue(format: MessageFormat, isMarkup: Boolean) extends ResValue {
+  override def asTree: TreeResValue = throw new UnsupportedOperationException
+  override def asMsg: MsgResValue = this
+
+  /**
+   * Format the message and return the raw message text.
+   *
+   * @param args
+   * @return
+   */
+  def rawMsg(args: Array[Object]): String = {
+    format.format(args)
+  }
+
+  /**
+   * Format the message and return it as markup.
+   *
+   * @param args
+   * @param markup
+   * @return
+   */
+  def markupMsg(args: Array[Object])(implicit markup: MsgMarkup): markup.M = {
+    val s = format.format(args)
+    if (isMarkup) markup.markupMsg(s) else markup.rawMsg(s)
+  }
+
+}
+
+case class TreeResValue(tree: ResTrees.KeyValueTree) extends ResValue {
+  def getValue(path: String): Option[ResValue] = tree.getValue(path)
+  override def asTree: TreeResValue = this
+  override def asMsg: MsgResValue = throw new UnsupportedOperationException
+}
 
 /**
  *
@@ -52,12 +137,12 @@ case class ResourceEntry(key: EntryKey, msg: MessageFormat, isMarkup: Boolean)
  *                were defined earlier are in front of entries that were defined later. If an entry is overwritten
  *                by a later definition then its earlier appearance is removed.
  */
-case class ResourceEntries private (entries: List[ResourceEntry]) {
+case class ResourceEntries private (entries: List[Entry]) {
 
   def add(other: ResourceEntries): ResourceEntries = this ++ other.entries
 
-  def ++(other: GenTraversable[ResourceEntry]): ResourceEntries = {
-    val zero = (List.empty[ResourceEntry], Set.empty[EntryKey])
+  def ++(other: GenTraversable[Entry]): ResourceEntries = {
+    val zero = (List.empty[Entry], Set.empty[EntryKey])
     val t = (entries ++ other).foldRight(zero)((e, accu) => if (accu._2.contains(e.key)) accu else (e :: accu._1, accu._2 + e.key))
     ResourceEntries(t._1)
   }
@@ -76,6 +161,7 @@ object ResourceEntries {
     val lines = for {
       url <- urls
     } yield {
+      println(s"parsing url: $url")
       ResourceParser.parse(url)
     }
     empty ++ lines.toList.flatten
@@ -89,18 +175,16 @@ object ResourceEntries {
     def ignoreWhiteSpace = opt(whiteSpace)
     def newLine = namedError((("\r"?) ~> "\n"), "End of line expected")
 
-    val keyId: Parser[String] = namedError("""[a-zA-Z][a-zA-Z0-9_]*""".r, "illegal message key expected")
+    val keyName: Parser[String] = namedError("""[a-zA-Z][a-zA-Z0-9_]*""".r, "illegal message key expected")
 
     val keyPath: Parser[String] = '[' ~> """[a-zA-Z0-9_.]*""".r <~ ']'
 
-    val key: Parser[EntryKey] = (keyId ~ opt(keyPath)) ^^ {
+    val entryKey: Parser[EntryKey] = (keyName ~ opt(keyPath)) ^^ {
       case id ~ None => SimpleEntryKey(id)
-      case id ~ Some(path) => LookupEntryKey(id, path)
+      case id ~ Some(path) => TreeEntryKey(id, path)
     }
 
-    val assignOp: Parser[Boolean] = '@' ^^ { case _ => true } | '=' ^^ { case _ => false }
-
-    def value: Parser[MessageFormat] = namedError(
+    val messageFormatValue: Parser[MessageFormat] = namedError(
       rep(
         """\""" ~> ("\r"?) ~> "\n" ^^ (_ => "") | // Ignore escaped end of lines \
           """\n""" ^^ (_ => "\n") | // Translate literal \n to real newline
@@ -110,15 +194,20 @@ object ResourceEntries {
       "message format expected"
     )
 
-    val entry: Parser[ResourceEntry] = (ignoreWhiteSpace ~> key) ~ (ignoreWhiteSpace ~> assignOp) ~ (ignoreWhiteSpace ~> value) ^^ {
-      case k ~ op ~ v => ResourceEntry(k, v, op)
+    val entryValue: Parser[EntryValue] =
+      ("->" ~> ignoreWhiteSpace ~> keyName ^^ { case id => LinkEntryValue(id) }) |
+      ('@' ~> ignoreWhiteSpace ~> messageFormatValue ^^ { case v => MsgEntryValue(v, true) }) |
+      ('=' ~> ignoreWhiteSpace ~> messageFormatValue ^^ { case v => MsgEntryValue(v, false) })
+
+    val entry: Parser[Entry] = (ignoreWhiteSpace ~> entryKey) ~ (ignoreWhiteSpace ~> entryValue) ^^ {
+      case k ~ v => Entry(k, v)
     }
 
-    val comment: Parser[Option[ResourceEntry]] = """#.*""".r ^^ { case s => None }
+    val comment: Parser[Option[Entry]] = """#.*""".r ^^ { case s => None }
 
-    val line: Parser[Option[ResourceEntry]] = entry ^^ { case e => Some(e) } | comment | ignoreWhiteSpace ^^ { _ => None }
+    val line: Parser[Option[Entry]] = entry ^^ { case e => Some(e) } | comment | ignoreWhiteSpace ^^ { _ => None }
 
-    val lines: Parser[List[ResourceEntry]] = repsep(line, newLine) ^^ { case ls => ls collect { case Some(re) => re } }
+    val lines: Parser[List[Entry]] = repsep(line, newLine) ^^ { case ls => ls collect { case Some(re) => re } }
 
     def namedError[A](p: Parser[A], msg: String) = Parser[A] { i =>
       p(i) match {
@@ -127,9 +216,9 @@ object ResourceEntries {
       }
     }
 
-    val phraseLines: Parser[List[ResourceEntry]] = phrase(lines)
+    val phraseLines: Parser[List[Entry]] = phrase(lines)
 
-    def parse(url: URL): List[ResourceEntry] = {
+    def parse(url: URL): List[Entry] = {
       val input = StreamReader(Source.fromURL(url, "UTF-8").reader())
       phraseLines(input) match {
         case Success(lines, _) => lines

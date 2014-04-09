@@ -2,6 +2,7 @@ package eu.swdev.i18n
 
 import org.scalatest.{Inside, FunSuite}
 import java.util.Locale
+import scala.util.parsing.input.CharSequenceReader
 
 
 /**
@@ -24,9 +25,35 @@ class AnalyzerTest extends FunSuite with Inside {
 
   test("simple") {
     val result = analyze(getClass.getClassLoader, "com/abc/resource", de_DE)
-    val s = Set("a")
     inside(result) {
-      case AnalyzeResult(SetE("a", "b", "c", "d", "o"), SetE("t"), MapE(("a", MsgSignature(0, false)), ("b", MsgSignature(1, true)), ("c", MsgSignature(2, false)), ("d", MsgSignature(3, false)), ("o", MsgSignature(0, false)), ("t", MsgSignature(3, false))), MapE((de_DE, SetE())), SetE()) => true
+      case AnalyzeResult(MapE(("a", MsgResType(0, false)), ("b", MsgResType(1, true)), ("c", MsgResType(2, false)), ("d", MsgResType(3, false)), ("o", MsgResType(0, false)), ("t", TreeResType(MsgResType(3, false)))), _, _, _) => true
+    }
+  }
+
+  def parseLines(string: String): List[Entry] = {
+    ResourceEntries.ResourceParser.phraseLines(new CharSequenceReader(string)).get
+  }
+
+
+  test("tree of trees") {
+    val input =
+      """
+        |a[1]=a1
+        |a[2]=a2
+        |b[1]=b1
+        |b[2]=b2
+        |u[1]->a
+        |u[2]->b
+      """.stripMargin
+
+    val entries: List[Entry] = parseLines(input)
+
+    val (names, _) = orderEntries(entries)
+
+    val result = determineEntryTypesForOneLocale(entries, names)
+
+    inside(result) {
+      case MapE(("a", List(TreeResType(MsgResType(0, false)))), ("b", List(TreeResType(MsgResType(0, false)))), ("u", List(TreeResType(TreeResType(MsgResType(0, false)))))) => true
     }
   }
 }

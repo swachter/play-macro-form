@@ -4,38 +4,6 @@ import java.text.MessageFormat
 import eu.swdev.config.StringKeyValueTreeModule
 
 /**
- * A message format that knows if it contains markup or not.
- *
- * @param format
- * @param isMarkup Indicates if the message contains markup or not.
- */
-case class MsgFormat(format: MessageFormat, isMarkup: Boolean) {
-
-  /**
-   * Format the message and return the raw message text.
-   *
-   * @param args
-   * @return
-   */
-  def rawMsg(args: Array[Object]): String = {
-    format.format(args)
-  }
-
-  /**
-   * Format the message and return it as markup.
-   *
-   * @param args
-   * @param markup
-   * @return
-   */
-  def markupMsg(args: Array[Object])(implicit markup: MsgMarkup): markup.M = {
-    val s = format.format(args)
-    if (isMarkup) markup.markupMsg(s) else markup.rawMsg(s)
-  }
-
-}
-
-/**
  * Transforms messages into markup.
  *
  * Messages that contain markup must be transformed using the markupMsg method whereas messages that contain no
@@ -70,9 +38,6 @@ trait MsgMarkup {
   def markupMsg(string: String): M
 }
 
-/**
- * A module for key-value trees that contain message formats.
- */
-object MsgLookup extends StringKeyValueTreeModule {
-  type Value = MsgFormat
+object ResTrees extends StringKeyValueTreeModule {
+  type Value = ResValue
 }

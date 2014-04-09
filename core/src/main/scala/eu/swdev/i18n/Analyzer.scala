@@ -10,66 +10,163 @@ import java.net.URL
  */
 object Analyzer {
 
+  type MissingEntries = Map[Locale, Set[EntryName]]
+  type ConflictingEntries = Map[EntryName, List[(Locale, List[ResType])]]
+
+  type UnresolvedEntries = Map[EntryName, Set[EntryName]]
+  type EntryTypes = Map[EntryName, List[ResType]]
+
   def analyze(classLoader: ClassLoader, resourcePath: String, locales: Locale*): AnalyzeResult = {
     val resources = ResourcesLoader.loadResources(classLoader, resourcePath, locales: _*)
     analyzeKeys(resources)
   }
 
-  /**
-   * Represents how many arguments a message has and if it contains markup.
-   *
-   * @param args
-   * @param isMarkup
-   */
-  case class MsgSignature(args: Int, isMarkup: Boolean)
+  case class AnalyzeResult(types: Map[EntryName, ResType], unresolved: Map[Locale, UnresolvedEntries], missing: MissingEntries, conflicting: ConflictingEntries)
 
-  case class AnalyzeResult(simpleKeys: Set[String], lookupKeys: Set[String], signatures: Map[String, MsgSignature], missingKeys: Map[Locale, Set[String]], ambiguouslyUsedKeys: Set[String])
+  def analyzeKeys(input: Map[Locale, ResourceEntries]): AnalyzeResult = {
 
-  def analyzeKeys(aggregated: Map[Locale, ResourceEntries]): AnalyzeResult = {
-    val (allKeyIds1, missingKeyIds1) = analyzeKeys(aggregated, true)
-    val (allKeyIds2, missingKeyIds2) = analyzeKeys(aggregated, false)
+    val tmp: Map[Locale, (EntryTypes, UnresolvedEntries)] = input.mapValues(entries => {
+      val (entryNames, unresolved) = orderEntries(entries.entries)
+      val entryTypes = determineEntryTypesForOneLocale(entries.entries, entryNames)
+      (entryTypes, unresolved)
+    })
 
-    val missingKeyIds: Map[Locale, Set[String]] = aggregated.keys.map(l => l -> (missingKeyIds1(l) ++ missingKeyIds2(l))).toMap
-    val ambiguouslyUsedKeys: Set[String] = allKeyIds1.intersect(allKeyIds2)
+    val (entryTypes, missing, conflicting) = determineEntryTypesForAllLocales(tmp.mapValues(_._1))
 
-    // maps key id to message signatures
-    // the map is calculated by a nested fold over all resources and their entries
-    // the final signatures contain the maximum number of arguments a message has in any local and if a message contains
-    // markup in any locale.
-    val signatures: Map[String, MsgSignature] = aggregated.values.foldLeft(Map.empty[String, MsgSignature])((b, r) => r.entries.foldLeft(b)((b1, e) => {
-      val id = e.key.id
-      val l = e.msg.getFormatsByArgumentIndex.length
-      val old = b1.get(id)
-      // check if a signature has already been determined and if that signature has more arguments and is alread markup
-      // -> in that case the signature stays unchanged
-      if (old.map(s => s.args >= l && s.isMarkup).getOrElse(false)) {
-        b1
-      } else {
-        b1 + (id -> old.map(s => MsgSignature(s.args.max(l), s.isMarkup || e.isMarkup)).getOrElse(MsgSignature(l, e.isMarkup)))
-      }
-    }))
 
-    AnalyzeResult(allKeyIds1, allKeyIds2, signatures, missingKeyIds, ambiguouslyUsedKeys)
+    AnalyzeResult(entryTypes, tmp.mapValues(_._2), missing, conflicting)
   }
 
   /**
    *
-   * @param aggregated
-   * @param simpleNotLookup determines if simple entries or if lookup entries are considered
+   * @param input
+   * @return a tuple consisting of
+   *         - a map of entry types
+   *         - information about missing entries: a map of locales to the sets of missing entry names
+   *         - information about conflicting entry types: lists of the different entry types of an entry
+   */
+  def determineEntryTypesForAllLocales(input: Map[Locale, EntryTypes]): (Map[EntryName, ResType], MissingEntries, ConflictingEntries) = {
+    val locales: List[Locale] = input.keys.toList
+    val allNames: Set[EntryName] = input.values.flatMap(_.keys).toSet
+    val missingNames: Map[Locale, Set[EntryName]] = input.mapValues(m => allNames -- m.keys)
+    val commonNames: Set[EntryName] = allNames -- missingNames.values.flatMap(_.iterator)
+    val both = commonNames.foldLeft((Map.empty[EntryName, ResType], Map.empty[EntryName, List[(Locale, List[ResType])]]))((b, entryName) => {
+      val entryTypes: List[ResType] = locales.flatMap(input(_)(entryName))
+      val unified = unifyEntryTypes(entryTypes)
+      val newConflicts = if (unified.tail.isEmpty) {
+        b._2
+      } else {
+        b._2 + (entryName -> (locales.map(l => (l, input(l)(entryName)))))
+      }
+      (b._1 + (entryName -> unified.head), newConflicts)
+    })
+    (both._1, missingNames, both._2)
+  }
+
+  /**
+   * 
+   * @param entries
+   * @param names an ordered list of entry names; entries named first do not depend on entries named later
    * @return
    */
-  def analyzeKeys(aggregated: Map[Locale, ResourceEntries], simpleNotLookup: Boolean): (Set[String], Map[Locale, Set[String]]) = {
-    // maps locales to the key ids that are defined for them
-    val keyIds: Map[Locale, Set[String]] = aggregated.mapValues(_.entries.map(_.key).filter(_ match {
-      case k: SimpleEntryKey => simpleNotLookup
-      case k: LookupEntryKey => !simpleNotLookup}
-    ).map(_.id).toSet)
-    val allKeyIds: Set[String] = keyIds.values.foldLeft(Set.empty[String])((s, kids) => s ++ kids)
+  def determineEntryTypesForOneLocale(entries: List[Entry], names: List[EntryName]): EntryTypes = {
 
-    // maps locales to the key ids that are NOT defined for them
-    val missingKeyIds: Map[Locale, Set[String]] = keyIds.mapValues(allKeyIds -- _)
+    val grouped: Map[EntryName, List[Entry]] = entries.groupBy(_.key.name)
 
-    (allKeyIds, missingKeyIds)
+    names.foldLeft(Map.empty[EntryName, List[ResType]])((accu, entryName) => {
+      val entryTypes: List[ResType] = grouped(entryName).map(resourceEntry => resourceEntry.key match {
+        case SimpleEntryKey(_) => {
+          resourceEntry.value match {
+            case MsgEntryValue(format, isMarkup) => MsgResType(format, isMarkup)
+            case LinkEntryValue(name) => accu(name).head
+          }
+        }
+        case TreeEntryKey(_, _) => {
+          resourceEntry.value match {
+            case MsgEntryValue(format, isMarkup) => TreeResType(MsgResType(format, isMarkup))
+            case LinkEntryValue(name) => TreeResType(accu(name).head)
+          }
+        }
+      })
+
+      val unifiedEntryTypes: List[ResType] = unifyEntryTypes(entryTypes)
+      accu + (entryName -> unifiedEntryTypes)
+    })
   }
 
+  def unifyEntryTypes(list: List[ResType]): List[ResType] = {
+    def unify(et1: ResType, et2: ResType): Option[ResType] = (et1, et2) match {
+      case (MsgResType(args1, isMarkup1), MsgResType(args2, isMarkup2)) => Some(MsgResType(args1.max(args2), isMarkup1 || isMarkup2))
+      case (TreeResType(mt1), TreeResType(mt2)) => unify(mt1, mt2).map(TreeResType(_))
+      case _ => None
+    }
+    list.tail.foldLeft(List(list.head))((accu, entryType) => {
+      if (accu.exists(unify(_, entryType).isDefined)) {
+        accu.map(et => unify(et, entryType).getOrElse(et))
+      } else {
+        entryType :: accu
+      }
+    })
+  }
+
+  //
+  //
+  //
+
+  /**
+   * Calculate a sorted list of entry names such that entries named first do not depend on entries named later.
+   *
+   * The entries are ordered by calculating the maximum number of link values one must follow starting at an entry value
+   * in order to reach a simple entry value.
+   *
+   * @param entries
+   * @return a tuple containing a list of ordered entry names and a map of entry names that could not be resolved
+   */
+  def orderEntries(entries: List[Entry]): (List[EntryName], UnresolvedEntries) = {
+
+    type DependencyInfos = Map[EntryName, DependencyInfo]
+
+    sealed trait DependencyInfo {
+      def isDepth: Boolean
+      def depth: Int
+    }
+
+    case class Depth(depth: Int) extends DependencyInfo {
+      def isDepth = true
+    }
+
+    case class Links(list: List[EntryName]) extends DependencyInfo {
+      def isDepth = false
+      def depth = throw new UnsupportedOperationException
+    }
+
+    def process(di: DependencyInfos): DependencyInfos = {
+      val newDi = di.mapValues(_ match {
+        case d: Depth => d
+        case l@Links(list) => {
+          if (list.forall(n => di.get(n).isDefined && di(n).isDepth)) {
+            Depth(1 + list.map(di(_).depth).max)
+          } else {
+            l
+          }
+        }
+      })
+      if (di == newDi) {
+        di
+      } else {
+        process(newDi)
+      }
+    }
+
+    val grouped: Map[EntryName, List[LinkEntryValue]] = entries.groupBy(_.key.name).mapValues(_.map(_.value).collect{ case l: LinkEntryValue => l })
+    val initial: DependencyInfos = grouped.mapValues(_ match {
+      case Nil => Depth(0)
+      case l => Links(l.map(_.name))
+    })
+
+    val di = process(initial)
+    val orderedEntryNames: List[EntryName] = di.toList.collect{ case (n: EntryName, d: Depth) => (n, d) }.sortWith((l, r) => l._2.depth < r._2.depth).map(_._1)
+    val unresolved: UnresolvedEntries = di.collect{ case (n: EntryName, l: Links) => (n, l.list.filter(nn => !di.get(nn).isDefined || !di(nn).isDepth).toSet)}
+    (orderedEntryNames, unresolved)
+  }
 }

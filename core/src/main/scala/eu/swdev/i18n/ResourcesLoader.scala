@@ -7,21 +7,28 @@ import java.util.Locale
   */
 object ResourcesLoader {
 
-  def buildMaps(classLoader: ClassLoader, resourcePath: String, locales: Locale*): (Map[Locale, Map[String, MsgFormat]], Map[Locale, Map[String, MsgLookup.KeyValueTree]]) = {
-    val resources = loadResources(classLoader, resourcePath, locales: _*)
-    val zero = (Map.empty[String, MsgFormat], Map.empty[String, MsgLookup.KeyValueTree])
-    val both = resources.mapValues(_.entries.foldLeft(zero)((a, e) => {
-      e.key match {
-        case SimpleEntryKey(id) => {
-          (a._1 + (id -> MsgFormat(e.msg, e.isMarkup)), a._2)
-        }
-        case LookupEntryKey(id, path) => {
-          (a._1, a._2 + (id -> (a._2.getOrElse(id, MsgLookup.KeyValueTree.empty)(path) = MsgFormat(e.msg, e.isMarkup))))
-        }
-      }
-
-    }))
-    (both.mapValues(_._1), both.mapValues(_._2))
+  def load(classLoader: ClassLoader, resourcePath: String, locales: Locale*): Map[Locale, Map[EntryName, ResValue]] = {
+    val resources: Map[Locale, ResourceEntries] = loadResources(classLoader, resourcePath, locales: _*)
+    resources.mapValues(entries => {
+      val (entryNames, unresolved) = Analyzer.orderEntries(entries.entries)
+      val entryTypes = Analyzer.determineEntryTypesForOneLocale(entries.entries, entryNames)
+      val grouped = entries.entries.groupBy(_.key.name)
+      entryNames.foldLeft(Map.empty[EntryName, ResValue])((b, entryName) => {
+        grouped(entryName).foldLeft(b)((b1, re) => {
+          val resValue: ResValue = re.value match {
+            case MsgEntryValue(format, isMarkup) => MsgResValue(format, isMarkup)
+            case LinkEntryValue(name) => b1(name)
+          }
+          re.key match {
+            case SimpleEntryKey(_) => b1 + (entryName -> resValue)
+            case TreeEntryKey(_, path) => {
+              val treeValue = b1.getOrElse(entryName, TreeResValue(ResTrees.KeyValueTree.empty)).asTree
+              b1 + (entryName -> TreeResValue(treeValue.tree(path) = resValue))
+            }
+          }
+        })
+      })
+    })
   }
 
   def loadResources(classLoader: ClassLoader, resourcePath: String, locales: Locale*): Map[Locale, ResourceEntries] = {
