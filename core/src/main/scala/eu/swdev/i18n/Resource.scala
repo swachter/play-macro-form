@@ -81,14 +81,38 @@ object ResourceMacro {
       }
     }
 
+    def createArgArray(args: Int): Tree = {
+      val argList = (for {
+        i <- 0 until args
+      } yield {
+        Ident(newTermName(s"arg$i"))
+      }).toList
+      Apply(Ident(newTermName("Array")), argList)
+    }
+
+    def valDef(name: String): ValDef = {
+      q"""def a(${newTermName(name)}: String): String""" match { case q"""def ${_}($x): String""" => x }
+    }
+
+    def createParams(prefix: String, nb: Int): List[ValDef] = {
+      (for {
+        i <- 0 until nb
+      } yield {
+        valDef(s"$prefix$i")
+      }).toList
+    }
+
     def simpleMsgDef(id: String, tpe: MsgResType): Tree = {
       val idName = c.universe.newTermName(id)
       val methodName = c.universe.newTermName(if (tpe.isMarkup) "markupMsg" else "rawMsg")
+      val argsArray = createArgArray(tpe.args)
+      val args = createParams("arg", tpe.args)
+
       tpe.args match {
-        case 0 => q"""def $idName(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asMsg.$methodName(null)"""
-        case 1 => q"""def $idName(arg0: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asMsg.$methodName(Array(arg0))"""
-        case 2 => q"""def $idName(arg0: AnyRef, arg1: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asMsg.$methodName(Array(arg0, arg1))"""
-        case 3 => q"""def $idName(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asMsg.$methodName(Array(arg0, arg1, arg2))"""
+        case 0 => q"""def $idName(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asMsg.$methodName($argsArray)"""
+        case 1 => q"""def $idName(..$args)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asMsg.$methodName($argsArray)"""
+        case 2 => q"""def $idName(..$args)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asMsg.$methodName($argsArray)"""
+        case 3 => q"""def $idName(..$args)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asMsg.$methodName($argsArray)"""
       }
     }
 
