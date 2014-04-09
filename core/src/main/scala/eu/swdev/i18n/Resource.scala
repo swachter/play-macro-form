@@ -81,6 +81,18 @@ object ResourceMacro {
       }
     }
 
+    /**
+     * Creates a tree for the argument array that is passed into the message format.
+     *
+     * {{{
+     *   Array()
+     *   Array(arg0)
+     *   Array(arg1, arg2)
+     * }}}
+     *
+     * @param args
+     * @return
+     */
     def createArgArray(args: Int): Tree = {
       val argList = (for {
         i <- 0 until args
@@ -90,6 +102,12 @@ object ResourceMacro {
       Apply(Ident(newTermName("Array")), argList)
     }
 
+    /**
+     * Creates a method parameter definition.
+     *
+     * @param name
+     * @return
+     */
     def valDef(name: String): ValDef = {
       q"""def a(${newTermName(name)}: String): String""" match { case q"""def ${_}($x): String""" => x }
     }
@@ -102,28 +120,42 @@ object ResourceMacro {
       }).toList
     }
 
-    def simpleMsgDef(id: String, tpe: MsgResType): Tree = {
-      val idName = c.universe.newTermName(id)
+    def applyAsMsgAndFormat(x: Tree, tpe: ResType): Tree = {
       val methodName = c.universe.newTermName(if (tpe.isMarkup) "markupMsg" else "rawMsg")
       val argsArray = createArgArray(tpe.args)
-      val args = createParams("arg", tpe.args)
+      val asMsg = q"$x.asMsg"
+      q"$asMsg.$methodName($argsArray)"
+    }
 
-      tpe.args match {
-        case 0 => q"""def $idName(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asMsg.$methodName($argsArray)"""
-        case 1 => q"""def $idName(..$args)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asMsg.$methodName($argsArray)"""
-        case 2 => q"""def $idName(..$args)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asMsg.$methodName($argsArray)"""
-        case 3 => q"""def $idName(..$args)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asMsg.$methodName($argsArray)"""
+    def simpleMsgDef(id: String, tpe: MsgResType): Tree = {
+      val idName = c.universe.newTermName(id)
+      val lhs = applyAsMsgAndFormat(q"resMap(locale)($id)", tpe)
+      if (tpe.args == 0) {
+        q"""def $idName(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
+      } else {
+        val args = createParams("arg", tpe.args)
+        q"""def $idName(..$args)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
       }
     }
 
     def lookupMsgDef(id: String, tpe: TreeResType): Tree = {
       val idName = c.universe.newTermName(id)
       val methodName = c.universe.newTermName(if (tpe.isMarkup) "markupMsg" else "rawMsg")
+
+      def calcSteps(t: ResType): Int = t match {
+        case TreeResType(nested) => 1 + calcSteps(nested)
+        case _: MsgResType => 0
+      }
+
+      val steps = calcSteps(tpe)
+
+      val stepParams = createParams("step", steps)
+
       tpe.args match {
-        case 0 => q"""def $idName(path: String)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asTree.getValue(path).map(_.asMsg.$methodName(null))"""
-        case 1 => q"""def $idName(path: String)(arg0: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asTree.getValue(path).map(_.asMsg.$methodName(Array(arg0)))"""
-        case 2 => q"""def $idName(path: String)(arg0: AnyRef, arg1: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asTree.getValue(path).map(_.asMsg.$methodName(Array(arg0, arg1)))"""
-        case 3 => q"""def $idName(path: String)(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asTree.getValue(path).map(_.asMsg.$methodName(Array(arg0, arg1, arg2)))"""
+        case 0 => q"""def $idName(..$stepParams)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asTree.getValue(step0).map(_.asMsg.$methodName(null))"""
+        case 1 => q"""def $idName(..$stepParams)(arg0: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asTree.getValue(step0).map(_.asMsg.$methodName(Array(arg0)))"""
+        case 2 => q"""def $idName(..$stepParams)(arg0: AnyRef, arg1: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asTree.getValue(step0).map(_.asMsg.$methodName(Array(arg0, arg1)))"""
+        case 3 => q"""def $idName(..$stepParams)(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asTree.getValue(step0).map(_.asMsg.$methodName(Array(arg0, arg1, arg2)))"""
       }
     }
 
