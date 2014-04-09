@@ -39,7 +39,10 @@ val commonSettings = Seq(
 val commonPlaySettings = commonSettings ++ play.Project.playScalaSettings
 
 lazy val core = project.settings(commonSettings: _*).settings(
-    libraryDependencies += "org.scalamacros" % "quasiquotes" % scalaMacroVersion cross CrossVersion.full
+    libraryDependencies += "org.scalamacros" % "quasiquotes" % scalaMacroVersion cross CrossVersion.full,
+    // macros that are executed when tests are compiled may need to access test resources
+    // -> add the test resource directory to the test dependency classpath
+    dependencyClasspath in Test ++= (unmanagedResourceDirectories in Test).value
   )
 
 lazy val playMod = Project("play-mod", file("play-mod")).dependsOn(core).settings(
