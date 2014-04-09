@@ -120,11 +120,60 @@ object ResourceMacro {
       }).toList
     }
 
+    /**
+     * Applies the asMsg method followed by a format method.
+     *
+     *
+     * {{{
+     *   $x.asMsg.<format method>(<args>)
+     * }}}
+     *
+     * @param x
+     * @param tpe
+     * @return
+     */
     def applyAsMsgAndFormat(x: Tree, tpe: ResType): Tree = {
       val methodName = c.universe.newTermName(if (tpe.isMarkup) "markupMsg" else "rawMsg")
       val argsArray = createArgArray(tpe.args)
-      val asMsg = q"$x.asMsg"
-      q"$asMsg.$methodName($argsArray)"
+      q"$x.asMsg.$methodName($argsArray)"
+    }
+
+    /**
+     * Maps the asMsg method followed by a format method.
+     *
+     * {{{
+     *   $x.map(_.asMsg.<format>(<args>))
+     * }}}
+     *
+     * @param x
+     * @param tpe
+     * @return
+     */
+    def mapAsMsgAndFormat(x: Tree, tpe: ResType): Tree = {
+      val methodName = c.universe.newTermName(if (tpe.isMarkup) "markupMsg" else "rawMsg")
+      val argsArray = createArgArray(tpe.args)
+      q"$x.map(_.asMsg.$methodName($argsArray))"
+    }
+
+    /**
+     * Recursively applies flatMap calls.
+     *
+     * {{{
+     *   $x
+     *   $x.flatMap(_.asTree.getValue(step1))
+     *   $x.flatMap(_.asTree.getValue(step1)).flatMap(_.asTree.getValue(step2))
+     * }}}
+     * @param x
+     * @param step
+     * @return
+     */
+    def flatMapAsTreeAndGetValue(x: Tree, step: Int): Tree = {
+      if (step == 0) {
+        x
+      } else {
+        val tmp = flatMapAsTreeAndGetValue(x, step - 1)
+        q"$tmp.flatMap(_.asTree.getValue(${newTermName(s"step$step")}))"
+      }
     }
 
     def simpleMsgDef(id: String, tpe: MsgResType): Tree = {
@@ -151,11 +200,17 @@ object ResourceMacro {
 
       val stepParams = createParams("step", steps)
 
-      tpe.args match {
-        case 0 => q"""def $idName(..$stepParams)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asTree.getValue(step0).map(_.asMsg.$methodName(null))"""
-        case 1 => q"""def $idName(..$stepParams)(arg0: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asTree.getValue(step0).map(_.asMsg.$methodName(Array(arg0)))"""
-        case 2 => q"""def $idName(..$stepParams)(arg0: AnyRef, arg1: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asTree.getValue(step0).map(_.asMsg.$methodName(Array(arg0, arg1)))"""
-        case 3 => q"""def $idName(..$stepParams)(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)($id).asTree.getValue(step0).map(_.asMsg.$methodName(Array(arg0, arg1, arg2)))"""
+      val start = q"resMap(locale)($id).asTree.getValue(step0)"
+
+      val flat = flatMapAsTreeAndGetValue(start, steps - 1)
+
+      val lhs = mapAsMsgAndFormat(flat, tpe)
+
+      if (tpe.args == 0) {
+        q"""def $idName(..$stepParams)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
+      } else {
+        val args = createParams("arg", tpe.args)
+        q"""def $idName(..$stepParams)(..$args)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
       }
     }
 
