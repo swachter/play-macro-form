@@ -114,83 +114,23 @@ object EntryLines {
   val empty = new EntryLines(Nil)
 
   def apply(url: URL): EntryLines = {
-    val entries = ResourceParser.parse(url)
-    empty ++ entries
+    val lines = parse(url)
+    empty ++ lines
   }
 
   def apply(urls: TraversableOnce[URL]): EntryLines = {
-    val lines = for {
+    val liness = for {
       url <- urls
     } yield {
-      ResourceParser.parse(url)
+      parse(url)
     }
-    empty ++ lines.toList.flatten
+    empty ++ liness.toList.flatten
   }
 
-  object ResourceParser extends RegexParsers {
-
-    override def skipWhitespace = false
-    override val whiteSpace = """[ \t]+""".r
-
-    def ws = opt(whiteSpace)
-    def newLine = namedError((("\r"?) ~> "\n"), "End of line expected")
-
-    val entryName: Parser[String] = namedError("""[a-zA-Z][a-zA-Z0-9_]*""".r, "illegal entry name")
-
-    val treeKey: Parser[String] = '<' ~> ws ~> """[a-zA-Z0-9_.]*""".r <~ ws <~ '>'
-
-    val mapKey: Parser[String] = '(' ~> ws ~> """[^)]*""".r <~ ws <~ ')'
-
-    val entryId: Parser[EntryLineId] =
-      entryName ~ treeKey ^^ { case name ~ key => TreeEntryLineId(name, key) } |
-        entryName ~ mapKey ^^ { case name ~ key => MapEntryLineId(name, key) } |
-        entryName ^^ { case name => SimpleEntryLineId(name) }
-
-    /**
-     *
-     */
-    val messageFormat: Parser[MessageFormat] = namedError(
-      rep(
-        """\\""" ^^ (_ => """\""")                          | // Handle escaped \\
-          """\""" ~> ws ~> ("\r"?) ~> "\n" ~> ws ^^ (_ => "") | // Ignore escaped end of lines and following whitespace
-          """\n""" ^^ (_ => "\n")                             | // Translate literal \n to real newline
-          """.""".r                                             // keep any character (except new line)
-      ) ^^ { case frags => new MessageFormat(frags.mkString.trim) },
-      "message format expected"
-    )
-
-    val entryValue: Parser[EntryLineValue] =
-      "->" ~> ws ~> entryName ^^ { case n => LinkEntryLineValue(n) } |
-        '@' ~> ws ~> messageFormat ^^ { case m => MsgEntryLineValue(m, true) } |
-        '=' ~> ws ~> messageFormat ^^ { case m => MsgEntryLineValue(m, false) }
-
-    val entry: Parser[EntryLine] = (ws ~> entryId) ~ (ws ~> entryValue) ^^ {
-      case k ~ v => EntryLine(k, v)
+  private def parse(url: URL): List[EntryLine] = {
+    EntryLinesParser.parsePhraseLines(url) match {
+      case Left(l) => throw new Exception(s"parse error - message: ${l._1}; line: ${l._2.pos.line}; column: ${l._2.pos.column}; url: ${l._3}")
+      case Right(r) => r
     }
-
-    val comment: Parser[Option[EntryLine]] = """#.*""".r ^^ { case s => None }
-
-    val line: Parser[Option[EntryLine]] = entry ^^ { case e => Some(e) } | comment | ws ^^ { _ => None }
-
-    val lines: Parser[List[EntryLine]] = repsep(line, newLine) ^^ { case ls => ls collect { case Some(re) => re } }
-
-    def namedError[A](p: Parser[A], msg: String) = Parser[A] { i =>
-      p(i) match {
-        case Failure(_, in) => Failure(msg, in)
-        case o => o
-      }
-    }
-
-    val phraseLines: Parser[List[EntryLine]] = phrase(lines)
-
-    def parse(url: URL): List[EntryLine] = {
-      val input = StreamReader(Source.fromURL(url, "UTF-8").reader())
-      phraseLines(input) match {
-        case Success(lines, _) => lines
-        case NoSuccess(message, in) => throw new Exception(s"parse error - message: $message; line: ${in.pos.line}; column: ${in.pos.column}; url: ${url}")
-      }
-    }
-
   }
-
 }

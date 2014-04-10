@@ -8,57 +8,55 @@ import scala.language.implicitConversions
   */
 class EntryLinesTest extends FunSuite with Inside {
 
-  import EntryLines.ResourceParser
-
   implicit def toReader(string: String) = new CharSequenceReader(string)
 
-  def parseEntry(string: String): ResourceParser.ParseResult[EntryLine] = {
-    ResourceParser.phrase(ResourceParser.entry)(string)
+  def parseEntry(string: String): Either[(String, EntryLinesParser.Input, String), EntryLine] = {
+    EntryLinesParser.parse(string, EntryLinesParser.phrase(EntryLinesParser.entry))
   }
 
-  def parseLines(string: String): ResourceParser.ParseResult[List[EntryLine]] = {
-    ResourceParser.phraseLines(string)
+  def parseLines(string: String): Either[(String, EntryLinesParser.Input, String), List[EntryLine]] = {
+    EntryLinesParser.parsePhraseLines(string)
   }
 
   test("ResourceEntry") {
     inside(parseEntry("a=")) {
-      case ResourceParser.Success(EntryLine(SimpleEntryLineId("a"), MsgEntryLineValue(mf, false)), _) if (mf.toPattern == "") =>
+      case Right(EntryLine(SimpleEntryLineId("a"), MsgEntryLineValue(mf, false))) if (mf.toPattern == "") =>
     }
     inside(parseEntry("a=b")) {
-      case ResourceParser.Success(EntryLine(SimpleEntryLineId("a"), MsgEntryLineValue(mf, false)), _) if (mf.toPattern == "b") =>
+      case Right(EntryLine(SimpleEntryLineId("a"), MsgEntryLineValue(mf, false))) if (mf.toPattern == "b") =>
     }
     inside(parseEntry("a@b")) {
-      case ResourceParser.Success(EntryLine(SimpleEntryLineId("a"), MsgEntryLineValue(mf, true)), _) if (mf.toPattern == "b") =>
+      case Right(EntryLine(SimpleEntryLineId("a"), MsgEntryLineValue(mf, true))) if (mf.toPattern == "b") =>
     }
     inside(parseEntry("a=b\\\nc")) {
-      case ResourceParser.Success(EntryLine(_, MsgEntryLineValue(mf, _)), _) if (mf.toPattern == "bc") =>
+      case Right(EntryLine(_, MsgEntryLineValue(mf, _))) if (mf.toPattern == "bc") =>
     }
     inside(parseEntry("a=b\\nc")) {
-      case ResourceParser.Success(EntryLine(_, MsgEntryLineValue(mf, _)), _) if (mf.toPattern == "b\nc") =>
+      case Right(EntryLine(_, MsgEntryLineValue(mf, _))) if (mf.toPattern == "b\nc") =>
     }
   }
 
   test("List[ResourceEntry]") {
     inside(parseLines("")) {
-      case ResourceParser.Success(List(), _) =>
+      case Right(List()) =>
     }
     inside(parseLines("a=b")) {
-      case ResourceParser.Success(List(EntryLine(_, _)), _) =>
+      case Right(List(EntryLine(_, _))) =>
     }
     inside(parseLines("\na=b\n")) {
-      case ResourceParser.Success(List(EntryLine(_, _)), _) =>
+      case Right(List(EntryLine(_, _))) =>
     }
     inside(parseLines("  \na=b\n  ")) {
-      case ResourceParser.Success(List(EntryLine(_, _)), _) =>
+      case Right(List(EntryLine(_, _))) =>
     }
     inside(parseLines("#cmt\na=b\n#cmt")) {
-      case ResourceParser.Success(List(EntryLine(_, _)), _) =>
+      case Right(List(EntryLine(_, _))) =>
     }
     inside(parseLines("#cmt\na=b\n#cmt\n")) {
-      case ResourceParser.Success(List(EntryLine(_, _)), _) =>
+      case Right(List(EntryLine(_, _))) =>
     }
     inside(parseLines("a=b\na@b")) {
-      case ResourceParser.Success(List(EntryLine(_, _), EntryLine(_, _)), _) =>
+      case Right(List(EntryLine(_, _), EntryLine(_, _))) =>
     }
   }
 

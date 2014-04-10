@@ -31,7 +31,7 @@ class AnalyzerTest extends FunSuite with Inside {
   }
 
   def parseLines(string: String): List[EntryLine] = {
-    EntryLines.ResourceParser.phraseLines(new CharSequenceReader(string)).get
+    EntryLinesParser.parsePhraseLines(string).right.get
   }
 
 
