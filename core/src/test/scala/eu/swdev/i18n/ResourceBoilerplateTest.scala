@@ -7,7 +7,7 @@ import org.scalatest.FunSuite
   */
 object R {
 
-  val resMap = ResourcesLoader.load(getClass.getClassLoader, "com/abc/resource", new Locale("de", "DE"))
+  val resMap = ResourcesLoader.loadEntries(getClass.getClassLoader, "com/abc/resource", new Locale("de", "DE"))
 
   def a(implicit locale: Locale) = resMap(locale)("a").outputRaw(null)
 

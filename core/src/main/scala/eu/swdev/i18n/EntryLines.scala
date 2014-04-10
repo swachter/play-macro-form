@@ -105,7 +105,7 @@ case class EntryLines private (entries: List[EntryLine]) {
   def ++(other: GenTraversable[EntryLine]): EntryLines = {
     val zero = (List.empty[EntryLine], Set.empty[EntryLineId])
     val t = (entries ++ other).foldRight(zero)((e, accu) => if (accu._2.contains(e.id)) accu else (e :: accu._1, accu._2 + e.id))
-    EntryLines(t._1)
+    new EntryLines(t._1)
   }
 }
 

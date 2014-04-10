@@ -13,99 +13,134 @@ object Analyzer {
   type MissingEntries = Map[Locale, Set[EntryName]]
   type ConflictingEntries = Map[EntryName, List[(Locale, List[EntryType])]]
 
-  type UnresolvedEntries = Map[EntryName, Set[EntryName]]
-  type EntryTypes = Map[EntryName, List[EntryType]]
-
-  def analyze(classLoader: ClassLoader, resourcePath: String, locales: Locale*): AnalyzeResult = {
-    val resources = ResourcesLoader.loadResources(classLoader, resourcePath, locales: _*)
-    analyzeResourceEntries(resources)
-  }
-
-  case class AnalyzeResult(types: Map[EntryName, EntryType], unresolved: Map[Locale, UnresolvedEntries], missing: MissingEntries, conflicting: ConflictingEntries)
+  type UnprocessedEntries = Map[EntryName, Set[EntryName]]
+  type EntryTypesByName = Map[EntryName, List[EntryType]]
 
   /**
-   * Analyzes a map of ResourceEntries.
+   * The result of analyzing a map of locales and their entry lines.
+   * 
+   * @param types Maps entry names to their entry type.
+   * @param missing Informs about missing entry definitions, i.e. entry definitions that are not present in some locales.
+   *                For each locale the set of missing entry names is given.
+   * @param conflicting Informs about conflicting entry definitions, i.e. entry definitions that have different entry types for different locales.
+   *                    For each entry name a list of locales and the entry types that exist for that entry name and locale is given.
+   * @param resultsOfOneLocale Holds the separate analysis results for each locale.
+   */
+  case class AnalysisResultOfAllLocales(types: Map[EntryName, EntryType], missing: MissingEntries, conflicting: ConflictingEntries, resultsOfOneLocale: Map[Locale, AnalysisResultOfOneLocale])
+
+  /**
+   * The result of analyzing a single list of entry lines.
+   *
+   * @param types Maps entry names to their entry type
+   * @param ordered Lists entry names according to their dependencies. Entries that are named first do not depend on entries named later.
+   * @param unprocessed Informs about unprocessed entities, i.e. entities that depend on other entities and whose processing
+   *                    result was not available.
+   * @param grouped Maps entry names to the list of entry lines that belong to that entry name
+   */
+  case class AnalysisResultOfOneLocale(types: EntryTypesByName, ordered: List[EntryName], unprocessed: UnprocessedEntries, grouped: Map[EntryName, List[EntryLine]])
+
+  def analyze(classLoader: ClassLoader, resourcePath: String, locales: Locale*): AnalysisResultOfAllLocales = {
+    val loader = new ResourcesLoader.ClassLoaderEntryLinesLoader(classLoader, resourcePath)
+    val resources = ResourcesLoader.loadEntryLines(loader, locales: _*)
+    analyzeEntryLinesOfAllLocales(resources.right.get)
+  }
+
+  /**
+   * Analyzes a map of EntryLines.
    *
    *
    * @param input
    * @return
    */
-  def analyzeResourceEntries(input: Map[Locale, EntryLines]): AnalyzeResult = {
+  def analyzeEntryLinesOfAllLocales(input: Map[Locale, EntryLines]): AnalysisResultOfAllLocales = {
 
-    val tmp: Map[Locale, (EntryTypes, UnresolvedEntries)] = input.mapValues(entries => {
-      val (entryNames, unresolved) = orderEntries(entries.entries)
-      val entryTypes = determineEntryTypesForOneLocale(entries.entries, entryNames)
-      (entryTypes, unresolved)
-    })
-
-    val (types, missing, conflicting) = determineEntryTypesForAllLocales(tmp.mapValues(_._1))
-
-    AnalyzeResult(types, tmp.mapValues(_._2), missing, conflicting)
-  }
-
-  /**
-   *
-   * @param input
-   * @return a tuple consisting of
-   *         - a map of entry types
-   *         - information about missing entries: a map of locales to the sets of missing entry names
-   *         - information about conflicting entry types: lists of the different entry types of an entry
-   */
-  def determineEntryTypesForAllLocales(input: Map[Locale, EntryTypes]): (Map[EntryName, EntryType], MissingEntries, ConflictingEntries) = {
+    // analyze each EntryLines instance separately
+    val resultsOfOneLocale: Map[Locale, AnalysisResultOfOneLocale] = input.mapValues(el => analyzeEntryLinesOfOneLocale(el.entries))
+    
     val locales: List[Locale] = input.keys.toList
-    val allNames: Set[EntryName] = input.values.flatMap(_.keys).toSet
-    val missingNames: Map[Locale, Set[EntryName]] = input.mapValues(m => allNames -- m.keys)
+    val entryTypes: Map[Locale, EntryTypesByName] = resultsOfOneLocale.mapValues(_.types)
+
+    // collect the entry names of all entry types that resulted from the separate analysis of each EntryLines instance
+    val allNames: Set[EntryName] = entryTypes.values.flatMap(_.keys).toSet
+
+    // for each locale calculate the set of entry names for which there is no entry type known in that locale
+    // -> missing = allNames - <the names of all known entry types of that locale>
+    val missingNames: MissingEntries = entryTypes.mapValues(m => allNames -- m.keys)
+
+    // the entry names for which there are entry types in all locales
+    // -> commonNames = allName -- <the missing names in all locales>
     val commonNames: Set[EntryName] = allNames -- missingNames.values.flatMap(_.iterator)
-    val both = commonNames.foldLeft((Map.empty[EntryName, EntryType], Map.empty[EntryName, List[(Locale, List[EntryType])]]))((b, entryName) => {
-      val entryTypes: List[EntryType] = locales.flatMap(input(_)(entryName))
-      val unified = unifyEntryTypes(entryTypes)
+
+    // aggregate the entry types that were determined for each locale separately and collect all conflicts, i.e. situations
+    // where there is more than one entry type for an entry.
+    // -> fold over the common names starting with empty maps for entry types and conflicts
+    val (allTypes, conflicts) = commonNames.foldLeft((Map.empty[EntryName, EntryType], Map.empty[EntryName, List[(Locale, List[EntryType])]]))((b, entryName) => {
+
+      // for each entry name: collect all known entry types for all locales for that entry name
+      val etl: List[EntryType] = locales.flatMap(entryTypes(_)(entryName))
+      val unified = unifyEntryTypes(etl)
+      // augment the conflicts map if more than one entry type is found
       val newConflicts = if (unified.tail.isEmpty) {
         b._2
       } else {
-        b._2 + (entryName -> (locales.map(l => (l, input(l)(entryName)))))
+        b._2 + (entryName -> (locales.map(l => (l, entryTypes(l)(entryName)))))
       }
+      // augment the entry types mapping by the first found entry type
       (b._1 + (entryName -> unified.head), newConflicts)
     })
-    (both._1, missingNames, both._2)
+
+    AnalysisResultOfAllLocales(allTypes, missingNames, conflicts, resultsOfOneLocale)
   }
 
   /**
-   * 
+   * Analyzes a list of entry lines.
+   *
    * @param entries
-   * @param names an ordered list of entry names; entries named first do not depend on entries named later
    * @return
    */
-  def determineEntryTypesForOneLocale(entries: List[EntryLine], names: List[EntryName]): EntryTypes = {
+  def analyzeEntryLinesOfOneLocale(entries: List[EntryLine]): AnalysisResultOfOneLocale = {
 
-    val grouped: Map[EntryName, List[EntryLine]] = entries.groupBy(_.id.name)
+    val (orderedNames, unprocessed, grouped) = orderEntries(entries)
 
-    names.foldLeft(Map.empty[EntryName, List[EntryType]])((accu, entryName) => {
-      val entryTypes: List[EntryType] = grouped(entryName).map(resourceEntry => resourceEntry.id match {
+    // calculate the map of entry types by folding over the ordered list of entry names and starting with an empty map
+    val entryTypes: EntryTypesByName = orderedNames.foldLeft(Map.empty[EntryName, List[EntryType]])((accu, entryName) => {
+      // for each entryName map its list of entry lines into a list of entry types
+      val etl: List[EntryType] = grouped(entryName).map(line => line.id match {
         case SimpleEntryLineId(_) => {
-          resourceEntry.value match {
+          line.value match {
             case MsgEntryLineValue(format, isMarkup) => MsgEntryType(format, isMarkup)
-            case LinkEntryLineValue(name) => accu(name).head
+            case LinkEntryLineValue(name) => accu(name).head // arbitrary choice: use the first known entry type
           }
         }
         case TreeEntryLineId(_, _) => {
-          resourceEntry.value match {
+          line.value match {
             case MsgEntryLineValue(format, isMarkup) => TreeEntryType(MsgEntryType(format, isMarkup))
-            case LinkEntryLineValue(name) => TreeEntryType(accu(name).head)
+            case LinkEntryLineValue(name) => TreeEntryType(accu(name).head) // arbitrary choice: use the first known entry type
           }
         }
         case MapEntryLineId(_, _) => {
-          resourceEntry.value match {
+          line.value match {
             case MsgEntryLineValue(format, isMarkup) => MapEntryType(MsgEntryType(format, isMarkup))
-            case LinkEntryLineValue(name) => MapEntryType(accu(name).head)
+            case LinkEntryLineValue(name) => MapEntryType(accu(name).head) // arbitrary choice: use the first known entry type
           }
         }
       })
-
-      val unifiedEntryTypes: List[EntryType] = unifyEntryTypes(entryTypes)
-      accu + (entryName -> unifiedEntryTypes)
+      // store the unified entry types list in the accu
+      accu + (entryName -> unifyEntryTypes(etl))
     })
+    AnalysisResultOfOneLocale(entryTypes, orderedNames, unprocessed, grouped)
   }
 
+  /**
+   * Unifies a list of entry types.
+   *
+   * Two entry types can be unified to a single entry type if they are both of the same "kind", i.e. if both of the same type
+   * and in case of a MapEntryType or a TreeEntryType their nested types can be unified. MessageEntryTypes are unified by taking the
+   * maximum number of arguments and by doing an or-conjunction of their isMarkup properties.
+   *
+   * @param list a non-empty list
+   * @return
+   */
   def unifyEntryTypes(list: List[EntryType]): List[EntryType] = {
     def unify(et1: EntryType, et2: EntryType): Option[EntryType] = (et1, et2) match {
       case (MsgEntryType(args1, isMarkup1), MsgEntryType(args2, isMarkup2)) => Some(MsgEntryType(args1.max(args2), isMarkup1 || isMarkup2))
@@ -127,15 +162,16 @@ object Analyzer {
   //
 
   /**
-   * Calculate a sorted list of entry names such that entries named first do not depend on entries named later.
-   *
+   * Calculate a sorted list of the entry names that appear in a list of entry lines.
+   * 
+   * The list is sorted such a way that entries named first do not depend on entries named later.
    * The entries are ordered by calculating the maximum number of link values one must follow starting at an entry value
    * in order to reach a simple entry value.
    *
-   * @param entries
+   * @param lines
    * @return a tuple containing a list of ordered entry names and a map of entry names that could not be resolved
    */
-  def orderEntries(entries: List[EntryLine]): (List[EntryName], UnresolvedEntries) = {
+  def orderEntries(lines: List[EntryLine]): (List[EntryName], UnprocessedEntries, Map[EntryName, List[EntryLine]]) = {
 
     type DependencyInfos = Map[EntryName, DependencyInfo]
 
@@ -153,7 +189,18 @@ object Analyzer {
       def depth = throw new UnsupportedOperationException
     }
 
+    /**
+     * Recursively process the dependency infos until it does not change.
+     *
+     * @param di
+     * @return
+     */
     def process(di: DependencyInfos): DependencyInfos = {
+      // calculate the new dependency infos by mapping the values of the current dependency infos:
+      //   - a depth is kept
+      //   - a list of links
+      //          is mapped into a depth if the depth of all the link targets is known
+      //          is kept otherwise
       val newDi = di.mapValues(_ match {
         case d: Depth => d
         case l@Links(list) => {
@@ -171,15 +218,27 @@ object Analyzer {
       }
     }
 
-    val grouped: Map[EntryName, List[LinkEntryLineValue]] = entries.groupBy(_.id.name).mapValues(_.map(_.value).collect{ case l: LinkEntryLineValue => l })
-    val initial: DependencyInfos = grouped.mapValues(_ match {
+    val grouped: Map[EntryName, List[EntryLine]] = lines.groupBy(_.id.name)
+
+    // entry name -> the list of link values resulting from the mapped and filtered entry lines
+    val groupedLinks: Map[EntryName, List[LinkEntryLineValue]] = grouped.mapValues(_.map(_.value).collect{ case l: LinkEntryLineValue => l })
+
+    // the initial dependency info for all groups:
+    // - Depth(0) for all groups that have no links
+    // - Links(...) for all groups that have links
+    val initial: DependencyInfos = groupedLinks.mapValues(_ match {
       case Nil => Depth(0)
       case l => Links(l.map(_.name))
     })
 
+    // recursively process the dependency infos
     val di = process(initial)
+
+    // collect a list of (EntryName/Depth) pairs, sort them by their depth, and return the entry names
     val orderedEntryNames: List[EntryName] = di.toList.collect{ case (n: EntryName, d: Depth) => (n, d) }.sortWith((l, r) => l._2.depth < r._2.depth).map(_._1)
-    val unresolved: UnresolvedEntries = di.collect{ case (n: EntryName, l: Links) => (n, l.list.filter(nn => !di.get(nn).isDefined || !di(nn).isDepth).toSet)}
-    (orderedEntryNames, unresolved)
+
+    // collect the (EntryName/Links) pairs and map the links to the set of those entry names for which no depth is known
+    val unresolved: UnprocessedEntries = di.collect{ case (n: EntryName, l: Links) => (n, l.list.filter(nn => !di.get(nn).isDefined || !di(nn).isDepth).toSet)}
+    (orderedEntryNames, unresolved, grouped)
   }
 }

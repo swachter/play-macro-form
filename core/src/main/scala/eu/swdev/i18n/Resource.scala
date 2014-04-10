@@ -228,8 +228,8 @@ object ResourceMacro {
 
             val result = Analyzer.analyze(this.getClass.getClassLoader, resourcePath, locales: _*)
 
-            if (result.unresolved.values.exists(!_.isEmpty)) {
-              c.abort(c.enclosingPosition, s"""some resource entries could not be resolved - ${result.unresolved}""")
+            if (result.resultsOfOneLocale.values.exists(!_.unprocessed.isEmpty)) {
+              c.abort(c.enclosingPosition, s"""some resource entries could not be resolved - ${result.resultsOfOneLocale.mapValues(_.unprocessed)}""")
             }
             if (result.missing.values.exists(!_.isEmpty)) {
               val info = result.missing.filterKeys(!result.missing(_).isEmpty).map(t => s"  [${t._1} -> ${t._2}]").mkString("\n")
@@ -268,7 +268,7 @@ object ResourceMacro {
             object $objectName {
               import eu.swdev.i18n.MsgMarkup
               import java.util.Locale
-              val resMap = eu.swdev.i18n.ResourcesLoader.load(getClass.getClassLoader, $resourcePath, new Locale("de", "DE"))
+              val resMap = eu.swdev.i18n.ResourcesLoader.loadEntries(getClass.getClassLoader, $resourcePath, new Locale("de", "DE"))
               ..$simpleMsgDefs
               ..$lookupMsgDefs
               ..$tbody
