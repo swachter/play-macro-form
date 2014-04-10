@@ -2,7 +2,6 @@ package eu.swdev.i18n
 
 import org.scalatest.{Inside, FunSuite}
 import java.util.Locale
-import scala.util.parsing.input.CharSequenceReader
 
 
 /**
@@ -34,9 +33,14 @@ class AnalyzerTest extends FunSuite with Inside {
     EntryLinesParser.parsePhraseLines(string).right.get
   }
 
+  def entryTypes(input: String) = {
+    val entries: List[EntryLine] = parseLines(input)
+    val (names, _) = orderEntries(entries)
+    determineEntryTypesForOneLocale(entries, names)
+  }
 
   test("tree of trees") {
-    val input =
+    val result = entryTypes(
       """
         |a<1>=a1
         |a<2>=a2
@@ -44,16 +48,22 @@ class AnalyzerTest extends FunSuite with Inside {
         |b<2>=b2
         |u<1>->a
         |u<2>->b
-      """.stripMargin
-
-    val entries: List[EntryLine] = parseLines(input)
-
-    val (names, _) = orderEntries(entries)
-
-    val result = determineEntryTypesForOneLocale(entries, names)
-
+      """.stripMargin)
     inside(result) {
       case MapE(("a", List(TreeEntryType(MsgEntryType(0, false)))), ("b", List(TreeEntryType(MsgEntryType(0, false)))), ("u", List(TreeEntryType(TreeEntryType(MsgEntryType(0, false)))))) =>
     }
   }
+
+  test("reference a map") {
+    val result = entryTypes(
+      """
+        |a -> m
+        |m(1) = 1
+        |m(2) = 2
+      """.stripMargin)
+    inside(result) {
+      case MapE(("a", List(MapEntryType(MsgEntryType(0, false)))), ("m", List(MapEntryType(MsgEntryType(0, false))))) =>
+    }
+  }
+
 }
