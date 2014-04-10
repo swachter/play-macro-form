@@ -239,8 +239,7 @@ object ResourceMacro {
               c.abort(c.enclosingPosition, s"""some resource entries have conflicting types - ${result.conflicting}""")
             }
 
-            println(s"result: ${result}")
-            println(s"result.types: ${result.types}")
+            // println(s"result: ${result}")
 
             val simpleMsgDefs = (for {
               x <- result.types.collect{ case (n, t: MsgEntryType) => (n, t) }

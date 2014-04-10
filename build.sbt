@@ -20,7 +20,8 @@ val commonSettings = Seq(
     libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value,
     addCompilerPlugin("org.scalamacros" % "paradise" % scalaMacroVersion cross CrossVersion.full),
     scalacOptions += "-feature",
-    scalacOptions += "-language:higherKinds",
+    scalacOptions += "-language:higherKinds"
+    /*
     scalacOptions in Compile <++= (Keys.`package` in (plugin, Compile)) map { (jar: File) =>
       val addPlugin = "-Xplugin:" + jar.getAbsolutePath
       // add plugin timestamp to compiler options to trigger recompile of
@@ -28,6 +29,7 @@ val commonSettings = Seq(
       val dummy = "-Jdummy=" + jar.lastModified
       Seq(addPlugin, dummy)
     }
+    */
   ) ++ bintraySettings ++ Seq(
     licenses += ("MIT", url("http://opensource.org/licenses/MIT")),
     publishMavenStyle := true,

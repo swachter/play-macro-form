@@ -21,14 +21,9 @@ object ResourcesLoader {
           }
           re.id match {
             case SimpleEntryLineId(_) => b1 + (entryName -> resValue)
-            case TreeEntryLineId(_, path) => {
-              val treeValue = b1.getOrElse(entryName, TreeEntry(analyzeResult.types(entryName), ResTrees.KeyValueTree.empty)).asInstanceOf[TreeEntry]
-              b1 + (entryName -> TreeEntry(analyzeResult.types(entryName), treeValue.tree(path) = resValue))
-            }
-            case MapEntryLineId(_, key) => {
-              val mapValue = b1.getOrElse(entryName, MapEntry(analyzeResult.types(entryName), Map.empty[String, Entry])).asInstanceOf[MapEntry]
-              b1 + (entryName -> MapEntry(analyzeResult.types(entryName), mapValue.map + (key -> resValue)))
-
+            case LookupEntryLineId(_, key) => {
+              val entry = b1.getOrElse(entryName, analyzeResult.types(entryName).asInstanceOf[LookupEntryType].emptyEntry).asInstanceOf[LookupEntry]
+              b1 + (entryName -> (entry + (key, resValue)))
             }
           }
         })

@@ -2,6 +2,7 @@ package eu.swdev.i18n
 
 import org.scalatest.{Inside, FunSuite}
 import scala.util.parsing.input.CharSequenceReader
+import scala.language.implicitConversions
 
 /**
   */

@@ -56,6 +56,10 @@ case class TreeEntryLineId(name: EntryName, key: String) extends LookupEntryLine
  */
 case class MapEntryLineId(name: EntryName, key: String) extends LookupEntryLineId
 
+object LookupEntryLineId {
+  def unapplySeq(lineId: LookupEntryLineId): Option[Seq[String]] = Some(Seq(lineId.name, lineId.key))
+}
+
 /**
  * Represent the value in an entry line.
  */
@@ -112,6 +116,7 @@ sealed trait LookupEntryType extends EntryType {
   protected def nested: EntryType
   def args: Int = nested.args
   def isMarkup: Boolean = nested.isMarkup
+  def emptyEntry: LookupEntry
 }
 
 /**
@@ -122,9 +127,13 @@ sealed trait LookupEntryType extends EntryType {
  */
 case class MsgEntryType(args: Int, isMarkup: Boolean) extends EntryType
 
-case class TreeEntryType(nested: EntryType) extends LookupEntryType
+case class TreeEntryType(nested: EntryType) extends LookupEntryType {
+  def emptyEntry = new TreeEntry(this, ResTrees.KeyValueTree.empty)
+}
 
-case class MapEntryType(nested: EntryType) extends LookupEntryType
+case class MapEntryType(nested: EntryType) extends LookupEntryType {
+  def emptyEntry = new MapEntry(this, Map.empty)
+}
 
 object MsgEntryType {
   def apply(format: MessageFormat, isMarkup: Boolean): MsgEntryType = MsgEntryType(format.getFormatsByArgumentIndex.length, isMarkup)
@@ -177,6 +186,7 @@ sealed trait Entry {
 trait LookupEntry extends Entry {
   override def outputRaw(args: Array[Object]): String = throw new UnsupportedOperationException
   override def outputMarkup(args: Array[Object])(implicit markup: MsgMarkup): markup.M = throw new UnsupportedOperationException
+  def +(key: String, value: Entry): LookupEntry
 }
 
 /**
@@ -200,11 +210,13 @@ case class MsgEntry(tpe: EntryType, format: MessageFormat, isMarkup: Boolean) ex
 case class TreeEntry(tpe: EntryType, tree: ResTrees.KeyValueTree) extends LookupEntry {
 
   override def lookup(key: String): Option[Entry] = tree.getValue(key)
+  def +(key: String, value: Entry): TreeEntry = copy(tree = tree(key) = value)
 }
 
 case class MapEntry(tpe: EntryType, map: Map[String, Entry]) extends LookupEntry {
 
   override def lookup(key: String): Option[Entry] = map.get(key)
+  def +(key: String, value: Entry): MapEntry = copy(map = map + (key -> value))
 }
 
 /**
