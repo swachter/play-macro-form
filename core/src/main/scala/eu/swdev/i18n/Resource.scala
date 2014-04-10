@@ -112,7 +112,7 @@ object ResourceMacro {
       }).toList
     }
 
-    def createArgParams(tpe: ResType): List[ValDef] = {
+    def createArgParams(tpe: EntryType): List[ValDef] = {
       createParams("arg", tpe.args, "AnyRef")
     }
     /**
@@ -129,7 +129,7 @@ object ResourceMacro {
      * @param tpe
      * @return
      */
-    def callOutputMethod(x: Tree, tpe: ResType): Tree = {
+    def callOutputMethod(x: Tree, tpe: EntryType): Tree = {
       val methodName = c.universe.newTermName(if (tpe.isMarkup) "outputMarkup" else "outputRaw")
       val argsArray = createArgsArray(tpe.args)
       q"$x.$methodName($argsArray)"
@@ -146,7 +146,7 @@ object ResourceMacro {
      * @param tpe
      * @return
      */
-    def mapOutputMethod(x: Tree, tpe: ResType): Tree = {
+    def mapOutputMethod(x: Tree, tpe: EntryType): Tree = {
       val methodName = c.universe.newTermName(if (tpe.isMarkup) "outputMarkup" else "outputRaw")
       val argsArray = createArgsArray(tpe.args)
       q"$x.map(_.$methodName($argsArray))"
@@ -173,7 +173,7 @@ object ResourceMacro {
       }
     }
 
-    def simpleMsgDef(id: String, tpe: MsgResType): Tree = {
+    def simpleMsgDef(id: String, tpe: MsgEntryType): Tree = {
       val idName = c.universe.newTermName(id)
       val lhs = callOutputMethod(q"resMap(locale)($id)", tpe)
       if (tpe.args == 0) {
@@ -184,13 +184,13 @@ object ResourceMacro {
       }
     }
 
-    def lookupMsgDef(id: String, tpe: LookupResType): Tree = {
+    def lookupMsgDef(id: String, tpe: LookupEntryType): Tree = {
       val idName = c.universe.newTermName(id)
 
-      def calcNbKeys(t: ResType): Int = t match {
-        case TreeResType(nested) => 1 + calcNbKeys(nested)
-        case MapResType(nested) => 1 + calcNbKeys(nested)
-        case _: MsgResType => 0
+      def calcNbKeys(t: EntryType): Int = t match {
+        case TreeEntryType(nested) => 1 + calcNbKeys(nested)
+        case MapEntryType(nested) => 1 + calcNbKeys(nested)
+        case _: MsgEntryType => 0
       }
 
       val nbKeys = calcNbKeys(tpe)
@@ -243,13 +243,13 @@ object ResourceMacro {
             println(s"result.types: ${result.types}")
 
             val simpleMsgDefs = (for {
-              x <- result.types.collect{ case (n, t: MsgResType) => (n, t) }
+              x <- result.types.collect{ case (n, t: MsgEntryType) => (n, t) }
             } yield {
               simpleMsgDef(x._1, x._2)
             }).toList
 
             val lookupMsgDefs = (for {
-              x <- result.types.collect{ case (n, t: LookupResType) => (n, t) }
+              x <- result.types.collect{ case (n, t: LookupEntryType) => (n, t) }
             } yield {
               lookupMsgDef(x._1, x._2)
             }).toList

@@ -11,17 +11,17 @@ import java.net.URL
 object Analyzer {
 
   type MissingEntries = Map[Locale, Set[EntryName]]
-  type ConflictingEntries = Map[EntryName, List[(Locale, List[ResType])]]
+  type ConflictingEntries = Map[EntryName, List[(Locale, List[EntryType])]]
 
   type UnresolvedEntries = Map[EntryName, Set[EntryName]]
-  type EntryTypes = Map[EntryName, List[ResType]]
+  type EntryTypes = Map[EntryName, List[EntryType]]
 
   def analyze(classLoader: ClassLoader, resourcePath: String, locales: Locale*): AnalyzeResult = {
     val resources = ResourcesLoader.loadResources(classLoader, resourcePath, locales: _*)
     analyzeResourceEntries(resources)
   }
 
-  case class AnalyzeResult(types: Map[EntryName, ResType], unresolved: Map[Locale, UnresolvedEntries], missing: MissingEntries, conflicting: ConflictingEntries)
+  case class AnalyzeResult(types: Map[EntryName, EntryType], unresolved: Map[Locale, UnresolvedEntries], missing: MissingEntries, conflicting: ConflictingEntries)
 
   /**
    * Analyzes a map of ResourceEntries.
@@ -51,13 +51,13 @@ object Analyzer {
    *         - information about missing entries: a map of locales to the sets of missing entry names
    *         - information about conflicting entry types: lists of the different entry types of an entry
    */
-  def determineEntryTypesForAllLocales(input: Map[Locale, EntryTypes]): (Map[EntryName, ResType], MissingEntries, ConflictingEntries) = {
+  def determineEntryTypesForAllLocales(input: Map[Locale, EntryTypes]): (Map[EntryName, EntryType], MissingEntries, ConflictingEntries) = {
     val locales: List[Locale] = input.keys.toList
     val allNames: Set[EntryName] = input.values.flatMap(_.keys).toSet
     val missingNames: Map[Locale, Set[EntryName]] = input.mapValues(m => allNames -- m.keys)
     val commonNames: Set[EntryName] = allNames -- missingNames.values.flatMap(_.iterator)
-    val both = commonNames.foldLeft((Map.empty[EntryName, ResType], Map.empty[EntryName, List[(Locale, List[ResType])]]))((b, entryName) => {
-      val entryTypes: List[ResType] = locales.flatMap(input(_)(entryName))
+    val both = commonNames.foldLeft((Map.empty[EntryName, EntryType], Map.empty[EntryName, List[(Locale, List[EntryType])]]))((b, entryName) => {
+      val entryTypes: List[EntryType] = locales.flatMap(input(_)(entryName))
       val unified = unifyEntryTypes(entryTypes)
       val newConflicts = if (unified.tail.isEmpty) {
         b._2
@@ -79,38 +79,38 @@ object Analyzer {
 
     val grouped: Map[EntryName, List[EntryLine]] = entries.groupBy(_.id.name)
 
-    names.foldLeft(Map.empty[EntryName, List[ResType]])((accu, entryName) => {
-      val entryTypes: List[ResType] = grouped(entryName).map(resourceEntry => resourceEntry.id match {
-        case SimpleEntryId(_) => {
+    names.foldLeft(Map.empty[EntryName, List[EntryType]])((accu, entryName) => {
+      val entryTypes: List[EntryType] = grouped(entryName).map(resourceEntry => resourceEntry.id match {
+        case SimpleEntryLineId(_) => {
           resourceEntry.value match {
-            case MsgEntryValue(format, isMarkup) => MsgResType(format, isMarkup)
-            case LinkEntryValue(name) => accu(name).head
+            case MsgEntryLineValue(format, isMarkup) => MsgEntryType(format, isMarkup)
+            case LinkEntryLineValue(name) => accu(name).head
           }
         }
-        case TreeEntryId(_, _) => {
+        case TreeEntryLineId(_, _) => {
           resourceEntry.value match {
-            case MsgEntryValue(format, isMarkup) => TreeResType(MsgResType(format, isMarkup))
-            case LinkEntryValue(name) => TreeResType(accu(name).head)
+            case MsgEntryLineValue(format, isMarkup) => TreeEntryType(MsgEntryType(format, isMarkup))
+            case LinkEntryLineValue(name) => TreeEntryType(accu(name).head)
           }
         }
-        case MapEntryId(_, _) => {
+        case MapEntryLineId(_, _) => {
           resourceEntry.value match {
-            case MsgEntryValue(format, isMarkup) => MapResType(MsgResType(format, isMarkup))
-            case LinkEntryValue(name) => MapResType(accu(name).head)
+            case MsgEntryLineValue(format, isMarkup) => MapEntryType(MsgEntryType(format, isMarkup))
+            case LinkEntryLineValue(name) => MapEntryType(accu(name).head)
           }
         }
       })
 
-      val unifiedEntryTypes: List[ResType] = unifyEntryTypes(entryTypes)
+      val unifiedEntryTypes: List[EntryType] = unifyEntryTypes(entryTypes)
       accu + (entryName -> unifiedEntryTypes)
     })
   }
 
-  def unifyEntryTypes(list: List[ResType]): List[ResType] = {
-    def unify(et1: ResType, et2: ResType): Option[ResType] = (et1, et2) match {
-      case (MsgResType(args1, isMarkup1), MsgResType(args2, isMarkup2)) => Some(MsgResType(args1.max(args2), isMarkup1 || isMarkup2))
-      case (TreeResType(mt1), TreeResType(mt2)) => unify(mt1, mt2).map(TreeResType(_))
-      case (MapResType(mt1), MapResType(mt2)) => unify(mt1, mt2).map(MapResType(_))
+  def unifyEntryTypes(list: List[EntryType]): List[EntryType] = {
+    def unify(et1: EntryType, et2: EntryType): Option[EntryType] = (et1, et2) match {
+      case (MsgEntryType(args1, isMarkup1), MsgEntryType(args2, isMarkup2)) => Some(MsgEntryType(args1.max(args2), isMarkup1 || isMarkup2))
+      case (TreeEntryType(mt1), TreeEntryType(mt2)) => unify(mt1, mt2).map(TreeEntryType(_))
+      case (MapEntryType(mt1), MapEntryType(mt2)) => unify(mt1, mt2).map(MapEntryType(_))
       case _ => None
     }
     list.tail.foldLeft(List(list.head))((accu, entryType) => {
@@ -171,7 +171,7 @@ object Analyzer {
       }
     }
 
-    val grouped: Map[EntryName, List[LinkEntryValue]] = entries.groupBy(_.id.name).mapValues(_.map(_.value).collect{ case l: LinkEntryValue => l })
+    val grouped: Map[EntryName, List[LinkEntryLineValue]] = entries.groupBy(_.id.name).mapValues(_.map(_.value).collect{ case l: LinkEntryLineValue => l })
     val initial: DependencyInfos = grouped.mapValues(_ match {
       case Nil => Depth(0)
       case l => Links(l.map(_.name))

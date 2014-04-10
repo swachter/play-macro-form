@@ -7,27 +7,27 @@ import java.util.Locale
   */
 object ResourcesLoader {
 
-  def load(classLoader: ClassLoader, resourcePath: String, locales: Locale*): Map[Locale, Map[EntryName, ResValue]] = {
+  def load(classLoader: ClassLoader, resourcePath: String, locales: Locale*): Map[Locale, Map[EntryName, Entry]] = {
     val resources: Map[Locale, ResourceEntries] = loadResources(classLoader, resourcePath, locales: _*)
+    val analyzeResult = Analyzer.analyzeResourceEntries(resources)
     resources.mapValues(entries => {
       val (entryNames, unresolved) = Analyzer.orderEntries(entries.entries)
-      val entryTypes = Analyzer.determineEntryTypesForOneLocale(entries.entries, entryNames)
       val grouped = entries.entries.groupBy(_.id.name)
-      entryNames.foldLeft(Map.empty[EntryName, ResValue])((b, entryName) => {
+      entryNames.foldLeft(Map.empty[EntryName, Entry])((b, entryName) => {
         grouped(entryName).foldLeft(b)((b1, re) => {
-          val resValue: ResValue = re.value match {
-            case MsgEntryValue(format, isMarkup) => MsgResValue(format, isMarkup)
-            case LinkEntryValue(name) => b1(name)
+          val resValue: Entry = re.value match {
+            case MsgEntryLineValue(format, isMarkup) => MsgEntry(analyzeResult.types(entryName), format, isMarkup)
+            case LinkEntryLineValue(name) => b1(name)
           }
           re.id match {
-            case SimpleEntryId(_) => b1 + (entryName -> resValue)
-            case TreeEntryId(_, path) => {
-              val treeValue = b1.getOrElse(entryName, TreeResValue(ResTrees.KeyValueTree.empty)).asInstanceOf[TreeResValue]
-              b1 + (entryName -> TreeResValue(treeValue.tree(path) = resValue))
+            case SimpleEntryLineId(_) => b1 + (entryName -> resValue)
+            case TreeEntryLineId(_, path) => {
+              val treeValue = b1.getOrElse(entryName, TreeEntry(analyzeResult.types(entryName), ResTrees.KeyValueTree.empty)).asInstanceOf[TreeEntry]
+              b1 + (entryName -> TreeEntry(analyzeResult.types(entryName), treeValue.tree(path) = resValue))
             }
-            case MapEntryId(_, key) => {
-              val mapValue = b1.getOrElse(entryName, MapResValue(Map.empty[String, ResValue])).asInstanceOf[MapResValue]
-              b1 + (entryName -> MapResValue(mapValue.map + (key -> resValue)))
+            case MapEntryLineId(_, key) => {
+              val mapValue = b1.getOrElse(entryName, MapEntry(analyzeResult.types(entryName), Map.empty[String, Entry])).asInstanceOf[MapEntry]
+              b1 + (entryName -> MapEntry(analyzeResult.types(entryName), mapValue.map + (key -> resValue)))
 
             }
           }

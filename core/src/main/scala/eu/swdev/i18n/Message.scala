@@ -39,5 +39,5 @@ trait MsgMarkup {
 }
 
 object ResTrees extends StringKeyValueTreeModule {
-  type Value = ResValue
+  type Value = Entry
 }

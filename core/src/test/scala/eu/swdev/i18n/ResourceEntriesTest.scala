@@ -21,19 +21,19 @@ class ResourceEntriesTest extends FunSuite with Inside {
 
   test("ResourceEntry") {
     inside(parseEntry("a=")) {
-      case ResourceParser.Success(EntryLine(SimpleEntryId("a"), MsgEntryValue(mf, false)), _) if (mf.toPattern == "") => true
+      case ResourceParser.Success(EntryLine(SimpleEntryLineId("a"), MsgEntryLineValue(mf, false)), _) if (mf.toPattern == "") => true
     }
     inside(parseEntry("a=b")) {
-      case ResourceParser.Success(EntryLine(SimpleEntryId("a"), MsgEntryValue(mf, false)), _) if (mf.toPattern == "b") => true
+      case ResourceParser.Success(EntryLine(SimpleEntryLineId("a"), MsgEntryLineValue(mf, false)), _) if (mf.toPattern == "b") => true
     }
     inside(parseEntry("a@b")) {
-      case ResourceParser.Success(EntryLine(SimpleEntryId("a"), MsgEntryValue(mf, true)), _) if (mf.toPattern == "b") => true
+      case ResourceParser.Success(EntryLine(SimpleEntryLineId("a"), MsgEntryLineValue(mf, true)), _) if (mf.toPattern == "b") => true
     }
     inside(parseEntry("a=b\\\nc")) {
-      case ResourceParser.Success(EntryLine(_, MsgEntryValue(mf, _)), _) if (mf.toPattern == "bc") => true
+      case ResourceParser.Success(EntryLine(_, MsgEntryLineValue(mf, _)), _) if (mf.toPattern == "bc") => true
     }
     inside(parseEntry("a=b\\nc")) {
-      case ResourceParser.Success(EntryLine(_, MsgEntryValue(mf, _)), _) if (mf.toPattern == "b\nc") => true
+      case ResourceParser.Success(EntryLine(_, MsgEntryLineValue(mf, _)), _) if (mf.toPattern == "b\nc") => true
     }
   }
 

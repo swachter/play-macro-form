@@ -15,7 +15,7 @@ import scala.collection.GenTraversable
  *
  * The entry id represents everything that is left to the assignment operator in an entry line.
  */
-sealed trait EntryId {
+sealed trait EntryLineId {
   /**
    * The name of an entry. In case of tree-valued or map-valued entries the same entry name appears on several entry lines.
    * In that case all the lines belonging to the same entry are used together to build the corresponding tree or map.
@@ -25,12 +25,20 @@ sealed trait EntryId {
   def name: EntryName
 }
 
+sealed trait LookupEntryLineId extends EntryLineId {
+  /**
+   * A lookup key.
+   * @return
+   */
+  def key: String
+}
+
 /**
- * Identifies an entry line belonging to an entry that is either a message entry or a reference to another entry.
+ * Identifies an entry line that defines an entry that is either a message entry or a reference to another entry.
  *
  * @param name
  */
-case class SimpleEntryId(name: EntryName) extends EntryId
+case class SimpleEntryLineId(name: EntryName) extends EntryLineId
 
 /**
  * Identifies an entry line belonging to a tree-valued entry.
@@ -38,7 +46,7 @@ case class SimpleEntryId(name: EntryName) extends EntryId
  * @param name the name of the entry
  * @param key a dot separated string that represents a path in the tree; the entry line defines the value for this path
  */
-case class TreeEntryId(name: EntryName, key: String) extends EntryId
+case class TreeEntryLineId(name: EntryName, key: String) extends LookupEntryLineId
 
 /**
  * Identifies an entry line belonging to a map-valued entry.
@@ -46,13 +54,27 @@ case class TreeEntryId(name: EntryName, key: String) extends EntryId
  * @param name the name of the entry
  * @param key the key for which this entry line defines a value
  */
-case class MapEntryId(name: EntryName, key: String) extends EntryId
+case class MapEntryLineId(name: EntryName, key: String) extends LookupEntryLineId
 
-sealed trait EntryValue
+/**
+ * Represent the value in an entry line.
+ */
+sealed trait EntryLineValue
 
-case class MsgEntryValue(format: MessageFormat, isMarkup: Boolean) extends EntryValue
+/**
+ * Represents an entry line value that is a message.
+ * 
+ * @param format the message format that is used to generate the message
+ * @param isMarkup indicates if the message contains markup or not
+ */
+case class MsgEntryLineValue(format: MessageFormat, isMarkup: Boolean) extends EntryLineValue
 
-case class LinkEntryValue(name: EntryName) extends EntryValue
+/**
+ * Represents a message line value that is a link to another entry.
+ *
+ * @param name
+ */
+case class LinkEntryLineValue(name: EntryName) extends EntryLineValue
 
 /**
  * Represents a logical entry line in a resource file.
@@ -64,14 +86,33 @@ case class LinkEntryValue(name: EntryName) extends EntryValue
  * @param id the identifier of the entry;
  * @param value
  */
-case class EntryLine(id: EntryId, value: EntryValue)
+case class EntryLine(id: EntryLineId, value: EntryLineValue)
 
-sealed trait ResType {
+/**
+ * Describes the type of an entry.
+ *
+ * One or message formats lie behind an entry. For example an entry may comprise message formats for different locales
+ * or in case of tree-valued or map-valued entries for different keys. An entry type provides an aggregated view of all
+ * the corresponding message formats. 
+ */
+sealed trait EntryType {
+  /**
+   * Gets the maximum number of arguments of the message formats behind this entry type.
+   * @return
+   */
   def args: Int
+  /**
+   * Indicates if any of the message formats behind this entry type consist of markup.
+   * @return
+   */
   def isMarkup: Boolean
 }
 
-sealed trait LookupResType extends ResType
+sealed trait LookupEntryType extends EntryType {
+  protected def nested: EntryType
+  def args: Int = nested.args
+  def isMarkup: Boolean = nested.isMarkup
+}
 
 /**
  * Describes an entry that corresponds to one or more message formats.
@@ -79,35 +120,31 @@ sealed trait LookupResType extends ResType
  * @param args the maximum number of arguments a message has
  * @param isMarkup indicates if the message contains markup or not
  */
-case class MsgResType(args: Int, isMarkup: Boolean) extends ResType
+case class MsgEntryType(args: Int, isMarkup: Boolean) extends EntryType
 
-case class TreeResType(nested: ResType) extends LookupResType {
-  def args: Int = nested.args
-  def isMarkup: Boolean = nested.isMarkup
-}
+case class TreeEntryType(nested: EntryType) extends LookupEntryType
 
-case class MapResType(nested: ResType) extends LookupResType {
-  def args: Int = nested.args
-  def isMarkup: Boolean = nested.isMarkup
-}
+case class MapEntryType(nested: EntryType) extends LookupEntryType
 
-object MsgResType {
-  def apply(format: MessageFormat, isMarkup: Boolean): MsgResType = MsgResType(format.getFormatsByArgumentIndex.length, isMarkup)
+object MsgEntryType {
+  def apply(format: MessageFormat, isMarkup: Boolean): MsgEntryType = MsgEntryType(format.getFormatsByArgumentIndex.length, isMarkup)
 }
 
 //
 //
 //
 
-sealed trait ResValue {
+/**
+ * Represents a resource entry.
+ */
+sealed trait Entry {
 
-  def isMsg: Boolean
-  def isTreeOrMap: Boolean
+  def tpe: EntryType
 
   /**
-   * Format the message and return the raw message text.
+   * Format the message and return it as raw string.
    *
-   * This method must be called only if this ResValue is a MsgResValue.
+   * This method must be called only if this entry is a message entry.
    *
    * @param args
    * @return
@@ -117,7 +154,7 @@ sealed trait ResValue {
   /**
    * Format the message and return it as markup.
    *
-   * This method must be called only if this ResValue is a MsgResValue.
+   * This method must be called only if this entry is a message entry.
    *
    * @param args
    * @param markup
@@ -126,15 +163,20 @@ sealed trait ResValue {
   def outputMarkup(args: Array[Object])(implicit markup: MsgMarkup): markup.M
 
   /**
-   * Lookup a resource value using the specified key.
+   * Lookup an entry.
    *
-   * This method must be called only if this ResValue is a TreeResValue or MapResValue.
+   * This method must be called only if this entry is either map-valued or tree-valued.
    *
    * @param key
    * @return
    */
-  def lookup(key: String): Option[ResValue]
+  def lookup(key: String): Option[Entry]
 
+}
+
+trait LookupEntry extends Entry {
+  override def outputRaw(args: Array[Object]): String = throw new UnsupportedOperationException
+  override def outputMarkup(args: Array[Object])(implicit markup: MsgMarkup): markup.M = throw new UnsupportedOperationException
 }
 
 /**
@@ -142,36 +184,27 @@ sealed trait ResValue {
  * @param format
  * @param isMarkup indicates if the format contains markup or not
  */
-case class MsgResValue(format: MessageFormat, isMarkup: Boolean) extends ResValue {
-  override def isTreeOrMap = false
-  override def isMsg = true
-  override def lookup(key: String): Option[ResValue] = throw new UnsupportedOperationException
+case class MsgEntry(tpe: EntryType, format: MessageFormat, isMarkup: Boolean) extends Entry {
+
+  override def lookup(key: String): Option[Entry] = throw new UnsupportedOperationException
 
   override def outputRaw(args: Array[Object]): String = {
     format.format(args)
   }
-
   override def outputMarkup(args: Array[Object])(implicit markup: MsgMarkup): markup.M = {
     val s = format.format(args)
     if (isMarkup) markup.markupMsg(s) else markup.rawMsg(s)
   }
-
 }
 
-case class TreeResValue(tree: ResTrees.KeyValueTree) extends ResValue {
-  override def isTreeOrMap = true
-  override def isMsg = false
-  override def lookup(key: String): Option[ResValue] = tree.getValue(key)
-  override def outputRaw(args: Array[Object]): String = throw new UnsupportedOperationException
-  override def outputMarkup(args: Array[Object])(implicit markup: MsgMarkup): markup.M = throw new UnsupportedOperationException
+case class TreeEntry(tpe: EntryType, tree: ResTrees.KeyValueTree) extends LookupEntry {
+
+  override def lookup(key: String): Option[Entry] = tree.getValue(key)
 }
 
-case class MapResValue(map: Map[String, ResValue]) extends ResValue {
-  override def isTreeOrMap = true
-  override def isMsg = false
-  override def lookup(key: String): Option[ResValue] = map.get(key)
-  override def outputRaw(args: Array[Object]): String = throw new UnsupportedOperationException
-  override def outputMarkup(args: Array[Object])(implicit markup: MsgMarkup): markup.M = throw new UnsupportedOperationException
+case class MapEntry(tpe: EntryType, map: Map[String, Entry]) extends LookupEntry {
+
+  override def lookup(key: String): Option[Entry] = map.get(key)
 }
 
 /**
@@ -185,7 +218,7 @@ case class ResourceEntries private (entries: List[EntryLine]) {
   def add(other: ResourceEntries): ResourceEntries = this ++ other.entries
 
   def ++(other: GenTraversable[EntryLine]): ResourceEntries = {
-    val zero = (List.empty[EntryLine], Set.empty[EntryId])
+    val zero = (List.empty[EntryLine], Set.empty[EntryLineId])
     val t = (entries ++ other).foldRight(zero)((e, accu) => if (accu._2.contains(e.id)) accu else (e :: accu._1, accu._2 + e.id))
     ResourceEntries(t._1)
   }
@@ -223,10 +256,10 @@ object ResourceEntries {
 
     val mapKey: Parser[String] = '(' ~> ws ~> """[^)]*""".r <~ ws <~ ')'
 
-    val entryId: Parser[EntryId] =
-      entryName ~ treeKey ^^ { case name ~ key => TreeEntryId(name, key) } |
-      entryName ~ mapKey ^^ { case name ~ key => MapEntryId(name, key) } |
-      entryName ^^ { case name => SimpleEntryId(name) }
+    val entryId: Parser[EntryLineId] =
+      entryName ~ treeKey ^^ { case name ~ key => TreeEntryLineId(name, key) } |
+      entryName ~ mapKey ^^ { case name ~ key => MapEntryLineId(name, key) } |
+      entryName ^^ { case name => SimpleEntryLineId(name) }
 
     /**
      * 
@@ -241,10 +274,10 @@ object ResourceEntries {
       "message format expected"
     )
 
-    val entryValue: Parser[EntryValue] =
-      "->" ~> ws ~> entryName ^^ { case n => LinkEntryValue(n) } |
-      '@' ~> ws ~> messageFormat ^^ { case m => MsgEntryValue(m, true) } |
-      '=' ~> ws ~> messageFormat ^^ { case m => MsgEntryValue(m, false) }
+    val entryValue: Parser[EntryLineValue] =
+      "->" ~> ws ~> entryName ^^ { case n => LinkEntryLineValue(n) } |
+      '@' ~> ws ~> messageFormat ^^ { case m => MsgEntryLineValue(m, true) } |
+      '=' ~> ws ~> messageFormat ^^ { case m => MsgEntryLineValue(m, false) }
 
     val entry: Parser[EntryLine] = (ws ~> entryId) ~ (ws ~> entryValue) ^^ {
       case k ~ v => EntryLine(k, v)
