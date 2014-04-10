@@ -102,28 +102,24 @@ object ResourceMacro {
       Apply(Ident(newTermName("Array")), argList)
     }
 
-    /**
-     * Creates a method parameter definition.
-     *
-     * @param name
-     * @return
-     */
-    def valDef(name: String): ValDef = {
-      q"""def a(${newTermName(name)}: String): String""" match { case q"""def ${_}($x): String""" => x }
-    }
-
-    def createParams(prefix: String, nb: Int): List[ValDef] = {
+    def createParams(prefix: String, nb: Int, typeName: String): List[ValDef] = {
       (for {
         i <- 0 until nb
       } yield {
-        valDef(s"$prefix$i")
+        val paramName = s"$prefix$i"
+        // create a method definition with a single parameter and extract that parameter
+        q"""def a(${newTermName(paramName)}: ${newTypeName(typeName)})""" match { case q"""def ${_}($x)""" => x }
       }).toList
     }
 
+    def createArgParams(tpe: ResType): List[ValDef] = {
+      createParams("arg", tpe.args, "AnyRef")
+    }
     /**
      * Calls the appropriate output method.
      *
-     * The output method is determined by the isMarkup property of the specified ResType.
+     * The output method is determined by the isMarkup property of the specified ResType. If isMarkup = true then the
+     * method `outputMarkup` is called and otherwise `outputRaw`.
      *
      * {{{
      *   $x.<output method>(<args>)
@@ -183,23 +179,23 @@ object ResourceMacro {
       if (tpe.args == 0) {
         q"""def $idName(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
       } else {
-        val args = createParams("arg", tpe.args)
+        val args = createArgParams(tpe)
         q"""def $idName(..$args)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
       }
     }
 
-    def lookupMsgDef(id: String, tpe: TreeResType): Tree = {
+    def lookupMsgDef(id: String, tpe: LookupResType): Tree = {
       val idName = c.universe.newTermName(id)
-      val methodName = c.universe.newTermName(if (tpe.isMarkup) "markupMsg" else "rawMsg")
 
       def calcNbKeys(t: ResType): Int = t match {
         case TreeResType(nested) => 1 + calcNbKeys(nested)
+        case MapResType(nested) => 1 + calcNbKeys(nested)
         case _: MsgResType => 0
       }
 
       val nbKeys = calcNbKeys(tpe)
 
-      val keyParams = createParams("key", nbKeys)
+      val keyParams = createParams("key", nbKeys, "String")
 
       val start = q"resMap(locale)($id).lookup(key0)"
 
@@ -210,7 +206,7 @@ object ResourceMacro {
       if (tpe.args == 0) {
         q"""def $idName(..$keyParams)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
       } else {
-        val args = createParams("arg", tpe.args)
+        val args = createArgParams(tpe)
         q"""def $idName(..$keyParams)(..$args)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
       }
     }
@@ -247,13 +243,13 @@ object ResourceMacro {
             println(s"result.types: ${result.types}")
 
             val simpleMsgDefs = (for {
-              x <- result.types.collect{ case (n, t@MsgResType(_, _)) => (n, t) }
+              x <- result.types.collect{ case (n, t: MsgResType) => (n, t) }
             } yield {
               simpleMsgDef(x._1, x._2)
             }).toList
 
             val lookupMsgDefs = (for {
-              x <- result.types.collect{ case (n, t@TreeResType(_)) => (n, t) }
+              x <- result.types.collect{ case (n, t: LookupResType) => (n, t) }
             } yield {
               lookupMsgDef(x._1, x._2)
             }).toList

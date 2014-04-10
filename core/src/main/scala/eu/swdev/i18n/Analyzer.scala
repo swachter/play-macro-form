@@ -18,12 +18,19 @@ object Analyzer {
 
   def analyze(classLoader: ClassLoader, resourcePath: String, locales: Locale*): AnalyzeResult = {
     val resources = ResourcesLoader.loadResources(classLoader, resourcePath, locales: _*)
-    analyzeKeys(resources)
+    analyzeResourceEntries(resources)
   }
 
   case class AnalyzeResult(types: Map[EntryName, ResType], unresolved: Map[Locale, UnresolvedEntries], missing: MissingEntries, conflicting: ConflictingEntries)
 
-  def analyzeKeys(input: Map[Locale, ResourceEntries]): AnalyzeResult = {
+  /**
+   * Analyzes a map of ResourceEntries.
+   *
+   *
+   * @param input
+   * @return
+   */
+  def analyzeResourceEntries(input: Map[Locale, ResourceEntries]): AnalyzeResult = {
 
     val tmp: Map[Locale, (EntryTypes, UnresolvedEntries)] = input.mapValues(entries => {
       val (entryNames, unresolved) = orderEntries(entries.entries)
@@ -31,10 +38,9 @@ object Analyzer {
       (entryTypes, unresolved)
     })
 
-    val (entryTypes, missing, conflicting) = determineEntryTypesForAllLocales(tmp.mapValues(_._1))
+    val (types, missing, conflicting) = determineEntryTypesForAllLocales(tmp.mapValues(_._1))
 
-
-    AnalyzeResult(entryTypes, tmp.mapValues(_._2), missing, conflicting)
+    AnalyzeResult(types, tmp.mapValues(_._2), missing, conflicting)
   }
 
   /**
@@ -69,22 +75,28 @@ object Analyzer {
    * @param names an ordered list of entry names; entries named first do not depend on entries named later
    * @return
    */
-  def determineEntryTypesForOneLocale(entries: List[Entry], names: List[EntryName]): EntryTypes = {
+  def determineEntryTypesForOneLocale(entries: List[EntryLine], names: List[EntryName]): EntryTypes = {
 
-    val grouped: Map[EntryName, List[Entry]] = entries.groupBy(_.key.name)
+    val grouped: Map[EntryName, List[EntryLine]] = entries.groupBy(_.id.name)
 
     names.foldLeft(Map.empty[EntryName, List[ResType]])((accu, entryName) => {
-      val entryTypes: List[ResType] = grouped(entryName).map(resourceEntry => resourceEntry.key match {
-        case SimpleEntryKey(_) => {
+      val entryTypes: List[ResType] = grouped(entryName).map(resourceEntry => resourceEntry.id match {
+        case SimpleEntryId(_) => {
           resourceEntry.value match {
             case MsgEntryValue(format, isMarkup) => MsgResType(format, isMarkup)
             case LinkEntryValue(name) => accu(name).head
           }
         }
-        case TreeEntryKey(_, _) => {
+        case TreeEntryId(_, _) => {
           resourceEntry.value match {
             case MsgEntryValue(format, isMarkup) => TreeResType(MsgResType(format, isMarkup))
             case LinkEntryValue(name) => TreeResType(accu(name).head)
+          }
+        }
+        case MapEntryId(_, _) => {
+          resourceEntry.value match {
+            case MsgEntryValue(format, isMarkup) => MapResType(MsgResType(format, isMarkup))
+            case LinkEntryValue(name) => MapResType(accu(name).head)
           }
         }
       })
@@ -98,6 +110,7 @@ object Analyzer {
     def unify(et1: ResType, et2: ResType): Option[ResType] = (et1, et2) match {
       case (MsgResType(args1, isMarkup1), MsgResType(args2, isMarkup2)) => Some(MsgResType(args1.max(args2), isMarkup1 || isMarkup2))
       case (TreeResType(mt1), TreeResType(mt2)) => unify(mt1, mt2).map(TreeResType(_))
+      case (MapResType(mt1), MapResType(mt2)) => unify(mt1, mt2).map(MapResType(_))
       case _ => None
     }
     list.tail.foldLeft(List(list.head))((accu, entryType) => {
@@ -122,7 +135,7 @@ object Analyzer {
    * @param entries
    * @return a tuple containing a list of ordered entry names and a map of entry names that could not be resolved
    */
-  def orderEntries(entries: List[Entry]): (List[EntryName], UnresolvedEntries) = {
+  def orderEntries(entries: List[EntryLine]): (List[EntryName], UnresolvedEntries) = {
 
     type DependencyInfos = Map[EntryName, DependencyInfo]
 
@@ -158,7 +171,7 @@ object Analyzer {
       }
     }
 
-    val grouped: Map[EntryName, List[LinkEntryValue]] = entries.groupBy(_.key.name).mapValues(_.map(_.value).collect{ case l: LinkEntryValue => l })
+    val grouped: Map[EntryName, List[LinkEntryValue]] = entries.groupBy(_.id.name).mapValues(_.map(_.value).collect{ case l: LinkEntryValue => l })
     val initial: DependencyInfos = grouped.mapValues(_ match {
       case Nil => Depth(0)
       case l => Links(l.map(_.name))

@@ -12,18 +12,23 @@ object ResourcesLoader {
     resources.mapValues(entries => {
       val (entryNames, unresolved) = Analyzer.orderEntries(entries.entries)
       val entryTypes = Analyzer.determineEntryTypesForOneLocale(entries.entries, entryNames)
-      val grouped = entries.entries.groupBy(_.key.name)
+      val grouped = entries.entries.groupBy(_.id.name)
       entryNames.foldLeft(Map.empty[EntryName, ResValue])((b, entryName) => {
         grouped(entryName).foldLeft(b)((b1, re) => {
           val resValue: ResValue = re.value match {
             case MsgEntryValue(format, isMarkup) => MsgResValue(format, isMarkup)
             case LinkEntryValue(name) => b1(name)
           }
-          re.key match {
-            case SimpleEntryKey(_) => b1 + (entryName -> resValue)
-            case TreeEntryKey(_, path) => {
+          re.id match {
+            case SimpleEntryId(_) => b1 + (entryName -> resValue)
+            case TreeEntryId(_, path) => {
               val treeValue = b1.getOrElse(entryName, TreeResValue(ResTrees.KeyValueTree.empty)).asInstanceOf[TreeResValue]
               b1 + (entryName -> TreeResValue(treeValue.tree(path) = resValue))
+            }
+            case MapEntryId(_, key) => {
+              val mapValue = b1.getOrElse(entryName, MapResValue(Map.empty[String, ResValue])).asInstanceOf[MapResValue]
+              b1 + (entryName -> MapResValue(mapValue.map + (key -> resValue)))
+
             }
           }
         })

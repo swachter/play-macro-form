@@ -15,8 +15,8 @@ o={0}
 o=x
 
 # a lookup tree with entries of varying number of arguments
-t[]=1
-t[a]={2}
-t[a.b]=3
+t<>=1
+t<a>={2}
+t<a.b>=3
 
 

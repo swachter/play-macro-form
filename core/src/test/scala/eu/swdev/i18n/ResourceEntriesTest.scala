@@ -11,29 +11,29 @@ class ResourceEntriesTest extends FunSuite with Inside {
 
   implicit def toReader(string: String) = new CharSequenceReader(string)
 
-  def parseEntry(string: String): ResourceParser.ParseResult[Entry] = {
+  def parseEntry(string: String): ResourceParser.ParseResult[EntryLine] = {
     ResourceParser.phrase(ResourceParser.entry)(string)
   }
 
-  def parseLines(string: String): ResourceParser.ParseResult[List[Entry]] = {
+  def parseLines(string: String): ResourceParser.ParseResult[List[EntryLine]] = {
     ResourceParser.phraseLines(string)
   }
 
   test("ResourceEntry") {
     inside(parseEntry("a=")) {
-      case ResourceParser.Success(Entry(SimpleEntryKey("a"), MsgEntryValue(mf, false)), _) if (mf.toPattern == "") => true
+      case ResourceParser.Success(EntryLine(SimpleEntryId("a"), MsgEntryValue(mf, false)), _) if (mf.toPattern == "") => true
     }
     inside(parseEntry("a=b")) {
-      case ResourceParser.Success(Entry(SimpleEntryKey("a"), MsgEntryValue(mf, false)), _) if (mf.toPattern == "b") => true
+      case ResourceParser.Success(EntryLine(SimpleEntryId("a"), MsgEntryValue(mf, false)), _) if (mf.toPattern == "b") => true
     }
     inside(parseEntry("a@b")) {
-      case ResourceParser.Success(Entry(SimpleEntryKey("a"), MsgEntryValue(mf, true)), _) if (mf.toPattern == "b") => true
+      case ResourceParser.Success(EntryLine(SimpleEntryId("a"), MsgEntryValue(mf, true)), _) if (mf.toPattern == "b") => true
     }
     inside(parseEntry("a=b\\\nc")) {
-      case ResourceParser.Success(Entry(_, MsgEntryValue(mf, _)), _) if (mf.toPattern == "bc") => true
+      case ResourceParser.Success(EntryLine(_, MsgEntryValue(mf, _)), _) if (mf.toPattern == "bc") => true
     }
     inside(parseEntry("a=b\\nc")) {
-      case ResourceParser.Success(Entry(_, MsgEntryValue(mf, _)), _) if (mf.toPattern == "b\nc") => true
+      case ResourceParser.Success(EntryLine(_, MsgEntryValue(mf, _)), _) if (mf.toPattern == "b\nc") => true
     }
   }
 
@@ -42,22 +42,22 @@ class ResourceEntriesTest extends FunSuite with Inside {
       case ResourceParser.Success(List(), _) => true
     }
     inside(parseLines("a=b")) {
-      case ResourceParser.Success(List(Entry(_, _)), _) => true
+      case ResourceParser.Success(List(EntryLine(_, _)), _) => true
     }
     inside(parseLines("\na=b\n")) {
-      case ResourceParser.Success(List(Entry(_, _)), _) => true
+      case ResourceParser.Success(List(EntryLine(_, _)), _) => true
     }
     inside(parseLines("  \na=b\n  ")) {
-      case ResourceParser.Success(List(Entry(_, _)), _) => true
+      case ResourceParser.Success(List(EntryLine(_, _)), _) => true
     }
     inside(parseLines("#cmt\na=b\n#cmt")) {
-      case ResourceParser.Success(List(Entry(_, _)), _) => true
+      case ResourceParser.Success(List(EntryLine(_, _)), _) => true
     }
     inside(parseLines("#cmt\na=b\n#cmt\n")) {
-      case ResourceParser.Success(List(Entry(_, _)), _) => true
+      case ResourceParser.Success(List(EntryLine(_, _)), _) => true
     }
     inside(parseLines("a=b\na@b")) {
-      case ResourceParser.Success(List(Entry(_, _), Entry(_, _)), _) => true
+      case ResourceParser.Success(List(EntryLine(_, _), EntryLine(_, _)), _) => true
     }
   }
 

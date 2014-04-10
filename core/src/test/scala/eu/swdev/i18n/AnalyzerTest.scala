@@ -30,7 +30,7 @@ class AnalyzerTest extends FunSuite with Inside {
     }
   }
 
-  def parseLines(string: String): List[Entry] = {
+  def parseLines(string: String): List[EntryLine] = {
     ResourceEntries.ResourceParser.phraseLines(new CharSequenceReader(string)).get
   }
 
@@ -38,15 +38,15 @@ class AnalyzerTest extends FunSuite with Inside {
   test("tree of trees") {
     val input =
       """
-        |a[1]=a1
-        |a[2]=a2
-        |b[1]=b1
-        |b[2]=b2
-        |u[1]->a
-        |u[2]->b
+        |a<1>=a1
+        |a<2>=a2
+        |b<1>=b1
+        |b<2>=b2
+        |u<1>->a
+        |u<2>->b
       """.stripMargin
 
-    val entries: List[Entry] = parseLines(input)
+    val entries: List[EntryLine] = parseLines(input)
 
     val (names, _) = orderEntries(entries)
 
