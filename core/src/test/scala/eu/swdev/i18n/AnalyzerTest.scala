@@ -26,12 +26,12 @@ class AnalyzerTest extends FunSuite with Inside {
   test("simple") {
     val result = analyze(getClass.getClassLoader, "com/abc/resource", de_DE)
     inside(result) {
-      case AnalyzeResult(MapE(("a", MsgEntryType(0, false)), ("b", MsgEntryType(1, true)), ("c", MsgEntryType(2, false)), ("d", MsgEntryType(3, false)), ("o", MsgEntryType(0, false)), ("t", TreeEntryType(MsgEntryType(3, false)))), _, _, _) => true
+      case AnalyzeResult(MapE(("a", MsgEntryType(0, false)), ("b", MsgEntryType(1, true)), ("c", MsgEntryType(2, false)), ("d", MsgEntryType(3, false)), ("o", MsgEntryType(0, false)), ("t", TreeEntryType(MsgEntryType(3, false)))), _, _, _) =>
     }
   }
 
   def parseLines(string: String): List[EntryLine] = {
-    ResourceEntries.ResourceParser.phraseLines(new CharSequenceReader(string)).get
+    EntryLines.ResourceParser.phraseLines(new CharSequenceReader(string)).get
   }
 
 
@@ -53,7 +53,7 @@ class AnalyzerTest extends FunSuite with Inside {
     val result = determineEntryTypesForOneLocale(entries, names)
 
     inside(result) {
-      case MapE(("a", List(TreeEntryType(MsgEntryType(0, false)))), ("b", List(TreeEntryType(MsgEntryType(0, false)))), ("u", List(TreeEntryType(TreeEntryType(MsgEntryType(0, false)))))) => true
+      case MapE(("a", List(TreeEntryType(MsgEntryType(0, false)))), ("b", List(TreeEntryType(MsgEntryType(0, false)))), ("u", List(TreeEntryType(TreeEntryType(MsgEntryType(0, false)))))) =>
     }
   }
 }

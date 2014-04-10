@@ -1,14 +1,12 @@
 package eu.swdev.i18n
 
 import java.text.MessageFormat
-import scala.io.Source
-import scala.util.parsing.combinator.RegexParsers
-import java.net.URL
-import scala.util.parsing.input.StreamReader
-
-import scala.language.postfixOps
 import scala.collection.GenTraversable
-
+import java.net.URL
+import scala.util.parsing.combinator.RegexParsers
+import scala.util.parsing.input.StreamReader
+import scala.io.Source
+import scala.language.postfixOps
 
 /**
  * Identifies an entry line.
@@ -67,7 +65,7 @@ sealed trait EntryLineValue
 
 /**
  * Represents an entry line value that is a message.
- * 
+ *
  * @param format the message format that is used to generate the message
  * @param isMarkup indicates if the message contains markup or not
  */
@@ -82,7 +80,7 @@ case class LinkEntryLineValue(name: EntryName) extends EntryLineValue
 
 /**
  * Represents a logical entry line in a resource file.
- * 
+ *
  * A logical entry line typically corresponds to a single natural line. However, if the entry line has a message value
  * then the message value can span several natural lines by ending a line with a (non-escaped) backslash character.
  * In that case the line break and any whitespace characters at the beginning of the following line are ignored.
@@ -93,159 +91,34 @@ case class LinkEntryLineValue(name: EntryName) extends EntryLineValue
 case class EntryLine(id: EntryLineId, value: EntryLineValue)
 
 /**
- * Describes the type of an entry.
+ * Contains a list of entry lines.
  *
- * One or message formats lie behind an entry. For example an entry may comprise message formats for different locales
- * or in case of tree-valued or map-valued entries for different keys. An entry type provides an aggregated view of all
- * the corresponding message formats. 
+ * The sequential order in the list of the entry lines correspond to their appearance in definitions. Entry lines that
+ * appeared earlier are in front of entry lines that appeared later. If an entry line that appeared later has the same
+ * entry line id as a preceding entry line then the preceding entry line is overwritten (i.e. it is no more contained
+ * in the list of entry lines).
  */
-sealed trait EntryType {
-  /**
-   * Gets the maximum number of arguments of the message formats behind this entry type.
-   * @return
-   */
-  def args: Int
-  /**
-   * Indicates if any of the message formats behind this entry type consist of markup.
-   * @return
-   */
-  def isMarkup: Boolean
-}
+case class EntryLines private (entries: List[EntryLine]) {
 
-sealed trait LookupEntryType extends EntryType {
-  protected def nested: EntryType
-  def args: Int = nested.args
-  def isMarkup: Boolean = nested.isMarkup
-  def emptyEntry: LookupEntry
-}
+  def add(other: EntryLines): EntryLines = this ++ other.entries
 
-/**
- * Describes an entry that corresponds to one or more message formats.
- * 
- * @param args the maximum number of arguments a message has
- * @param isMarkup indicates if the message contains markup or not
- */
-case class MsgEntryType(args: Int, isMarkup: Boolean) extends EntryType
-
-case class TreeEntryType(nested: EntryType) extends LookupEntryType {
-  def emptyEntry = new TreeEntry(this, ResTrees.KeyValueTree.empty)
-}
-
-case class MapEntryType(nested: EntryType) extends LookupEntryType {
-  def emptyEntry = new MapEntry(this, Map.empty)
-}
-
-object MsgEntryType {
-  def apply(format: MessageFormat, isMarkup: Boolean): MsgEntryType = MsgEntryType(format.getFormatsByArgumentIndex.length, isMarkup)
-}
-
-//
-//
-//
-
-/**
- * Represents a resource entry.
- */
-sealed trait Entry {
-
-  def tpe: EntryType
-
-  /**
-   * Format the message and return it as raw string.
-   *
-   * This method must be called only if this entry is a message entry.
-   *
-   * @param args
-   * @return
-   */
-  def outputRaw(args: Array[Object]): String
-
-  /**
-   * Format the message and return it as markup.
-   *
-   * This method must be called only if this entry is a message entry.
-   *
-   * @param args
-   * @param markup
-   * @return
-   */
-  def outputMarkup(args: Array[Object])(implicit markup: MsgMarkup): markup.M
-
-  /**
-   * Lookup an entry.
-   *
-   * This method must be called only if this entry is either map-valued or tree-valued.
-   *
-   * @param key
-   * @return
-   */
-  def lookup(key: String): Option[Entry]
-
-}
-
-trait LookupEntry extends Entry {
-  override def outputRaw(args: Array[Object]): String = throw new UnsupportedOperationException
-  override def outputMarkup(args: Array[Object])(implicit markup: MsgMarkup): markup.M = throw new UnsupportedOperationException
-  def +(key: String, value: Entry): LookupEntry
-}
-
-/**
- *
- * @param format
- * @param isMarkup indicates if the format contains markup or not
- */
-case class MsgEntry(tpe: EntryType, format: MessageFormat, isMarkup: Boolean) extends Entry {
-
-  override def lookup(key: String): Option[Entry] = throw new UnsupportedOperationException
-
-  override def outputRaw(args: Array[Object]): String = {
-    format.format(args)
-  }
-  override def outputMarkup(args: Array[Object])(implicit markup: MsgMarkup): markup.M = {
-    val s = format.format(args)
-    if (isMarkup) markup.markupMsg(s) else markup.rawMsg(s)
-  }
-}
-
-case class TreeEntry(tpe: EntryType, tree: ResTrees.KeyValueTree) extends LookupEntry {
-
-  override def lookup(key: String): Option[Entry] = tree.getValue(key)
-  def +(key: String, value: Entry): TreeEntry = copy(tree = tree(key) = value)
-}
-
-case class MapEntry(tpe: EntryType, map: Map[String, Entry]) extends LookupEntry {
-
-  override def lookup(key: String): Option[Entry] = map.get(key)
-  def +(key: String, value: Entry): MapEntry = copy(map = map + (key -> value))
-}
-
-/**
- *
- * @param entries The sequential arrangement of the entries correspond to their appearance in definitions. Entries that
- *                were defined earlier are in front of entries that were defined later. If an entry is overwritten
- *                by a later definition then its earlier appearance is removed.
- */
-case class ResourceEntries private (entries: List[EntryLine]) {
-
-  def add(other: ResourceEntries): ResourceEntries = this ++ other.entries
-
-  def ++(other: GenTraversable[EntryLine]): ResourceEntries = {
+  def ++(other: GenTraversable[EntryLine]): EntryLines = {
     val zero = (List.empty[EntryLine], Set.empty[EntryLineId])
     val t = (entries ++ other).foldRight(zero)((e, accu) => if (accu._2.contains(e.id)) accu else (e :: accu._1, accu._2 + e.id))
-    ResourceEntries(t._1)
+    EntryLines(t._1)
   }
 }
 
-object ResourceEntries {
+object EntryLines {
 
-  val empty = new ResourceEntries(Nil)
+  val empty = new EntryLines(Nil)
 
-  def apply(url: URL): ResourceEntries = {
+  def apply(url: URL): EntryLines = {
     val entries = ResourceParser.parse(url)
     empty ++ entries
   }
 
-  def apply(urls: TraversableOnce[URL]): ResourceEntries = {
+  def apply(urls: TraversableOnce[URL]): EntryLines = {
     val lines = for {
       url <- urls
     } yield {
@@ -270,26 +143,26 @@ object ResourceEntries {
 
     val entryId: Parser[EntryLineId] =
       entryName ~ treeKey ^^ { case name ~ key => TreeEntryLineId(name, key) } |
-      entryName ~ mapKey ^^ { case name ~ key => MapEntryLineId(name, key) } |
-      entryName ^^ { case name => SimpleEntryLineId(name) }
+        entryName ~ mapKey ^^ { case name ~ key => MapEntryLineId(name, key) } |
+        entryName ^^ { case name => SimpleEntryLineId(name) }
 
     /**
-     * 
+     *
      */
     val messageFormat: Parser[MessageFormat] = namedError(
       rep(
         """\\""" ^^ (_ => """\""")                          | // Handle escaped \\
-        """\""" ~> ws ~> ("\r"?) ~> "\n" ~> ws ^^ (_ => "") | // Ignore escaped end of lines and following whitespace
-        """\n""" ^^ (_ => "\n")                             | // Translate literal \n to real newline
-        """.""".r                                             // keep any character (except new line)
+          """\""" ~> ws ~> ("\r"?) ~> "\n" ~> ws ^^ (_ => "") | // Ignore escaped end of lines and following whitespace
+          """\n""" ^^ (_ => "\n")                             | // Translate literal \n to real newline
+          """.""".r                                             // keep any character (except new line)
       ) ^^ { case frags => new MessageFormat(frags.mkString.trim) },
       "message format expected"
     )
 
     val entryValue: Parser[EntryLineValue] =
       "->" ~> ws ~> entryName ^^ { case n => LinkEntryLineValue(n) } |
-      '@' ~> ws ~> messageFormat ^^ { case m => MsgEntryLineValue(m, true) } |
-      '=' ~> ws ~> messageFormat ^^ { case m => MsgEntryLineValue(m, false) }
+        '@' ~> ws ~> messageFormat ^^ { case m => MsgEntryLineValue(m, true) } |
+        '=' ~> ws ~> messageFormat ^^ { case m => MsgEntryLineValue(m, false) }
 
     val entry: Parser[EntryLine] = (ws ~> entryId) ~ (ws ~> entryValue) ^^ {
       case k ~ v => EntryLine(k, v)
@@ -319,6 +192,5 @@ object ResourceEntries {
     }
 
   }
-
 
 }

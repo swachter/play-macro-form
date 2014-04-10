@@ -8,7 +8,7 @@ import java.util.Locale
 object ResourcesLoader {
 
   def load(classLoader: ClassLoader, resourcePath: String, locales: Locale*): Map[Locale, Map[EntryName, Entry]] = {
-    val resources: Map[Locale, ResourceEntries] = loadResources(classLoader, resourcePath, locales: _*)
+    val resources: Map[Locale, EntryLines] = loadResources(classLoader, resourcePath, locales: _*)
     val analyzeResult = Analyzer.analyzeResourceEntries(resources)
     resources.mapValues(entries => {
       val (entryNames, unresolved) = Analyzer.orderEntries(entries.entries)
@@ -31,7 +31,7 @@ object ResourcesLoader {
     })
   }
 
-  def loadResources(classLoader: ClassLoader, resourcePath: String, locales: Locale*): Map[Locale, ResourceEntries] = {
+  def loadResources(classLoader: ClassLoader, resourcePath: String, locales: Locale*): Map[Locale, EntryLines] = {
     val resourceLoader = new ResourceLoader(classLoader, resourcePath)
     (for {
       locale <- locales
@@ -61,20 +61,20 @@ object ResourcesLoader {
 
   class ResourceLoader(classLoader: ClassLoader, resourcePath: String) {
 
-    val loadedResources: MMap[Option[Locale], ResourceEntries] = MMap.empty
+    val loadedResources: MMap[Option[Locale], EntryLines] = MMap.empty
 
-    def load(locale: Option[Locale]): ResourceEntries = {
+    def load(locale: Option[Locale]): EntryLines = {
       if (!loadedResources.contains(locale)) {
         loadedResources(locale) = doLoad(locale)
       }
       loadedResources(locale)
     }
 
-    private def doLoad(locale: Option[Locale]): ResourceEntries = {
+    private def doLoad(locale: Option[Locale]): EntryLines = {
       val path = locale.map(l => s"$resourcePath.${l.toString}").getOrElse(resourcePath)
       import scala.collection.JavaConverters._
       val urls = classLoader.getResources(path).asScala
-      ResourceEntries(urls)
+      EntryLines(urls)
     }
 
   }

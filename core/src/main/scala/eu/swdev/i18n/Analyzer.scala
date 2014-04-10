@@ -30,7 +30,7 @@ object Analyzer {
    * @param input
    * @return
    */
-  def analyzeResourceEntries(input: Map[Locale, ResourceEntries]): AnalyzeResult = {
+  def analyzeResourceEntries(input: Map[Locale, EntryLines]): AnalyzeResult = {
 
     val tmp: Map[Locale, (EntryTypes, UnresolvedEntries)] = input.mapValues(entries => {
       val (entryNames, unresolved) = orderEntries(entries.entries)

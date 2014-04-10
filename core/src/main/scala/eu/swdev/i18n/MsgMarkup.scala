@@ -37,7 +37,3 @@ trait MsgMarkup {
    */
   def markupMsg(string: String): M
 }
-
-object ResTrees extends StringKeyValueTreeModule {
-  type Value = Entry
-}
