@@ -60,6 +60,9 @@ lazy val playMod = Project("play-mod", file("play-mod")).dependsOn(core).setting
 lazy val playApp = Project("play-app", file("play-app")).dependsOn(core, playMod).settings(
     name := "play-app"
   ).settings(commonPlaySettings: _*).settings(
+    // macros that are executed when the play application gets compiled may need to access resources
+    // -> add the resource directory to the dependency classpath
+    dependencyClasspath in Compile ++= (unmanagedResourceDirectories in Compile).value,
     templatesImport += "eu.swdev.play.form.bootstrap3.Import._"
   )
 

@@ -68,11 +68,15 @@ object ResourceMacro {
       // in that case the applications.langs entry is evaluated
       val pattern = """^\s*application.langs\s*(?:=|:)"""
       val RegEx = (pattern + "(.*)").r
-      val is = this.getClass.getResourceAsStream("/conf/application.conf")
+      val is = this.getClass.getResourceAsStream("/application.conf")
       if (is != null) {
         try {
           Source.fromInputStream(is, "UTF-8").getLines().filter(_.matches(pattern + ".*")).flatMap(_ match {
-            case RegEx(langs) => langs.trim.split(""",|\s+""").filter(!_.trim.isEmpty).map(s => stringToLocale((s)))
+            case RegEx(langs) => {
+              // the value of the langs attribute may be enclosed in quotation marks
+              // -> allow quotation marks as separators -> they will be ignored
+              langs.trim.split("""\s*,\s*|"|\s+""").filter(!_.trim.isEmpty).map(s => stringToLocale((s)))
+            }
           }).toList
         } finally {
           is.close()
@@ -174,27 +178,25 @@ object ResourceMacro {
       }
     }
 
-    def simpleMsgDef(id: String, tpe: MsgEntryType): Tree = {
-      val idName = c.universe.newTermName(id)
-      val lhs = callOutputMethod(q"entriesMap(locale)($id)", tpe)
+    def createMethodName(name: String) = c.universe.newTermName(name.replace('.', '_'))
+
+    def simpleMsgDef(name: String, tpe: MsgEntryType): Tree = {
+      val methodName = createMethodName(name)
+      val lhs = callOutputMethod(q"entriesMap(locale)($name)", tpe)
+      // the implicit MsgMarkup parameter is necessary for markup messages only. However, in order to have a stable
+      // call-signature (i.e. the signature without considering the result type) the implicit MsgMarkup parameter
+      // is always created. This provides stability when the generated methods implement interfaces. (Otherwise the
+      // interface would change every time an entry changes its isMarkup property.)
       if (tpe.args == 0) {
-        if (tpe.isMarkup) {
-          q"""def $idName(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
-        } else {
-          q"""def $idName(implicit locale: Locale) = $lhs"""
-        }
+        q"""def $methodName(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
       } else {
         val args = createArgParams(tpe)
-        if (tpe.isMarkup) {
-          q"""def $idName(..$args)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
-        } else {
-          q"""def $idName(..$args)(implicit locale: Locale) = $lhs"""
-        }
+        q"""def $methodName(..$args)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
       }
     }
 
-    def lookupMsgDef(id: String, tpe: LookupEntryType): Tree = {
-      val idName = c.universe.newTermName(id)
+    def lookupMsgDef(name: String, tpe: LookupEntryType): Tree = {
+      val methodName = createMethodName(name)
 
       def calcNbKeys(t: EntryType): Int = t match {
         case TreeEntryType(nested) => 1 + calcNbKeys(nested)
@@ -206,25 +208,17 @@ object ResourceMacro {
 
       val keyParams = createParams("key", nbKeys, "String")
 
-      val start = q"entriesMap(locale)($id).lookup(key0)"
+      val start = q"entriesMap(locale)($name).lookup(key0)"
 
       val flat = flatMapLookup(start, nbKeys - 1)
 
       val lhs = mapOutputMethod(flat, tpe)
 
       if (tpe.args == 0) {
-        if (tpe.isMarkup) {
-          q"""def $idName(..$keyParams)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
-        } else {
-          q"""def $idName(..$keyParams)(implicit locale: Locale) = $lhs"""
-        }
+        q"""def $methodName(..$keyParams)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
       } else {
         val args = createArgParams(tpe)
-        if (tpe.isMarkup) {
-          q"""def $idName(..$keyParams)(..$args)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
-        } else {
-          q"""def $idName(..$keyParams)(..$args)(implicit locale: Locale) = $lhs"""
-        }
+        q"""def $methodName(..$keyParams)(..$args)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
       }
     }
 
@@ -232,61 +226,89 @@ object ResourceMacro {
       q"new Locale(${l.getLanguage}, ${l.getCountry}, ${l.getVariant})"
     }
 
-    val modDefs: List[Tree] = annottees.map {
-      annottee => {
-        annottee.tree match {
-          case q"object $objectName { ..$body }" => {
+    def constructNewBody(body: List[Tree]): List[Tree] = {
 
-            val macroParams = c.macroApplication match {
-              case q"new ${_}(..$mps).${_}(${_})" => extractMacroParams(mps)
-              case _ => c.abort(c.enclosingPosition, "could not extract macro parameters")
-            }
+      val macroParams = c.macroApplication match {
+        case q"new ${_}(..$mps).${_}(${_})" => extractMacroParams(mps)
+        case _ => c.abort(c.enclosingPosition, "could not extract macro parameters")
+      }
 
-            val resourcePath = macroParams.resourcePath.getOrElse("conf/messages")
-            val locales: List[Locale] = macroParams.locales.getOrElse(guessLocales)
+      val resourcePath = macroParams.resourcePath.getOrElse("conf/messages")
+      val locales: List[Locale] = macroParams.locales.getOrElse(guessLocales)
 
-            c.info(c.enclosingPosition, s"processing resources - resourcePath: $resourcePath; locales: $locales", true)
+      c.info(c.enclosingPosition, s"processing resources - resourcePath: $resourcePath; locales: $locales", true)
 
-            val result = Analyzer.analyze(this.getClass.getClassLoader, resourcePath, locales: _*)
-            // println(s"result: ${result}")
+      val either = Analyzer.analyze(this.getClass.getClassLoader, resourcePath, locales: _*)
+      //println(s"result: ${result}")
 
-            if (result.resultsOfOneLocale.values.exists(!_.unprocessed.isEmpty)) {
-              c.abort(c.enclosingPosition, s"""some resource entries could not be resolved - ${result.resultsOfOneLocale.mapValues(_.unprocessed)}""")
-            }
-            if (result.missing.values.exists(!_.isEmpty)) {
-              val info = result.missing.filterKeys(!result.missing(_).isEmpty).map(t => s"  [${t._1} -> ${t._2}]").mkString("\n")
-              c.abort(c.enclosingPosition, s"""missing resource entries -\n$info""")
-            }
-            if (!result.conflicting.isEmpty) {
-              c.abort(c.enclosingPosition, s"""some resource entries have conflicting types - ${result.conflicting}""")
-            }
+      if (either.isLeft) {
+        c.abort(c.enclosingPosition, s"""resources could not be analyzed - ${either.left.get}""")
+      }
+      val result = either.right.get
+      if (result.resultsOfOneLocale.values.exists(!_.unprocessed.isEmpty)) {
+        c.abort(c.enclosingPosition, s"""some resource entries could not be resolved - ${result.resultsOfOneLocale.mapValues(_.unprocessed)}""")
+      }
+      if (result.missing.values.exists(!_.isEmpty)) {
+        val info = result.missing.filterKeys(!result.missing(_).isEmpty).map(t => s"  [${t._1} -> ${t._2}]").mkString("\n")
+        c.abort(c.enclosingPosition, s"""missing resource entries -\n$info""")
+      }
+      if (!result.conflicting.isEmpty) {
+        c.abort(c.enclosingPosition, s"""some resource entries have conflicting types - ${result.conflicting}""")
+      }
 
-            val quotedLocales: List[Tree] = locales.map(quoteLocale(_))
+      val quotedLocales: List[Tree] = locales.map(quoteLocale(_))
 
-            val simpleMsgDefs = (for {
-              x <- result.types.collect{ case (n, t: MsgEntryType) => (n, t) }
-            } yield {
-              simpleMsgDef(x._1, x._2)
-            }).toList
+      val simpleMsgDefs = (for {
+        x <- result.types.collect{ case (n, t: MsgEntryType) => (n, t) }
+      } yield {
+        simpleMsgDef(x._1, x._2)
+      }).toList
 
-            val lookupMsgDefs = (for {
-              x <- result.types.collect{ case (n, t: LookupEntryType) => (n, t) }
-            } yield {
-              lookupMsgDef(x._1, x._2)
-            }).toList
+      val lookupMsgDefs = (for {
+        x <- result.types.collect{ case (n, t: LookupEntryType) => (n, t) }
+      } yield {
+        lookupMsgDef(x._1, x._2)
+      }).toList
 
-            val tbody = body.asInstanceOf[List[Tree]]
 
-            // output the modified object
-            q"""
-            object $objectName {
+      //println(s"simpleMsgDefs: ${simpleMsgDefs.length}")
+      //println(s"lookupMsgDefs: ${lookupMsgDefs.length}")
+
+      val tbody = body.asInstanceOf[List[Tree]]
+
+      val newBody = q"""
               import eu.swdev.i18n.MsgMarkup
               import java.util.Locale
               val entriesMap = eu.swdev.i18n.ResourcesLoader.loadEntries(getClass.getClassLoader, $resourcePath, List(..$quotedLocales))
               ..$simpleMsgDefs
               ..$lookupMsgDefs
               ..$tbody
-            }"""
+      """
+
+      newBody match {
+        case Block(l, _) => l
+        case _ => throw new Exception(s"unexpected new body: ${c.universe.showRaw(newBody)}")
+      }
+    }
+
+    val modDefs: List[Tree] = annottees.map {
+      annottee => {
+        annottee.tree match {
+          case q"object $name extends ..$baseTypes { ..$body }" => {
+            val newBody = constructNewBody(body)
+            q"object $name extends ..$baseTypes { ..$newBody }"
+          }
+          case q"class $name extends ..$baseTypes { ..$body }" => {
+            val newBody = constructNewBody(body)
+            q"class $name extends ..$baseTypes { ..$newBody }"
+          }
+          case q"trait $name extends ..$baseTypes { ..$body }" => {
+            val newBody = constructNewBody(body)
+            q"trait $name extends ..$baseTypes { ..$newBody }"
+          }
+          case q"trait $name extends ..$baseTypes" => {
+            val newBody = constructNewBody(Nil)
+            q"trait $name extends ..$baseTypes { ..$newBody }"
           }
           case x => x
         }

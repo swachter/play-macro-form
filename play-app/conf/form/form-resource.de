@@ -1,0 +1,14 @@
+
+field.label<*.f1> = Feld 1
+field.label<*.f2> = Feld 2
+field.label<*.f3> = Feld 3
+field.label<*.f4> = Feld 4
+field.label<*.f5> = Feld 5
+#field.label<*.f6> = Feld 6
+#field.label<*.f7> = Feld 7
+field.label<*.f8> = Feld 8
+field.label<*.f9> = Feld 9
+field.label<*.f10> = Feld 10
+
+field.label.default = Feld {0}
+

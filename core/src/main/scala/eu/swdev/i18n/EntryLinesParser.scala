@@ -16,9 +16,9 @@ object EntryLinesParser extends RegexParsers {
   def ws = opt(whiteSpace)
   def newLine = namedError((("\r"?) ~> "\n"), "End of line expected")
 
-  val entryName: Parser[String] = namedError("""[a-zA-Z][a-zA-Z0-9_]*""".r, "illegal entry name")
+  val entryName: Parser[String] = namedError("""[a-zA-Z][a-zA-Z0-9_.]*""".r, "illegal entry name")
 
-  val treeKey: Parser[String] = '<' ~> ws ~> """[a-zA-Z0-9_.]*""".r <~ ws <~ '>'
+  val treeKey: Parser[String] = '<' ~> ws ~> """[a-zA-Z0-9_.?*]*""".r <~ ws <~ '>'
 
   val mapKey: Parser[String] = '(' ~> ws ~> """[^)]*""".r <~ ws <~ ')'
 
@@ -63,14 +63,6 @@ object EntryLinesParser extends RegexParsers {
   }
 
   val phraseLines: Parser[List[EntryLine]] = phrase(lines)
-
-//  def parse(url: URL): List[EntryLine] = {
-//    val input = StreamReader(Source.fromURL(url, "UTF-8").reader())
-//    phraseLines(input) match {
-//      case Success(lines, _) => lines
-//      case NoSuccess(message, in) => throw new Exception(s"parse error - message: $message; line: ${in.pos.line}; column: ${in.pos.column}; url: ${url}")
-//    }
-//  }
 
   /**
    * Apply a parser to a given input and map the result to an Either.

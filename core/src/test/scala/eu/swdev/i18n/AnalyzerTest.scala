@@ -25,7 +25,7 @@ class AnalyzerTest extends FunSuite with Inside {
   test("simple") {
     val result = analyze(getClass.getClassLoader, "com/abc/resource", de_DE)
     inside(result) {
-      case AnalysisResultOfAllLocales(MapE(("a", MsgEntryType(0, false)), ("b", MsgEntryType(1, true)), ("c", MsgEntryType(2, false)), ("d", MsgEntryType(3, false)), ("o", MsgEntryType(0, false)), ("t", TreeEntryType(MsgEntryType(3, false)))), _, _, _) =>
+      case Right(AnalysisResultOfAllLocales(MapE(("a", MsgEntryType(0, false)), ("b", MsgEntryType(1, true)), ("c", MsgEntryType(2, false)), ("d", MsgEntryType(3, false)), ("o", MsgEntryType(0, false)), ("t", TreeEntryType(MsgEntryType(3, false)))), _, _, _)) =>
     }
   }
 

@@ -1,6 +1,9 @@
 package com.abc
 
-import eu.swdev.web.form.Form
+import eu.swdev.web.form.{FieldState, Form}
+import eu.swdev.i18n.Resource
+import play.api.i18n.Lang
+import eu.swdev.play.form.StdFormResourceApi
 
 @Form
 object F {
@@ -15,3 +18,6 @@ object F {
   val f9 = field[String].enum(Seq("a", "b", "c"))
   val f10 = field[Seq[String]].enum(Seq("a", "b", "c"))
 }
+
+@Resource(resourcePath = "form/form-resource")
+class FormResourceApiImpl extends StdFormResourceApi

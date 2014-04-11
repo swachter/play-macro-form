@@ -13,7 +13,7 @@ class ResA extends FunSuite {
 
   case class Wrapped(string: String)
 
-  val markupVal = new MsgMarkup {
+  implicit val markupVal = new MsgMarkup {
 
     val escapes: Map[Char, StringBuilder => StringBuilder] = Map(
       '<' -> ((b: StringBuilder) => b.append("&lt;")),
@@ -43,15 +43,15 @@ class ResA extends FunSuite {
   }
 
   test("aggregation") {
-    assert(R.color(de_DE) === "Farbe")
-    assert(R.color(en_US) === "color")
-    assert(R.color(en_UK) === "colour")
+    assert(R.color(de_DE, markupVal) === "Farbe")
+    assert(R.color(en_US, markupVal) === "color")
+    assert(R.color(en_UK, markupVal) === "colour")
   }
 
   test("override") {
-    assert(R.override_(de_DE) === "de")
-    assert(R.override_(en_US) === "en_US")
-    assert(R.override_(en_UK) === "en_UK")
+    assert(R.override_(de_DE, markupVal) === "de")
+    assert(R.override_(en_US, markupVal) === "en_US")
+    assert(R.override_(en_UK, markupVal) === "en_UK")
   }
 
   test("nested lookup") {

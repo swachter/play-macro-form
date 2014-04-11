@@ -37,10 +37,10 @@ object Analyzer {
    */
   case class AnalysisResultOfOneLocale(types: TypesByName, ordered: List[EntryName], unprocessed: UnprocessedNames, grouped: Map[EntryName, List[EntryLine]])
 
-  def analyze(classLoader: ClassLoader, resourcePath: String, locales: Locale*): AnalysisResultOfAllLocales = {
+  def analyze(classLoader: ClassLoader, resourcePath: String, locales: Locale*): Either[List[String], AnalysisResultOfAllLocales] = {
     val loader = new ResourcesLoader.ClassLoaderEntryLinesLoader(classLoader, resourcePath)
     val resources = ResourcesLoader.loadEntryLines(loader, locales: _*)
-    analyzeEntryLinesOfAllLocales(resources.right.get)
+    resources.right.map(analyzeEntryLinesOfAllLocales(_))
   }
 
   /**
