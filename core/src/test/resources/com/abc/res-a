@@ -1,0 +1,19 @@
+
+# in de the oneAndOne entry contains markup
+# -> it must be returned as markup for the en-locales too.
+# -> this entry must be escaped
+oneAndOne = 1&1
+
+override_=_
+
+map1(0) = 0
+map1(1) = 1
+map1(2) = 2
+
+map2(0) -> map1
+map2(1) -> map1
+map2(2) -> map1
+
+map3(0) -> map2
+map3(1) -> map2
+map3(2) -> map2

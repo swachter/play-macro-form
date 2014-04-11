@@ -45,6 +45,7 @@ object ResourceMacro {
         case _ => c.abort(c.enclosingPosition, s"could not extract locale - param: $tree; raw: ${c.universe.showRaw(tree)}")
       }
     }
+
     def extractMacroParams(list: List[Tree]): MacroParams = list match {
       case Nil => MacroParams(None, None)
       case tree :: tail => {
@@ -175,12 +176,20 @@ object ResourceMacro {
 
     def simpleMsgDef(id: String, tpe: MsgEntryType): Tree = {
       val idName = c.universe.newTermName(id)
-      val lhs = callOutputMethod(q"resMap(locale)($id)", tpe)
+      val lhs = callOutputMethod(q"entriesMap(locale)($id)", tpe)
       if (tpe.args == 0) {
-        q"""def $idName(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
+        if (tpe.isMarkup) {
+          q"""def $idName(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
+        } else {
+          q"""def $idName(implicit locale: Locale) = $lhs"""
+        }
       } else {
         val args = createArgParams(tpe)
-        q"""def $idName(..$args)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
+        if (tpe.isMarkup) {
+          q"""def $idName(..$args)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
+        } else {
+          q"""def $idName(..$args)(implicit locale: Locale) = $lhs"""
+        }
       }
     }
 
@@ -197,18 +206,30 @@ object ResourceMacro {
 
       val keyParams = createParams("key", nbKeys, "String")
 
-      val start = q"resMap(locale)($id).lookup(key0)"
+      val start = q"entriesMap(locale)($id).lookup(key0)"
 
       val flat = flatMapLookup(start, nbKeys - 1)
 
       val lhs = mapOutputMethod(flat, tpe)
 
       if (tpe.args == 0) {
-        q"""def $idName(..$keyParams)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
+        if (tpe.isMarkup) {
+          q"""def $idName(..$keyParams)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
+        } else {
+          q"""def $idName(..$keyParams)(implicit locale: Locale) = $lhs"""
+        }
       } else {
         val args = createArgParams(tpe)
-        q"""def $idName(..$keyParams)(..$args)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
+        if (tpe.isMarkup) {
+          q"""def $idName(..$keyParams)(..$args)(implicit locale: Locale, markup: MsgMarkup) = $lhs"""
+        } else {
+          q"""def $idName(..$keyParams)(..$args)(implicit locale: Locale) = $lhs"""
+        }
       }
+    }
+
+    def quoteLocale(l: Locale): Tree = {
+      q"new Locale(${l.getLanguage}, ${l.getCountry}, ${l.getVariant})"
     }
 
     val modDefs: List[Tree] = annottees.map {
@@ -222,11 +243,12 @@ object ResourceMacro {
             }
 
             val resourcePath = macroParams.resourcePath.getOrElse("conf/messages")
-            val locales = macroParams.locales.getOrElse(guessLocales)
+            val locales: List[Locale] = macroParams.locales.getOrElse(guessLocales)
 
             c.info(c.enclosingPosition, s"processing resources - resourcePath: $resourcePath; locales: $locales", true)
 
             val result = Analyzer.analyze(this.getClass.getClassLoader, resourcePath, locales: _*)
+            // println(s"result: ${result}")
 
             if (result.resultsOfOneLocale.values.exists(!_.unprocessed.isEmpty)) {
               c.abort(c.enclosingPosition, s"""some resource entries could not be resolved - ${result.resultsOfOneLocale.mapValues(_.unprocessed)}""")
@@ -239,7 +261,7 @@ object ResourceMacro {
               c.abort(c.enclosingPosition, s"""some resource entries have conflicting types - ${result.conflicting}""")
             }
 
-            // println(s"result: ${result}")
+            val quotedLocales: List[Tree] = locales.map(quoteLocale(_))
 
             val simpleMsgDefs = (for {
               x <- result.types.collect{ case (n, t: MsgEntryType) => (n, t) }
@@ -253,14 +275,6 @@ object ResourceMacro {
               lookupMsgDef(x._1, x._2)
             }).toList
 
-
-
-
-            //            println("showRaw1: " + c.universe.showRaw(c.macroApplication))
-//            val t: Tree = q"""$x.macro@CompiledMessages(resourcePath="abc") object X {}"""
-//            println(t)
-//            println("showRaw2: " + c.universe.showRaw(t))
-
             val tbody = body.asInstanceOf[List[Tree]]
 
             // output the modified object
@@ -268,7 +282,7 @@ object ResourceMacro {
             object $objectName {
               import eu.swdev.i18n.MsgMarkup
               import java.util.Locale
-              val resMap = eu.swdev.i18n.ResourcesLoader.loadEntries(getClass.getClassLoader, $resourcePath, new Locale("de", "DE"))
+              val entriesMap = eu.swdev.i18n.ResourcesLoader.loadEntries(getClass.getClassLoader, $resourcePath, List(..$quotedLocales))
               ..$simpleMsgDefs
               ..$lookupMsgDefs
               ..$tbody

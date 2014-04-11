@@ -10,33 +10,42 @@ object ResourcesLoader {
   type LoadResult = Either[List[String], List[EntryLine]]
   type LocaleLoader = Option[Locale] => LoadResult
 
-  def loadEntries(classLoader: ClassLoader, resourcePath: String, locales: Locale*): Map[Locale, Map[EntryName, Entry]] = {
+  def loadEntries(classLoader: ClassLoader, resourcePath: String, locales: List[Locale]): Map[Locale, Map[EntryName, Entry]] = {
     val loader = new ClassLoaderEntryLinesLoader(classLoader, resourcePath)
     loadEntryLines(loader, locales: _*) match {
       case Left(l) => throw new Exception(l.mkString("\n"))
-      case Right(resources) => {
-        val analyzeResult = Analyzer.analyzeEntryLinesOfAllLocales(resources)
-        resources.map(mapParam => {
-          val locale = mapParam._1
-          val entryLines = mapParam._2
+      case Right(entryLinesByLocale) => {
+        val analyzeResult = Analyzer.analyzeEntryLinesOfAllLocales(entryLinesByLocale)
+        // map the iterator of locales into an iterator of tuples (locale -> Map[EntryName, Entry]) then convert it into a map
+        entryLinesByLocale.keys.map(locale => locale -> {
           val entryNames = analyzeResult.resultsOfOneLocale(locale).ordered
           val grouped = analyzeResult.resultsOfOneLocale(locale).grouped
-          locale -> entryNames.foldLeft(Map.empty[EntryName, Entry])((b, entryName) => {
-            grouped(entryName).foldLeft(b)((b1, re) => {
-              val resValue: Entry = re.value match {
-                case MsgEntryLineValue(format, isMarkup) => MsgEntry(analyzeResult.types(entryName), format, isMarkup)
-                case LinkEntryLineValue(name) => b1(name)
-              }
-              re.id match {
-                case SimpleEntryLineId(_) => b1 + (entryName -> resValue)
-                case LookupEntryLineId(_, key) => {
-                  val entry = b1.getOrElse(entryName, analyzeResult.types(entryName).asInstanceOf[LookupEntryType].emptyEntry).asInstanceOf[LookupEntry]
-                  b1 + (entryName -> (entry + (key, resValue)))
-                }
-              }
-            })
-          })
+          // fold over the ordered entry names for the current locale and aggregate then entry map
+          entryNames.foldLeft(Map.empty[EntryName, Entry])((b, entryName) => {
 
+            def entryLineValue(line: EntryLine, tpe: EntryType): Entry = line.value match {
+              case MsgEntryLineValue(format, isMarkup) => MsgEntry(tpe, format, isMarkup)
+              case LinkEntryLineValue(name) => b(name)
+            }
+
+            val entryLines = grouped(entryName)
+
+            val entry = analyzeResult.types(entryName) match {
+              case entryType: MsgEntryType => {
+                // there must be exactly one entry line because the entry has the MsgEntryType
+                entryLineValue(entryLines.head, entryType)
+              }
+              case entryType: LookupEntryType => {
+                // fold over all lines starting with an empty entry, and incorporate the key-value pairs
+                entryLines.foldLeft(entryType.emptyEntry)((b1, line) => line.id match {
+                  case LookupEntryLineId(_, key) => b1 + (key, entryLineValue(line, entryType))
+                })
+              }
+            }
+
+            b + (entryName -> entry)
+
+          })
         }).toMap
       }
     }

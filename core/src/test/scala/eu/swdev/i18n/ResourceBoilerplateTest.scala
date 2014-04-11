@@ -7,19 +7,19 @@ import org.scalatest.FunSuite
   */
 object R {
 
-  val resMap = ResourcesLoader.loadEntries(getClass.getClassLoader, "com/abc/resource", new Locale("de", "DE"))
+  val entriesMap = ResourcesLoader.loadEntries(getClass.getClassLoader, "com/abc/resource", List(new Locale("de", "DE")))
 
-  def a(implicit locale: Locale) = resMap(locale)("a").outputRaw(null)
+  def a(implicit locale: Locale) = entriesMap(locale)("a").outputRaw(null)
 
-  def b(arg0: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = resMap(locale)("b").outputMarkup(Array(arg0))
+  def b(arg0: AnyRef)(implicit locale: Locale, markup: MsgMarkup) = entriesMap(locale)("b").outputMarkup(Array(arg0))
 
-  def c(arg0: AnyRef, arg1: AnyRef)(implicit locale: Locale) = resMap(locale)("c").outputRaw(Array(arg0, arg1))
+  def c(arg0: AnyRef, arg1: AnyRef)(implicit locale: Locale) = entriesMap(locale)("c").outputRaw(Array(arg0, arg1))
 
-  def d(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale) = resMap(locale)("d").outputRaw(Array(arg0, arg1, arg2))
+  def d(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale) = entriesMap(locale)("d").outputRaw(Array(arg0, arg1, arg2))
 
-  def o(implicit locale: Locale) = resMap(locale)("o").outputRaw(null)
+  def o(implicit locale: Locale) = entriesMap(locale)("o").outputRaw(null)
 
-  def t(key0: String)(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale) = resMap(locale)("t").lookup(key0).map(_.outputRaw(Array(arg0, arg1, arg2)))
+  def t(key0: String)(arg0: AnyRef, arg1: AnyRef, arg2: AnyRef)(implicit locale: Locale) = entriesMap(locale)("t").lookup(key0).map(_.outputRaw(Array(arg0, arg1, arg2)))
 
 
 }

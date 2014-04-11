@@ -35,7 +35,7 @@ class ResourceMacroTest extends FunSuite {
   implicit val locale = new Locale("de", "DE")
 
   test("simple") {
-    assert(R.resMap != null)
+    assert(R.entriesMap != null)
     assert(R.a === "")
     assert(R.b("x") === Wrapped("<b>x</b>"))
     assert(R.o === "x")

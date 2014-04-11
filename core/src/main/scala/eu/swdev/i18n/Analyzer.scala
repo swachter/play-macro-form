@@ -2,19 +2,17 @@ package eu.swdev.i18n
 
 import scala.collection.mutable.{Map => MMap}
 import java.util.Locale
-import scala.collection.GenTraversable
-import java.net.URL
 
 /**
  *
  */
 object Analyzer {
 
-  type MissingEntries = Map[Locale, Set[EntryName]]
-  type ConflictingEntries = Map[EntryName, List[(Locale, List[EntryType])]]
+  type MissingNames = Map[Locale, Set[EntryName]]
+  type ConflictingTypes = Map[EntryName, List[(Locale, List[EntryType])]]
 
-  type UnprocessedEntries = Map[EntryName, Set[EntryName]]
-  type EntryTypesByName = Map[EntryName, List[EntryType]]
+  type UnprocessedNames = Map[EntryName, Set[EntryName]]
+  type TypesByName = Map[EntryName, List[EntryType]]
 
   /**
    * The result of analyzing a map of locales and their entry lines.
@@ -26,7 +24,7 @@ object Analyzer {
    *                    For each entry name a list of locales and the entry types that exist for that entry name and locale is given.
    * @param resultsOfOneLocale Holds the separate analysis results for each locale.
    */
-  case class AnalysisResultOfAllLocales(types: Map[EntryName, EntryType], missing: MissingEntries, conflicting: ConflictingEntries, resultsOfOneLocale: Map[Locale, AnalysisResultOfOneLocale])
+  case class AnalysisResultOfAllLocales(types: Map[EntryName, EntryType], missing: MissingNames, conflicting: ConflictingTypes, resultsOfOneLocale: Map[Locale, AnalysisResultOfOneLocale])
 
   /**
    * The result of analyzing a single list of entry lines.
@@ -37,7 +35,7 @@ object Analyzer {
    *                    result was not available.
    * @param grouped Maps entry names to the list of entry lines that belong to that entry name
    */
-  case class AnalysisResultOfOneLocale(types: EntryTypesByName, ordered: List[EntryName], unprocessed: UnprocessedEntries, grouped: Map[EntryName, List[EntryLine]])
+  case class AnalysisResultOfOneLocale(types: TypesByName, ordered: List[EntryName], unprocessed: UnprocessedNames, grouped: Map[EntryName, List[EntryLine]])
 
   def analyze(classLoader: ClassLoader, resourcePath: String, locales: Locale*): AnalysisResultOfAllLocales = {
     val loader = new ResourcesLoader.ClassLoaderEntryLinesLoader(classLoader, resourcePath)
@@ -58,14 +56,14 @@ object Analyzer {
     val resultsOfOneLocale: Map[Locale, AnalysisResultOfOneLocale] = input.mapValues(el => analyzeEntryLinesOfOneLocale(el.entries))
     
     val locales: List[Locale] = input.keys.toList
-    val entryTypes: Map[Locale, EntryTypesByName] = resultsOfOneLocale.mapValues(_.types)
+    val entryTypes: Map[Locale, TypesByName] = resultsOfOneLocale.mapValues(_.types)
 
     // collect the entry names of all entry types that resulted from the separate analysis of each EntryLines instance
     val allNames: Set[EntryName] = entryTypes.values.flatMap(_.keys).toSet
 
     // for each locale calculate the set of entry names for which there is no entry type known in that locale
     // -> missing = allNames - <the names of all known entry types of that locale>
-    val missingNames: MissingEntries = entryTypes.mapValues(m => allNames -- m.keys)
+    val missingNames: MissingNames = entryTypes.mapValues(m => allNames -- m.keys)
 
     // the entry names for which there are entry types in all locales
     // -> commonNames = allName -- <the missing names in all locales>
@@ -103,7 +101,7 @@ object Analyzer {
     val (orderedNames, unprocessed, grouped) = orderEntries(entries)
 
     // calculate the map of entry types by folding over the ordered list of entry names and starting with an empty map
-    val entryTypes: EntryTypesByName = orderedNames.foldLeft(Map.empty[EntryName, List[EntryType]])((accu, entryName) => {
+    val entryTypes: TypesByName = orderedNames.foldLeft(Map.empty[EntryName, List[EntryType]])((accu, entryName) => {
       // for each entryName map its list of entry lines into a list of entry types
       val etl: List[EntryType] = grouped(entryName).map(line => line.id match {
         case SimpleEntryLineId(_) => {
@@ -171,7 +169,7 @@ object Analyzer {
    * @param lines
    * @return a tuple containing a list of ordered entry names and a map of entry names that could not be resolved
    */
-  def orderEntries(lines: List[EntryLine]): (List[EntryName], UnprocessedEntries, Map[EntryName, List[EntryLine]]) = {
+  def orderEntries(lines: List[EntryLine]): (List[EntryName], UnprocessedNames, Map[EntryName, List[EntryLine]]) = {
 
     type DependencyInfos = Map[EntryName, DependencyInfo]
 
@@ -238,7 +236,7 @@ object Analyzer {
     val orderedEntryNames: List[EntryName] = di.toList.collect{ case (n: EntryName, d: Depth) => (n, d) }.sortWith((l, r) => l._2.depth < r._2.depth).map(_._1)
 
     // collect the (EntryName/Links) pairs and map the links to the set of those entry names for which no depth is known
-    val unresolved: UnprocessedEntries = di.collect{ case (n: EntryName, l: Links) => (n, l.list.filter(nn => !di.get(nn).isDefined || !di(nn).isDepth).toSet)}
+    val unresolved: UnprocessedNames = di.collect{ case (n: EntryName, l: Links) => (n, l.list.filter(nn => !di.get(nn).isDefined || !di(nn).isDepth).toSet)}
     (orderedEntryNames, unresolved, grouped)
   }
 }
