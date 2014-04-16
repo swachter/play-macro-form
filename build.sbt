@@ -54,7 +54,8 @@ lazy val playMod = Project("play-mod", file("play-mod")).dependsOn(core).setting
     templatesImport += "eu.swdev.web.style._",
     templatesImport += "eu.swdev.web.style.AttrDescs._",
     templatesImport += "eu.swdev.play.form.MsgLookup",
-    templatesImport += "eu.swdev.play.form.bootstrap3._"
+    templatesImport += "eu.swdev.play.form.bootstrap3._",
+    dependencyClasspath in Test ++= (unmanagedResourceDirectories in Test).value
   )
 
 lazy val playApp = Project("play-app", file("play-app")).dependsOn(core, playMod).settings(

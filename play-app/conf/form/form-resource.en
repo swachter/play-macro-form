@@ -3,11 +3,12 @@ field.label<*.f2> = Field 2
 field.label<*.f3> = Field 3
 field.label<*.f4> = Field 4
 field.label<*.f5> = Field 5
-#field.label<*.f6> = Field 6
-#field.label<*.f7> = Field 7
+field.label<*.f6> = Field 6
+field.label<*.f7> = Field 7
 field.label<*.f8> = Field 8
 field.label<*.f9> = Field 9
 field.label<*.f10> = Field 10
 
 field.label.default = Field {0}
 
+field.placeholder<*.f1> = Please enter a number

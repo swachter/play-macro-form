@@ -5,6 +5,7 @@ import scala.reflect.macros.Context
 import scala.language.experimental.macros
 import java.util.Locale
 import scala.io.Source
+import java.net.URLClassLoader
 
 /**
  *
@@ -238,8 +239,13 @@ object ResourceMacro {
 
       c.info(c.enclosingPosition, s"processing resources - resourcePath: $resourcePath; locales: $locales", true)
 
+//      println(s"c.classPath: ${c.classPath}")
+//      val urlClassLoader = new URLClassLoader(c.classPath.toArray)
+//      val url = urlClassLoader.findResource("form/form-resource")
+//      println(s"url: $url")
+
       val either = Analyzer.analyze(this.getClass.getClassLoader, resourcePath, locales: _*)
-      //println(s"result: ${result}")
+      //println(s"result: $either")
 
       if (either.isLeft) {
         c.abort(c.enclosingPosition, s"""resources could not be analyzed - ${either.left.get}""")
@@ -291,6 +297,12 @@ object ResourceMacro {
       }
     }
 
+    //
+    // macro execution starts here
+    //
+
+    //c.info(c.enclosingPosition, "executing macro", true)
+
     val modDefs: List[Tree] = annottees.map {
       annottee => {
         annottee.tree match {
@@ -301,6 +313,10 @@ object ResourceMacro {
           case q"class $name extends ..$baseTypes { ..$body }" => {
             val newBody = constructNewBody(body)
             q"class $name extends ..$baseTypes { ..$newBody }"
+          }
+          case q"class $name(..$args) extends ..$baseTypes { ..$body }" => {
+            val newBody = constructNewBody(body)
+            q"class $name(..$args) extends ..$baseTypes { ..$newBody }"
           }
           case q"trait $name extends ..$baseTypes { ..$body }" => {
             val newBody = constructNewBody(body)

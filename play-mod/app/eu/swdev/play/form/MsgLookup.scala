@@ -8,15 +8,17 @@ import play.api.templates.Html
  * Looks up messages for labels, visualization of values, and error messages.
  *
  * A certain message is looked by searching through a sequence keys in descending order of the specificity of keys.
+ *
+ * TODO: Remove after FormResourceApi is complete.
  */
 object MsgLookup {
 
-  def fieldLabel(fieldState: FieldState[_, _, _])(implicit lang: Lang): String = {
-    lookup(fieldState._name, "form.label").getOrElse(fieldState._name.toString)
+  def fieldLabel(fieldState: FieldState[_, _, _])(implicit lang: Lang): AnyRef = {
+    FormResource.api.fieldLabel(fieldState)
   }
 
-  def placeholder(fieldState: FieldState[_, _, _])(implicit lang: Lang): Option[String] = {
-    lookup(fieldState._name, "form.placeholder")
+  def placeholder(fieldState: FieldState[_, _, _])(implicit lang: Lang): Option[AnyRef] = {
+    FormResource.api.fieldPlaceholder(fieldState)
   }
 
   def valueLabel(fieldState: FieldState[_, _, _], strValue: String)(implicit lang: Lang): String = {

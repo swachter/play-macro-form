@@ -79,6 +79,18 @@ class ResourceMacroTest extends FunSuite {
     assert(obj.abc === "abc")
   }
 
+  @Resource(resourcePath = "com/abc/resource", locales = List("de_DE"))
+  class ResClassWithConstructor(x: Int) {
+    val abc = "abc"
+  }
+
+  test("class with constructor") {
+    val obj = new ResClassWithConstructor(0)
+    assert(obj.o === "x")
+    assert(obj.abc === "abc")
+  }
+
+
   //
 
   @Resource(resourcePath = "com/abc/resource", locales = List("de_DE"))
